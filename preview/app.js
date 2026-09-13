@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.4" }
+      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.5" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -51,18 +51,6 @@
     var now = new Date();
     var pad = function (value) { return String(value).padStart(2, "0"); };
     $("#clock").textContent = pad(now.getDate()) + "." + pad(now.getMonth() + 1) + "." + now.getFullYear() + "  " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
-  }
-
-  function renderNav() {
-    var nav = $("#section-nav");
-    nav.innerHTML = "";
-    sections.forEach(function (section, index) {
-      var button = document.createElement("button");
-      button.className = "nav-item" + (index === state.selected ? " active" : "");
-      button.innerHTML = "<span class=\"nav-number\">" + String(index + 1).padStart(2, "0") + "</span>" + section.title;
-      button.addEventListener("click", function () { selectTile(index); openSection(index); });
-      nav.appendChild(button);
-    });
   }
 
   function renderTiles() {
@@ -86,7 +74,6 @@
     if (index < 0 || index >= sections.length) return;
     state.selected = index;
     $("#focus-title").textContent = "WYBRANO  " + String(index + 1).padStart(2, "0") + "  " + sections[index].title.toUpperCase();
-    renderNav();
     renderTiles();
   }
 
@@ -100,7 +87,7 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.4]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.5]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
     if (sectionId === "iptv") return [
       item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U i tworzy osobny bukiet. Picony są opcjonalne i pobierane osobno.", "Bukiet główny", "foorys-iptv", "install"),
@@ -286,7 +273,6 @@
   renderClock();
   window.setInterval(renderClock, 1000);
   window.setInterval(refreshMetrics, 2800);
-  renderNav();
   renderTiles();
   loadManifest();
 }());

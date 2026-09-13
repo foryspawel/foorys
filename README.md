@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.6.4 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.6.5 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.6.4
+## Co działa w wersji 0.6.5
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -20,7 +20,8 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 - walidacja ścieżek w archiwach, aby uniknąć zapisu poza katalogiem staging.
 - główny ekran E2-Foorys w formie siatki kafelków oraz osobne ekrany czynności:
   listy kanałów, aktualizacje, IPTV, Softcam/OSCam, pluginy, kopie, system i diagnostyka,
-- boczne menu kategorii widoczne również w skinie Enigma2 na ekranie TV,
+- pełnoszeroki ekran główny z dużymi kafelkami funkcji; na ekranie TV nie ma
+  bocznego menu, więc cała przestrzeń pozostaje czytelna,
 - domyślne połączenie z `foryspawel/foorys` przez `manifest.json` na GitHubie,
 - aktualizacja samego E2-Foorys przez pobranie pakietu IPK z GitHuba,
 - odczyt CPU, RAM, flasha, magazynu, temperatury, uptime i zainstalowanych
@@ -59,15 +60,15 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.6.4
+  python tools/build_ipk.py --version 0.6.5
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.4_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.5_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
-scp dist/enigma2-plugin-extensions-e2foorys_0.6.4_all.ipk root@DEKODER:/tmp/
-ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.4_all.ipk
+scp dist/enigma2-plugin-extensions-e2foorys_0.6.5_all.ipk root@DEKODER:/tmp/
+ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.5_all.ipk
 ```
 
 Po instalacji plugin znajduje się w menu wtyczek jako `E2-Foorys`.
@@ -85,7 +86,7 @@ opkg install enigma2-plugin-extensions-e2foorys
 Indeks feeda jest generowany poleceniem:
 
 ```text
-python tools/build_opkg_feed.py releases/enigma2-plugin-extensions-e2foorys_0.6.4_all.ipk
+python tools/build_opkg_feed.py releases/enigma2-plugin-extensions-e2foorys_0.6.5_all.ipk
 ```
 
 ## Manifest repozytorium
