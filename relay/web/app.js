@@ -117,7 +117,7 @@ $("#devices").onclick = event => {
 $("#pair").onclick = async () => {
   try {
     const data = await request("/v1/admin/pairings", { method: "POST", body: "{}" });
-    $("#notice").textContent = `6-cyfrowy kod ważny 15 min: ${data.pairingCode}. Wpisz go w ustawieniach E2-Foorys na dekoderze.`;
+    $("#notice").textContent = `4-cyfrowy kod ważny 15 min: ${data.pairingCode}. Wpisz go w ustawieniach E2-Foorys na dekoderze.`;
   } catch (error) { $("#notice").textContent = error.message; }
 };
 

@@ -54,7 +54,7 @@ function hash(value) { return crypto.createHash("sha256").update(String(value)).
 function random(bytes) { return crypto.randomBytes(bytes).toString("base64url"); }
 function newPairingCode() {
   let code;
-  do { code = String(crypto.randomInt(100000, 1000000)); } while (state.pairings[code]);
+  do { code = String(crypto.randomInt(1000, 10000)); } while (state.pairings[code]);
   return code;
 }
 function json(response, status, value) {
