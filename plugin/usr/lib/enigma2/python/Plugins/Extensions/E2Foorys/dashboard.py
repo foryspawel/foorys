@@ -33,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 
 MAIN_SKIN = """
@@ -41,15 +41,15 @@ MAIN_SKIN = """
     <eLabel position="0,0" size="1260,5" backgroundColor="#26C8F5" />
     <eLabel position="26,18" size="4,74" backgroundColor="#26C8F5" />
     <widget name="logo" position="44,20" size="70,70" alphatest="blend" scale="1" />
-    <widget name="title" position="132,20" size="620,42" font="Regular;34" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
-    <widget name="subtitle" position="132,63" size="620,28" font="Regular;20" foregroundColor="#8FA7BE" backgroundColor="#0B1827" transparent="0" />
-    <widget name="version" position="890,18" size="338,26" font="Regular;21" foregroundColor="#28C8F5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="890,47" size="338,27" font="Regular;22" foregroundColor="#C0D0DE" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="890,77" size="338,24" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="shortcut" position="890,103" size="338,24" font="Regular;17" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="title" position="132,18" size="620,44" font="Regular;38" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
+    <widget name="subtitle" position="132,64" size="620,30" font="Regular;23" foregroundColor="#B7C8D8" backgroundColor="#0B1827" transparent="0" />
+    <widget name="version" position="870,16" size="358,28" font="Regular;24" foregroundColor="#28C8F5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="870,47" size="358,29" font="Regular;25" foregroundColor="#E0EAF2" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="870,78" size="358,25" font="Regular;20" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="shortcut" position="870,104" size="358,24" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
     <eLabel position="26,132" size="1208,1" backgroundColor="#173049" />
-    <widget name="focus_title" position="36,145" size="560,32" font="Regular;27" foregroundColor="#26C8F5" backgroundColor="#0B1827" transparent="0" />
-    <widget name="focus_desc" position="610,145" size="614,32" font="Regular;19" foregroundColor="#9DB2C5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="focus_title" position="36,143" size="660,36" font="Regular;30" foregroundColor="#26C8F5" backgroundColor="#0B1827" transparent="0" />
+    <widget name="focus_desc" position="710,147" size="514,30" font="Regular;22" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
 
     <eLabel position="32,182" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="32,182" size="5,106" backgroundColor="#26C8F5" />
@@ -70,30 +70,30 @@ MAIN_SKIN = """
     <eLabel position="848,422" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="848,422" size="5,106" backgroundColor="#FF6B6B" />
 
-    <widget name="card0" position="50,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card1" position="458,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card2" position="866,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card3" position="50,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card4" position="458,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card5" position="866,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card6" position="50,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card7" position="458,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card8" position="866,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_channels" position="50,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_updates" position="458,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_iptv" position="866,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_picons" position="50,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_softcam" position="458,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_plugins" position="866,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_backups" position="50,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_system" position="458,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_diagnostics" position="866,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
 
     <eLabel position="26,548" size="1208,1" backgroundColor="#173049" />
-    <widget name="decoder" position="36,560" size="590,31" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" />
-    <widget name="status" position="650,560" size="574,31" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="hint" position="36,606" size="1188,54" font="Regular;19" foregroundColor="#8CA2B5" backgroundColor="#0B1827" transparent="0" />
+    <widget name="decoder" position="36,558" size="590,34" font="Regular;21" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" />
+    <widget name="status" position="650,558" size="574,34" font="Regular;21" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="hint" position="36,604" size="1188,56" font="Regular;22" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" />
 </screen>
 """
 
 
 HEALTH_SKIN = """
 <screen name="E2FoorysHealth" position="center,center" size="1120,650" title="E2-Foorys - kondycja dekodera" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <widget name="title" position="32,22" size="1055,50" font="Regular;36" foregroundColor="#18C7F5" />
-    <widget name="report" position="38,88" size="1045,475" font="Regular;27" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="38,575" size="1045,32" font="Regular;23" foregroundColor="#FFD24A" />
-    <widget name="hint" position="38,613" size="1045,27" font="Regular;20" foregroundColor="#71899E" />
+    <widget name="title" position="32,18" size="1055,54" font="Regular;40" foregroundColor="#18C7F5" />
+    <widget name="report" position="38,88" size="1045,470" font="Regular;30" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="38,572" size="1045,34" font="Regular;26" foregroundColor="#FFD24A" />
+    <widget name="hint" position="38,612" size="1045,28" font="Regular;23" foregroundColor="#B7C8D8" />
 </screen>
 """
 
@@ -101,14 +101,14 @@ HEALTH_SKIN = """
 SECTION_MENU_SKIN = """
 <screen name="E2FoorysSectionMenu" position="center,center" size="1120,650" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
     <eLabel position="0,0" size="1120,5" backgroundColor="#26C8F5" />
-    <widget name="title" position="32,22" size="1045,46" font="Regular;36" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
-    <widget name="description" position="32,70" size="1045,34" font="Regular;21" foregroundColor="#8FA7BE" backgroundColor="#0B1827" transparent="0" />
+    <widget name="title" position="32,18" size="1045,50" font="Regular;40" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
+    <widget name="description" position="32,72" size="1045,34" font="Regular;24" foregroundColor="#C5D4E1" backgroundColor="#0B1827" transparent="0" />
     <eLabel position="32,118" size="1045,1" backgroundColor="#173049" />
-    <widget name="list" position="32,140" size="690,390" itemHeight="58" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#174D68" transparent="0" />
-    <widget name="item_title" position="754,140" size="323,40" font="Regular;26" foregroundColor="#26C8F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="item_info" position="754,190" size="323,210" font="Regular;21" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="32,552" size="1045,34" font="Regular;22" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" />
-    <widget name="hint" position="32,604" size="1045,30" font="Regular;20" foregroundColor="#8CA2B5" backgroundColor="#0B1827" transparent="0" />
+    <widget name="list" position="32,140" size="690,390" itemHeight="66" font="Regular;30" scrollbarMode="showOnDemand" foregroundColor="#F2F7FC" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#174D68" transparent="0" />
+    <widget name="item_title" position="754,140" size="323,48" font="Regular;30" foregroundColor="#26C8F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="item_info" position="754,194" size="323,210" font="Regular;25" foregroundColor="#D5E2EC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="32,552" size="1045,34" font="Regular;26" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" />
+    <widget name="hint" position="32,604" size="1045,30" font="Regular;23" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" />
 </screen>
 """
 
@@ -123,6 +123,42 @@ SECTIONS = (
     ("backups", "Kopie / Przywracanie", "Kopie bezpieczeństwa konfiguracji."),
     ("system", "System / Konserwacja", "Podstawowe operacje administracyjne GUI."),
     ("diagnostics", "Diagnostyka / Naprawa", "Kondycja, wolne miejsce i pakiety."),
+)
+
+CARD_WIDGETS = (
+    "card_channels",
+    "card_updates",
+    "card_iptv",
+    "card_picons",
+    "card_softcam",
+    "card_plugins",
+    "card_backups",
+    "card_system",
+    "card_diagnostics",
+)
+
+CARD_TITLES = (
+    "LISTY BZYK83",
+    "AKTUALIZACJE",
+    "IPTV / PLAYER",
+    "PICONY",
+    "OSCAM / SOFTCAM",
+    "PLUGINY",
+    "KOPIE ZAPASOWE",
+    "SYSTEM",
+    "DIAGNOSTYKA",
+)
+
+CARD_HINTS = (
+    "Hotbird 13E • Dual",
+    "Plugin i katalog GitHub",
+    "E2iPlayer i patch",
+    "Pobieranie piconów",
+    "Stable i oscam.dvbapi",
+    "XStreamity • Picons",
+    "Dostępne kopie plików",
+    "Miejsce • Restart GUI",
+    "CPU • RAM • RootFS",
 )
 
 
@@ -220,8 +256,15 @@ class E2FoorysMain(Screen):
         self["shortcut"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
         self["focus_title"] = Label("")
         self["focus_desc"] = Label("")
-        for index in range(len(SECTIONS)):
-            self["card%d" % index] = Label("")
+        self["card_channels"] = Label("")
+        self["card_updates"] = Label("")
+        self["card_iptv"] = Label("")
+        self["card_picons"] = Label("")
+        self["card_softcam"] = Label("")
+        self["card_plugins"] = Label("")
+        self["card_backups"] = Label("")
+        self["card_system"] = Label("")
+        self["card_diagnostics"] = Label("")
         self["top_stats"] = Label("CPU: --   RAM: --")
         self["decoder"] = Label("Odczytywanie stanu dekodera...")
         self["status"] = Label("Łączenie z centralną bazą GitHub...")
@@ -280,16 +323,14 @@ class E2FoorysMain(Screen):
     def _render_cards(self):
         """Rysuje główny ekran jako niezależną siatkę narzędzi."""
 
-        for index, section in enumerate(SECTIONS):
-            title = section[1].upper()
-            description = _short_description(section[2], width=36, limit=2)
-            marker = "▶" if index == self.card_index else " "
-            text = "%s %02d  %s\n%s" % (marker, index + 1, title, description)
-            self["card%d" % index].setText(text)
+        for index, name in enumerate(CARD_WIDGETS):
+            marker = ">" if index == self.card_index else " "
+            text = "%s %s\n%s" % (marker, CARD_TITLES[index], CARD_HINTS[index])
+            self[name].setText(text)
 
         section_id, title, description = SECTIONS[self.card_index]
         self["focus_title"].setText("WYBRANO  %02d  %s" % (self.card_index + 1, title.upper()))
-        self["focus_desc"].setText(_short_description(description, width=58, limit=1))
+        self["focus_desc"].setText("OK: otwórz kategorię")
 
     def _move_card(self, delta):
         new_index = self.card_index + delta

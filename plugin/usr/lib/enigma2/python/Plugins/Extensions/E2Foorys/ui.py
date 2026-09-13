@@ -47,10 +47,10 @@ MAIN_SKIN = """
 
 CATALOG_SKIN = """
 <screen name="E2FoorysCatalog" position="center,center" size="1180,680" title="E2-Foorys">
-    <widget name="title" position="35,22" size="1110,54" font="Regular;38" />
-    <widget name="list" position="35,94" size="1110,458" itemHeight="58" font="Regular;28" scrollbarMode="showOnDemand" />
-    <widget name="status" position="35,570" size="1110,38" font="Regular;26" />
-    <widget name="hint" position="35,620" size="1110,32" font="Regular;22" />
+    <widget name="title" position="35,18" size="1110,58" font="Regular;42" />
+    <widget name="list" position="35,94" size="1110,452" itemHeight="68" font="Regular;32" scrollbarMode="showOnDemand" />
+    <widget name="status" position="35,566" size="1110,40" font="Regular;29" />
+    <widget name="hint" position="35,618" size="1110,34" font="Regular;25" />
 </screen>
 """
 
@@ -123,10 +123,10 @@ class AsyncJob(object):
 
 CONSOLE_SKIN = """
 <screen name="E2FoorysConsole" position="center,center" size="1200,700" title="E2-Foorys - konsola" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <widget name="title" position="35,20" size="1130,54" font="Regular;36" foregroundColor="#18C7F5" />
-    <widget name="log" position="35,92" size="1130,500" font="Regular;24" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="35,610" size="1130,40" font="Regular;26" foregroundColor="#FFD24A" />
-    <widget name="hint" position="35,660" size="1130,30" font="Regular;22" foregroundColor="#71899E" />
+    <widget name="title" position="35,18" size="1130,58" font="Regular;40" foregroundColor="#18C7F5" />
+    <widget name="log" position="35,94" size="1130,494" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="35,606" size="1130,42" font="Regular;30" foregroundColor="#FFD24A" />
+    <widget name="hint" position="35,658" size="1130,32" font="Regular;25" foregroundColor="#D5E2EC" />
 </screen>
 """
 
