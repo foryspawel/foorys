@@ -33,32 +33,57 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.3.1"
+VERSION = "0.4.0"
 
 
 MAIN_SKIN = """
 <screen name="E2FoorysMain" position="center,center" size="1260,700" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <eLabel position="0,0" size="1260,3" backgroundColor="#1683BB" />
-    <eLabel position="20,104" size="1220,1" backgroundColor="#173049" />
-    <widget name="logo" position="28,16" size="82,82" alphatest="blend" scale="1" />
-    <widget name="title" position="130,18" size="700,46" font="Regular;38" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="subtitle" position="130,66" size="700,32" font="Regular;24" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="version" position="900,13" size="330,28" font="Regular;23" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="900,43" size="330,28" font="Regular;23" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="900,73" size="330,24" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="quick_update" position="900,96" size="330,24" font="Regular;18" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="section_title" position="32,136" size="650,40" font="Regular;30" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="section_count" position="770,139" size="125,31" font="Regular;22" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
-    <widget name="sections" position="28,180" size="285,420" itemHeight="50" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
-    <widget name="items" position="330,180" size="565,420" itemHeight="52" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#135777" transparent="0" />
-    <widget name="info_title" position="920,136" size="310,40" font="Regular;27" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="info" position="920,180" size="310,132" font="Regular;22" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats_title" position="920,326" size="310,36" font="Regular;25" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats" position="920,366" size="310,184" font="Regular;22" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="decoder" position="920,558" size="310,38" font="Regular;19" foregroundColor="#55D6A0" backgroundColor="#0C1B2B" transparent="0" />
-    <eLabel position="20,615" size="1220,1" backgroundColor="#173049" />
-    <widget name="status" position="28,625" size="1205,30" font="Regular;21" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="hint" position="28,662" size="1205,27" font="Regular;19" foregroundColor="#71899E" backgroundColor="#0E1C2C" transparent="0" />
+    <eLabel position="0,0" size="1260,5" backgroundColor="#26C8F5" />
+    <eLabel position="26,18" size="4,74" backgroundColor="#26C8F5" />
+    <widget name="logo" position="44,20" size="70,70" alphatest="blend" scale="1" />
+    <widget name="title" position="132,20" size="620,42" font="Regular;34" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
+    <widget name="subtitle" position="132,63" size="620,28" font="Regular;20" foregroundColor="#8FA7BE" backgroundColor="#0B1827" transparent="0" />
+    <widget name="version" position="890,18" size="338,26" font="Regular;21" foregroundColor="#28C8F5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="890,47" size="338,27" font="Regular;22" foregroundColor="#C0D0DE" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="890,77" size="338,24" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="shortcut" position="890,103" size="338,24" font="Regular;17" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <eLabel position="26,132" size="1208,1" backgroundColor="#173049" />
+    <widget name="focus_title" position="36,145" size="560,32" font="Regular;27" foregroundColor="#26C8F5" backgroundColor="#0B1827" transparent="0" />
+    <widget name="focus_desc" position="610,145" size="614,32" font="Regular;19" foregroundColor="#9DB2C5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+
+    <eLabel position="32,182" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="32,182" size="5,106" backgroundColor="#26C8F5" />
+    <eLabel position="440,182" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="440,182" size="5,106" backgroundColor="#B97CFF" />
+    <eLabel position="848,182" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="848,182" size="5,106" backgroundColor="#55D6A0" />
+    <eLabel position="32,302" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="32,302" size="5,106" backgroundColor="#FFB347" />
+    <eLabel position="440,302" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="440,302" size="5,106" backgroundColor="#F06BCB" />
+    <eLabel position="848,302" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="848,302" size="5,106" backgroundColor="#4EA7FF" />
+    <eLabel position="32,422" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="32,422" size="5,106" backgroundColor="#9A8CFF" />
+    <eLabel position="440,422" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="440,422" size="5,106" backgroundColor="#FFC857" />
+    <eLabel position="848,422" size="380,106" backgroundColor="#0C1B2B" />
+    <eLabel position="848,422" size="5,106" backgroundColor="#FF6B6B" />
+
+    <widget name="card0" position="50,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card1" position="458,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card2" position="866,193" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card3" position="50,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card4" position="458,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card5" position="866,313" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card6" position="50,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card7" position="458,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card8" position="866,433" size="350,84" font="Regular;21" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+
+    <eLabel position="26,548" size="1208,1" backgroundColor="#173049" />
+    <widget name="decoder" position="36,560" size="590,31" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" />
+    <widget name="status" position="650,560" size="574,31" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+    <widget name="hint" position="36,606" size="1188,54" font="Regular;19" foregroundColor="#8CA2B5" backgroundColor="#0B1827" transparent="0" />
 </screen>
 """
 
@@ -69,6 +94,21 @@ HEALTH_SKIN = """
     <widget name="report" position="38,88" size="1045,475" font="Regular;27" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="status" position="38,575" size="1045,32" font="Regular;23" foregroundColor="#FFD24A" />
     <widget name="hint" position="38,613" size="1045,27" font="Regular;20" foregroundColor="#71899E" />
+</screen>
+"""
+
+
+SECTION_MENU_SKIN = """
+<screen name="E2FoorysSectionMenu" position="center,center" size="1120,650" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
+    <eLabel position="0,0" size="1120,5" backgroundColor="#26C8F5" />
+    <widget name="title" position="32,22" size="1045,46" font="Regular;36" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
+    <widget name="description" position="32,70" size="1045,34" font="Regular;21" foregroundColor="#8FA7BE" backgroundColor="#0B1827" transparent="0" />
+    <eLabel position="32,118" size="1045,1" backgroundColor="#173049" />
+    <widget name="list" position="32,140" size="690,390" itemHeight="58" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#174D68" transparent="0" />
+    <widget name="item_title" position="754,140" size="323,40" font="Regular;26" foregroundColor="#26C8F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="item_info" position="754,190" size="323,210" font="Regular;21" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="32,552" size="1045,34" font="Regular;22" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" />
+    <widget name="hint" position="32,604" size="1045,30" font="Regular;20" foregroundColor="#8CA2B5" backgroundColor="#0B1827" transparent="0" />
 </screen>
 """
 
@@ -166,8 +206,7 @@ class E2FoorysMain(Screen):
         self.manifest = None
         self.system_status = None
         self.section_index = 0
-        self.focus = "items"
-        self.section_items = []
+        self.card_index = 0
         self.manifest_job = None
         self.system_job = None
         self.action_job = None
@@ -175,34 +214,30 @@ class E2FoorysMain(Screen):
         self.quick_update_requested = False
         self["logo"] = Pixmap()
         self["title"] = Label("E2-Foorys")
-        self["subtitle"] = Label("Proste centrum zarządzania dekoderem")
+        self["subtitle"] = Label("Twoje narzędzia do Enigma2")
         self["version"] = Label("Foorys v%s" % VERSION)
         self["clock"] = Label("")
-        self["section_title"] = Label("Listy kanałów")
-        self["section_count"] = Label("1/%d" % len(SECTIONS))
-        self["quick_update"] = Label("NIEBIESKI: AKTUALIZUJ PLUGIN")
-        self["sections"] = MenuList([(section[1], section[0]) for section in SECTIONS])
-        self["items"] = MenuList([])
-        self["info_title"] = Label("Listy kanałów")
-        self["info"] = Label("Pobieranie i bezpieczna instalacja list kanałów.")
-        self["stats_title"] = Label("Stan dekodera")
-        self["stats"] = Label("CPU: --   RAM: --\nFlash: --   Dysk: --\nTemperatura: --\nUptime: --")
+        self["shortcut"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
+        self["focus_title"] = Label("")
+        self["focus_desc"] = Label("")
+        for index in range(len(SECTIONS)):
+            self["card%d" % index] = Label("")
         self["top_stats"] = Label("CPU: --   RAM: --")
         self["decoder"] = Label("Odczytywanie stanu dekodera...")
         self["status"] = Label("Łączenie z centralną bazą GitHub...")
-        self["hint"] = Label("LEWO/PRAWO: zakładka   GÓRA/DÓŁ: wybierz   OK: otwórz   NIEBIESKI: aktualizacja   EXIT: zamknij")
+        self["hint"] = Label("STRZAŁKI: wybierz kafelek   OK: otwórz   ZIELONY: odśwież   NIEBIESKI: szybka aktualizacja   MENU: ustawienia   EXIT: zamknij")
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions", "MenuActions", "ColorActions"],
             {
                 "ok": self.select,
                 "cancel": self.close_screen,
                 "menu": self.open_settings,
-                "left": self.focus_left,
-                "right": self.focus_right,
                 "up": self.move_up,
                 "down": self.move_down,
-                "pageUp": self.page_up,
-                "pageDown": self.page_down,
+                "left": self.move_left,
+                "right": self.move_right,
+                "pageUp": self.move_page_up,
+                "pageDown": self.move_page_down,
                 "green": self.refresh_all,
                 "blue": self.quick_update,
                 "info": self.show_health,
@@ -211,8 +246,7 @@ class E2FoorysMain(Screen):
         )
         self.onClose.append(self._on_close)
         self.onLayoutFinish.append(self._layout_ready)
-        self._render_section()
-        self._update_focus()
+        self._render_cards()
         self._refresh_system_status()
         self._refresh_manifest()
 
@@ -225,9 +259,7 @@ class E2FoorysMain(Screen):
         except Exception:
             pass
         self._update_clock()
-        # OpenATV renderuje zawartość MenuList dopiero po utworzeniu instancji
-        # GUI; ponowne zasilenie list usuwa pusty ekran przy pierwszym wejściu.
-        self._render_section()
+        self._render_cards()
 
     def _update_clock(self):
         self["clock"].setText(time.strftime("%d.%m.%Y  %H:%M"))
@@ -245,62 +277,48 @@ class E2FoorysMain(Screen):
                 return
         self.close()
 
-    def _update_focus(self):
-        for name in ("sections", "items"):
-            try:
-                self[name].instance.setSelectionEnable(1 if name == self.focus else 0)
-            except (AttributeError, TypeError):
-                pass
+    def _render_cards(self):
+        """Rysuje główny ekran jako niezależną siatkę narzędzi."""
 
-    def focus_left(self):
-        self.focus = "sections"
-        self._update_focus()
+        for index, section in enumerate(SECTIONS):
+            title = section[1].upper()
+            description = _short_description(section[2], width=36, limit=2)
+            marker = "▶" if index == self.card_index else " "
+            text = "%s %02d  %s\n%s" % (marker, index + 1, title, description)
+            self["card%d" % index].setText(text)
 
-    def focus_right(self):
-        self.focus = "items"
-        self._update_focus()
+        section_id, title, description = SECTIONS[self.card_index]
+        self["focus_title"].setText("WYBRANO  %02d  %s" % (self.card_index + 1, title.upper()))
+        self["focus_desc"].setText(_short_description(description, width=58, limit=1))
 
-    @staticmethod
-    def _selected_index(widget):
-        try:
-            value = widget.getSelectedIndex()
-            return int(value) if value is not None else -1
-        except (AttributeError, TypeError, ValueError):
-            return -1
+    def _move_card(self, delta):
+        new_index = self.card_index + delta
+        if 0 <= new_index < len(SECTIONS):
+            self.card_index = new_index
+            self.section_index = new_index
+            self._render_cards()
 
-    @staticmethod
-    def _move_to_index(widget, index):
-        try:
-            widget.moveToIndex(index)
-        except AttributeError:
-            try:
-                widget.setIndex(index)
-            except AttributeError:
-                pass
+    def move_left(self):
+        if self.card_index % 3:
+            self._move_card(-1)
 
-    def _move(self, method):
-        widget = self["sections"] if self.focus == "sections" else self["items"]
-        try:
-            getattr(widget, method)()
-        except AttributeError:
-            return
-        if self.focus == "sections":
-            self.section_index = max(0, min(self._selected_index(widget), len(SECTIONS) - 1))
-            self._render_section()
-        else:
-            self._update_item_info()
+    def move_right(self):
+        if self.card_index % 3 < 2 and self.card_index + 1 < len(SECTIONS):
+            self._move_card(1)
 
     def move_up(self):
-        self._move("up")
+        if self.card_index >= 3:
+            self._move_card(-3)
 
     def move_down(self):
-        self._move("down")
+        if self.card_index + 3 < len(SECTIONS):
+            self._move_card(3)
 
-    def page_up(self):
-        self._move("pageUp")
+    def move_page_up(self):
+        self._move_card(-3)
 
-    def page_down(self):
-        self._move("pageDown")
+    def move_page_down(self):
+        self._move_card(3)
 
     def _item(self, title, description, action, **extra):
         item = {"title": title, "description": description, "action": action}
@@ -387,22 +405,9 @@ class E2FoorysMain(Screen):
         return result
 
     def _render_section(self):
-        section_id, title, description = SECTIONS[self.section_index]
-        self.section_items = self._items_for_section(section_id)
-        self["section_title"].setText("%d. %s" % (self.section_index + 1, title))
-        self["section_count"].setText("%d/%d" % (self.section_index + 1, len(SECTIONS)))
-        self["items"].setList([(item["title"], item["action"]) for item in self.section_items])
-        self._move_to_index(self["items"], 0)
-        self["info_title"].setText(title)
-        self["info"].setText(_short_description(description))
-        self._update_item_info()
+        """Kompatybilny alias dla odświeżenia siatki po zmianie katalogu."""
 
-    def _update_item_info(self):
-        index = self._selected_index(self["items"])
-        if 0 <= index < len(self.section_items):
-            item = self.section_items[index]
-            self["info_title"].setText(item.get("title", "E2-Foorys"))
-            self["info"].setText(_short_description(item.get("description", "")))
+        self._render_cards()
 
     def _manifest_url(self):
         return central_manifest_url()
@@ -488,7 +493,7 @@ class E2FoorysMain(Screen):
         if self.closed:
             return
         if error:
-            self["stats"].setText("Diagnostyka niedostępna")
+            self["top_stats"].setText("CPU: n/d   RAM: n/d")
             self["decoder"].setText("Nie udało się odczytać stanu")
             return
         self.system_status = result
@@ -499,8 +504,7 @@ class E2FoorysMain(Screen):
         flash = data.get("flash", {})
         storage = data.get("storage", {})
         storage_status = "zamontowany: %d%% zajęte, wolne %s" % (storage.get("percent", 0), _format_size(storage.get("free", 0))) if storage.get("mounted", True) else "niezamontowany"
-        self["stats"].setText("CPU: %d%%   RAM: %d%%\nRootFS: %s wolne\n(%d%% zajęte)\nDysk: %s\nTemperatura: %s\nUptime: %s" % (data.get("cpu_percent", 0), memory.get("percent", 0), _format_size(flash.get("free", 0)), flash.get("percent", 0), storage_status, data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0))))
-        self["top_stats"].setText("CPU: %d%%   RAM: %d%%" % (data.get("cpu_percent", 0), memory.get("percent", 0)))
+        self["top_stats"].setText("CPU: %d%%   RAM: %d%%   RootFS: %s wolne" % (data.get("cpu_percent", 0), memory.get("percent", 0), _format_size(flash.get("free", 0))))
         self["decoder"].setText("%s | %s | %s" % (data.get("model", "n/d"), data.get("version", "n/d"), "Enigma2 OK" if data.get("enigma2_running") else "Enigma2?"))
 
     def refresh_all(self):
@@ -509,37 +513,9 @@ class E2FoorysMain(Screen):
         self._refresh_manifest()
 
     def select(self):
-        if self.focus == "sections":
-            self.focus_right()
-            return
-        index = self._selected_index(self["items"])
-        if not 0 <= index < len(self.section_items):
-            return
-        item = self.section_items[index]
-        action = item.get("action")
-        if action == "refresh":
-            self._refresh_manifest()
-        elif action == "quick_update":
-            self.quick_update()
-        elif action == "install":
-            self.session.open(CatalogScreen, item.get("catalog_title", "E2-Foorys"), [item.get("entry")], item.get("operation"))
-        elif action == "health":
-            self.show_health()
-        elif action == "free_space":
-            self._show_free_space()
-        elif action == "packages":
-            self._show_packages()
-        elif action == "backups":
-            self._show_backups()
-        elif action == "system_refresh":
-            self._refresh_system_status()
-            self["status"].setText("Odświeżam diagnostykę...")
-        elif action == "restart_gui":
-            self._confirm_restart()
-        elif action == "settings":
-            self.open_settings()
-        elif action == "info":
-            self.session.open(MessageBox, item.get("description", "Brak dodatkowych informacji."), MessageBox.TYPE_INFO, timeout=10)
+        section_id, title, description = SECTIONS[self.card_index]
+        self.section_index = self.card_index
+        self.session.open(SectionMenuScreen, self, section_id, title, description)
 
     def open_settings(self):
         from .ui import E2FoorysConfig
@@ -610,6 +586,142 @@ class E2FoorysMain(Screen):
             self.session.open(TryQuitMainloop, 3)
         except Exception:
             self.session.open(MessageBox, "Uruchom ręcznie restart GUI Enigma2.", MessageBox.TYPE_INFO, timeout=8)
+
+
+class SectionMenuScreen(Screen):
+    """Lista czynności otwierana z kafelka głównego ekranu."""
+
+    skin = SECTION_MENU_SKIN
+
+    def __init__(self, session, controller, section_id, title, description):
+        Screen.__init__(self, session)
+        self.controller = controller
+        self.section_id = section_id
+        self.section_items = controller._items_for_section(section_id)
+        self.closed = False
+        self["title"] = Label("%02d  %s" % (controller.card_index + 1, title))
+        self["description"] = Label(description)
+        self["list"] = MenuList([(item.get("title", ""), item.get("action", "")) for item in self.section_items])
+        self["item_title"] = Label("")
+        self["item_info"] = Label("")
+        self["status"] = Label("Wybierz czynność i naciśnij OK.")
+        self["hint"] = Label("OK: otwórz   ZIELONY: odśwież dane   EXIT: wróć")
+        self["actions"] = ActionMap(
+            ["OkCancelActions", "DirectionActions", "ColorActions"],
+            {
+                "ok": self.select,
+                "cancel": self.close_screen,
+                "up": self.move_up,
+                "down": self.move_down,
+                "pageUp": self.page_up,
+                "pageDown": self.page_down,
+                "green": self.refresh,
+            },
+            -1,
+        )
+        try:
+            self["list"].onSelectionChanged.append(self._selection_changed)
+        except AttributeError:
+            pass
+        self.onClose.append(self._on_close)
+        if not self.section_items:
+            self["status"].setText("Brak czynności w tej kategorii.")
+        self._selection_changed()
+
+    def _on_close(self):
+        self.closed = True
+
+    @staticmethod
+    def _selected_index(widget):
+        try:
+            value = widget.getSelectedIndex()
+            return int(value) if value is not None else -1
+        except (AttributeError, TypeError, ValueError):
+            return -1
+
+    def _selection_changed(self):
+        index = self._selected_index(self["list"])
+        if 0 <= index < len(self.section_items):
+            item = self.section_items[index]
+            self["item_title"].setText(_short_description(item.get("title", ""), width=22, limit=2))
+            self["item_info"].setText(_short_description(item.get("description", ""), width=28, limit=8))
+
+    def move_up(self):
+        try:
+            self["list"].up()
+        except AttributeError:
+            pass
+        self._selection_changed()
+
+    def move_down(self):
+        try:
+            self["list"].down()
+        except AttributeError:
+            pass
+        self._selection_changed()
+
+    def page_up(self):
+        try:
+            self["list"].pageUp()
+        except AttributeError:
+            self.move_up()
+        self._selection_changed()
+
+    def page_down(self):
+        try:
+            self["list"].pageDown()
+        except AttributeError:
+            self.move_down()
+        self._selection_changed()
+
+    def close_screen(self):
+        self.close()
+
+    def refresh(self):
+        self.controller.refresh_all()
+        self["status"].setText("Odświeżam katalog i dane dekodera...")
+
+    def select(self):
+        index = self._selected_index(self["list"])
+        if not 0 <= index < len(self.section_items):
+            return
+        item = self.section_items[index]
+        action = item.get("action")
+        if action == "refresh":
+            self.close()
+            self.controller._refresh_manifest()
+        elif action == "quick_update":
+            self.close()
+            self.controller.quick_update()
+        elif action == "install":
+            self.session.open(
+                CatalogScreen,
+                item.get("catalog_title", "E2-Foorys"),
+                [item.get("entry")],
+                item.get("operation"),
+            )
+        elif action == "health":
+            self.controller.show_health()
+        elif action == "free_space":
+            self.controller._show_free_space()
+        elif action == "packages":
+            self.controller._show_packages()
+        elif action == "backups":
+            self.controller._show_backups()
+        elif action == "system_refresh":
+            self.controller._refresh_system_status()
+            self["status"].setText("Odświeżam diagnostykę...")
+        elif action == "restart_gui":
+            self.controller._confirm_restart()
+        elif action == "settings":
+            self.controller.open_settings()
+        elif action == "info":
+            self.session.open(
+                MessageBox,
+                item.get("description", "Brak dodatkowych informacji."),
+                MessageBox.TYPE_INFO,
+                timeout=10,
+            )
 
 
 class HealthScreen(Screen):

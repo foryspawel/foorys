@@ -3,56 +3,6 @@
   "generated_at": "2026-09-13T12:28:15Z",
   "channel_lists": [
     {
-      "id": "bzyk83-3x1-2026.08.23",
-      "name": "Bzyk83 3x1",
-      "description": "Lista kanałów Bzyk83 dla konfiguracji 3x1.",
-      "author": "Bzyk83",
-      "satellites": "3x1",
-      "version": "2026.08.23",
-      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-3x1.zip",
-      "sha256": "e131c9644c5babc081018a519a65a8e29f31b062b9bdb85752e8ea68a01e3010"
-    },
-    {
-      "id": "bzyk83-4x1-2026.08.23",
-      "name": "Bzyk83 4x1",
-      "description": "Lista kanałów Bzyk83 dla konfiguracji 4x1.",
-      "author": "Bzyk83",
-      "satellites": "4x1",
-      "version": "2026.08.23",
-      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-4x1.zip",
-      "sha256": "45598add2e57d474a23c2e2bcefc00d8f58dc75ce829139d59f84cfc3af892fa"
-    },
-    {
-      "id": "bzyk83-5x1-2026.08.23",
-      "name": "Bzyk83 5x1",
-      "description": "Lista kanałów Bzyk83 dla konfiguracji 5x1.",
-      "author": "Bzyk83",
-      "satellites": "5x1",
-      "version": "2026.08.23",
-      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-5x1.zip",
-      "sha256": "76b7c8280b7c420ee1b8d6aa0527b48f4e8cd26a429caf2233c8b24397c72100"
-    },
-    {
-      "id": "bzyk83-6x1-2026.08.23",
-      "name": "Bzyk83 6x1",
-      "description": "Lista kanałów Bzyk83 dla konfiguracji 6x1.",
-      "author": "Bzyk83",
-      "satellites": "6x1",
-      "version": "2026.08.23",
-      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-6x1.zip",
-      "sha256": "a64b81ffc4e2260453e9f1b460ef85033ec7fe71c8d7a6b10301706bd693fda2"
-    },
-    {
-      "id": "bzyk83-8x1-2026.08.23",
-      "name": "Bzyk83 8x1",
-      "description": "Lista kanałów Bzyk83 dla konfiguracji 8x1.",
-      "author": "Bzyk83",
-      "satellites": "8x1",
-      "version": "2026.08.23",
-      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-8x1.zip",
-      "sha256": "1fa06339c0827f4f36ae2217db14c04e6fe30467081aaf1db83a11e7d25d83e1"
-    },
-    {
       "id": "bzyk83-dual-2026.08.23",
       "name": "Bzyk83 Dual 13E + 19.2E",
       "description": "Lista kanałów Bzyk83 dla Hotbird 13E i Astra 19.2E.",
@@ -126,9 +76,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.1_all.ipk",
-    "sha256": "6203c78d5bad2170355494bac50c0337c1ea97833437a195062ddfc80a31d3b8"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.4.0_all.ipk",
+    "sha256": "817580a6a40ebf3ea62388c13c7c7a9289190e9b966ab3e791aaf8d632c1006d"
   }
 }
