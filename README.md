@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.6.6 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.6.7 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.6.6
+## Co działa w wersji 0.6.7
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -47,6 +47,10 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
   w konfiguracji dekodera i nigdy nie trafiają do manifestu ani repozytorium.
 - diagnostyka sieci: interfejs, brama, DNS i połączenie HTTPS,
 - diagnostyka satelitarna: wykryte frontend-y DVB, blokada sygnału, SNR/AGC i BER.
+- ustawienia IPTV są dostępne osobno w sekcji **Foorys IPTV**, a ekran ustawień
+  głównych nie zawiera już akcji instalacyjnych,
+- diagnostyki sieci i tunerów są zgodne z wywołaniem z konsoli operacji oraz
+  pokazują wynik testu także wtedy, gdy wykryją problem.
 
 Lista kanałów, pluginy i picony są dostarczane wyłącznie przez centralny
 manifest właściciela repozytorium — użytkownik dekodera nie może dopisywać
@@ -63,10 +67,10 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.6.6
+  python tools/build_ipk.py --version 0.6.7
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.6_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.7_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
@@ -89,7 +93,7 @@ opkg install enigma2-plugin-extensions-e2foorys
 Indeks feeda jest generowany poleceniem:
 
 ```text
-python tools/build_opkg_feed.py releases/enigma2-plugin-extensions-e2foorys_0.6.6_all.ipk
+python tools/build_opkg_feed.py releases/enigma2-plugin-extensions-e2foorys_0.6.7_all.ipk
 ```
 
 ## Manifest repozytorium

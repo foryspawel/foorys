@@ -37,10 +37,10 @@ from .operations import (
     patch_e2iplayer,
     validate_root_password,
 )
-from .ui import AsyncJob, CatalogScreen, ConsoleScreen
+from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.6.6"
+VERSION = "0.6.7"
 
 
 MAIN_SKIN = """
@@ -129,8 +129,8 @@ SECTION_MENU_SKIN = """
     <widget name="description" position="32,72" size="1045,34" font="Regular;24" foregroundColor="#C5D4E1" backgroundColor="#0B1827" transparent="0" />
     <eLabel position="32,118" size="1045,1" backgroundColor="#173049" />
     <widget name="list" position="32,140" size="690,390" itemHeight="66" font="Regular;30" scrollbarMode="showOnDemand" foregroundColor="#F2F7FC" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#174D68" transparent="0" />
-    <widget name="item_title" position="754,140" size="323,48" font="Regular;30" foregroundColor="#26C8F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="item_info" position="754,194" size="323,210" font="Regular;25" foregroundColor="#D5E2EC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="item_title" position="754,140" size="323,82" font="Regular;26" foregroundColor="#26C8F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="item_info" position="754,232" size="323,172" font="Regular;23" foregroundColor="#D5E2EC" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="status" position="32,552" size="1045,34" font="Regular;26" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" />
     <widget name="hint" position="32,604" size="1045,30" font="Regular;23" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" />
 </screen>
@@ -140,7 +140,7 @@ SECTION_MENU_SKIN = """
 SECTIONS = (
     ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list Foorys oraz Bzyk83."),
     ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
-    ("iptv", "Foorys IPTV", "Europe Package, Polskie IPTV i automatyczne picony z playlisty."),
+    ("iptv", "Foorys IPTV", "Europe Package, Polskie IPTV i dobrowolne picony z playlisty."),
     ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
     ("softcam", "Softcam / OSCam", "Oscam stable, EMU, NCam, CCcam i oscam.dvbapi."),
     ("plugins", "Wtyczki / Feedy", "Instalacja E2iPlayera i pakietów z centralnej bazy."),
@@ -474,7 +474,7 @@ class E2FoorysMain(Screen):
                 self._item(
                     "Konfiguracja Foorys IPTV",
                     "W ustawieniach wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie na dekoderze.",
-                    "settings",
+                    "iptv_settings",
                 ),
                 self._install_item(
                     "Pobierz picony IPTV osobno",
@@ -675,9 +675,14 @@ class E2FoorysMain(Screen):
         self.session.open(SectionMenuScreen, self, section_id, title, description)
 
     def open_settings(self):
-        from .ui import E2FoorysConfig
-
         self.session.openWithCallback(self._settings_closed, E2FoorysConfig)
+
+    def open_iptv_settings(self):
+        self.session.openWithCallback(self._iptv_settings_closed, E2FoorysIptvConfig)
+
+    def _iptv_settings_closed(self, _result=None):
+        self._render_section()
+        self._refresh_system_status()
 
     def _settings_closed(self, _result=None):
         self._render_section()
@@ -893,8 +898,8 @@ class SectionMenuScreen(Screen):
         index = self._selected_index(self["list"])
         if 0 <= index < len(self.section_items):
             item = self.section_items[index]
-            self["item_title"].setText(_short_description(item.get("title", ""), width=22, limit=2))
-            self["item_info"].setText(_short_description(item.get("description", ""), width=28, limit=8))
+            self["item_title"].setText(_short_description(item.get("title", ""), width=22, limit=3))
+            self["item_info"].setText(_short_description(item.get("description", ""), width=27, limit=7))
 
     def move_up(self):
         try:
@@ -974,6 +979,8 @@ class SectionMenuScreen(Screen):
             self.controller.request_root_password_change()
         elif action == "settings":
             self.controller.open_settings()
+        elif action == "iptv_settings":
+            self.controller.open_iptv_settings()
         elif action == "info":
             self.session.open(
                 MessageBox,

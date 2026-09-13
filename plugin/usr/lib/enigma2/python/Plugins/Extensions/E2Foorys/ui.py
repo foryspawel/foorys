@@ -22,15 +22,18 @@ try:
 except ImportError:  # pragma: no cover - tylko podczas pracy poza dekoderem
     eTimer = None
 
-from .config import config_entries, ensure_config, save_config, settings_dict
+from .config import (
+    config_entries,
+    ensure_config,
+    iptv_config_entries,
+    save_config,
+    settings_dict,
+)
 from .operations import (
-    install_e2iplayer,
     fetch_manifest,
     install_channel_list,
     install_oscam_dvbapi,
-    install_oscam_stable,
     install_plugin_package,
-    patch_e2iplayer,
 )
 
 
@@ -323,47 +326,8 @@ class E2FoorysMain(Screen):
 
     def _settings_closed(self, _result=None):
         self._render_menu()
-        if _result in ("e2iplayer_install", "e2iplayer_patch", "oscam_stable"):
-            self._open_system_action(_result)
-            return
         if settings_dict().get("manifest_url"):
             self._refresh_manifest()
-
-    def _open_system_action(self, action):
-        actions = {
-            "e2iplayer_install": (
-                "Instalacja E2iPlayer",
-                {
-                    "id": "e2iplayer",
-                    "name": "E2iPlayer",
-                    "version": "Python 3 / OE-Mirrors",
-                    "description": "Pobiera i uruchamia oficjalny instalator.",
-                },
-                install_e2iplayer,
-            ),
-            "e2iplayer_patch": (
-                "Patch E2iPlayer",
-                {
-                    "id": "e2iplayer-patch",
-                    "name": "E2iPlayer patch",
-                    "version": "hosttorrentyts",
-                    "description": "Uruchamia wskazany skrypt patchujący.",
-                },
-                patch_e2iplayer,
-            ),
-            "oscam_stable": (
-                "Instalacja Oscam stable",
-                {
-                    "id": "oscam-stable",
-                    "name": "Oscam stable",
-                    "version": "OEA feed",
-                    "description": "Wykonuje feed OEA, opkg update i instalację pakietu.",
-                },
-                install_oscam_stable,
-            ),
-        }
-        title, entry, operation = actions[action]
-        self.open_catalog(title, [entry], operation)
 
 
 class CatalogScreen(Screen):
@@ -569,13 +533,49 @@ class E2FoorysConfig(Screen, ConfigListScreen):
         )
 
     def keySave(self):
-        system_action = ensure_config().system_action
-        action = system_action.value
-        system_action.setValue("none")
         for _label, element in self["config"].list:
             element.save()
         save_config()
-        self.close(action)
+        self.close(True)
+
+    def keyCancel(self):
+        for _label, element in self["config"].list:
+            element.cancel()
+        self.close(False)
+
+
+class E2FoorysIptvConfig(Screen, ConfigListScreen):
+    """Osobny ekran danych dostępowych do prywatnej playlisty IPTV."""
+
+    skin = """
+    <screen name="E2FoorysIptvConfig" position="center,center" size="1100,520" title="E2-Foorys - ustawienia IPTV">
+        <widget name="title" position="35,18" size="1030,42" font="Regular;32" foregroundColor="#28D7F5" />
+        <widget name="config" position="35,72" size="1030,310" itemHeight="52" font="Regular;27" scrollbarMode="showOnDemand" />
+        <widget name="hint" position="35,432" size="1030,38" font="Regular;24" />
+    </screen>
+    """
+
+    def __init__(self, session):
+        Screen.__init__(self, session)
+        ConfigListScreen.__init__(self, iptv_config_entries(), session=session)
+        self["title"] = Label("Ustawienia IPTV")
+        self["hint"] = Label("OK: edytuj   ZIELONY: zapisz   EXIT: anuluj")
+        self["actions"] = ActionMap(
+            ["SetupActions", "ColorActions"],
+            {
+                "ok": self.keyOK,
+                "save": self.keySave,
+                "green": self.keySave,
+                "cancel": self.keyCancel,
+            },
+            -2,
+        )
+
+    def keySave(self):
+        for _label, element in self["config"].list:
+            element.save()
+        save_config()
+        self.close(True)
 
     def keyCancel(self):
         for _label, element in self["config"].list:

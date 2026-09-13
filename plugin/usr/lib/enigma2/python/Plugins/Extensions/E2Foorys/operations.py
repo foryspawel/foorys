@@ -484,16 +484,14 @@ def _network_diagnostic_lines(settings=None, progress=None):
     return lines, internet_ok
 
 
-def diagnose_network(settings=None, progress=None):
+def diagnose_network(_item=None, settings=None, progress=None):
     """Sprawdza interfejs, trasę, DNS i wyjście HTTPS do GitHuba."""
 
     lines, internet_ok = _network_diagnostic_lines(settings, progress)
     summary = "\n".join(lines)
-    if not internet_ok:
-        raise OperationError(summary)
     return {
         "kind": "network",
-        "ok": True,
+        "ok": bool(internet_ok),
         "summary": summary,
     }
 
@@ -521,10 +519,24 @@ def _frontend_lock(value):
         return True
     if text in ("no", "false", "unlocked", "unlock"):
         return False
+    if any(token in text for token in ("unlocked", "no lock", "not locked", "idle")):
+        return False
+    if any(token in text for token in ("locked", "lock", "tuned", "sync")):
+        return True
     try:
         return int(text, 0) != 0
     except (TypeError, ValueError):
         return None
+
+
+def _read_first_text(paths):
+    """Zwraca pierwszą dostępną wartość z kilku wariantów procfs."""
+
+    for path in paths:
+        value = _read_text_file(path)
+        if value:
+            return value
+    return ""
 
 
 def _satellite_frontends():
@@ -544,7 +556,22 @@ def _satellite_frontends():
         values = {}
         for name in ("lock", "tuner_state", "snr", "ber", "agc", "frequency", "system"):
             if proc_path:
-                values[name] = _read_text_file(os.path.join(proc_path, name))
+                candidates = [os.path.join(proc_path, name)]
+                if name == "lock":
+                    candidates.extend(
+                        [
+                            os.path.join(proc_path, "status"),
+                            os.path.join(proc_path, "tuner_state"),
+                        ]
+                    )
+                elif name == "snr":
+                    candidates.extend(
+                        [
+                            os.path.join(proc_path, "snr_db"),
+                            os.path.join(proc_path, "signal_strength"),
+                        ]
+                    )
+                values[name] = _read_first_text(candidates)
         result.append(
             {
                 "index": index + 1,
@@ -556,7 +583,7 @@ def _satellite_frontends():
     return result
 
 
-def diagnose_satellite_connection(_settings=None, progress=None):
+def diagnose_satellite_connection(_item=None, settings=None, progress=None):
     """Sprawdza obecność frontendów DVB i blokadę sygnału satelitarnego."""
 
     lines = []

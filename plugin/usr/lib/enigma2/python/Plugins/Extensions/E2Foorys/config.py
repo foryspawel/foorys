@@ -5,7 +5,6 @@
 from __future__ import absolute_import
 
 from Components.config import (
-    ConfigSelection,
     ConfigText,
     ConfigYesNo,
     ConfigSubsection,
@@ -70,16 +69,6 @@ def ensure_config():
         section.create_backup = ConfigYesNo(default=True)
     if not hasattr(section, "show_in_main_menu"):
         section.show_in_main_menu = ConfigYesNo(default=True)
-    if not hasattr(section, "system_action"):
-        section.system_action = ConfigSelection(
-            default="none",
-            choices=[
-                ("none", "-- brak akcji --"),
-                ("e2iplayer_install", "Instaluj E2iPlayer (Python 3)"),
-                ("e2iplayer_patch", "Patch E2iPlayer (hosttorrentyts)"),
-                ("oscam_stable", "Instaluj Oscam stable"),
-            ],
-        )
     return section
 
 
@@ -111,13 +100,20 @@ def config_entries():
         getConfigListEntry("Ścieżka oscam.dvbapi", section.oscam_dvbapi_path),
         getConfigListEntry("Katalog danych i kopii", section.storage_dir),
         getConfigListEntry("Katalog piconów", section.picon_dir),
+        getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
+        getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
+    ]
+
+
+def iptv_config_entries():
+    """Pola konfiguracyjne używane wyłącznie przez sekcję Foorys IPTV."""
+
+    section = ensure_config()
+    return [
         getConfigListEntry("Link M3U Foorys IPTV (opcjonalny)", section.iptv_m3u_url),
         getConfigListEntry("DNS Foorys IPTV", section.iptv_dns),
         getConfigListEntry("Login Foorys IPTV", section.iptv_username),
         getConfigListEntry("Hasło Foorys IPTV", section.iptv_password),
-        getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
-        getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
-        getConfigListEntry("Akcja instalacyjna", section.system_action),
     ]
 
 
