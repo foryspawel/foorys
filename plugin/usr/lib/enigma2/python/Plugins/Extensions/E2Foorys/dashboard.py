@@ -33,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.4.5"
+VERSION = "0.4.6"
 
 
 MAIN_SKIN = """
@@ -60,6 +60,16 @@ MAIN_SKIN = """
     <eLabel position="32,422" size="5,106" backgroundColor="#9A8CFF" />
     <eLabel position="440,422" size="5,106" backgroundColor="#FFC857" />
     <eLabel position="848,422" size="5,106" backgroundColor="#FF6B6B" />
+
+    <widget name="focus_channels" position="42,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_updates" position="450,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_iptv" position="858,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_picons" position="42,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_softcam" position="450,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_plugins" position="858,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_backups" position="42,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_system" position="450,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_diagnostics" position="858,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
 
     <widget name="card_channels" position="50,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="card_updates" position="458,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
@@ -126,6 +136,18 @@ CARD_WIDGETS = (
     "card_backups",
     "card_system",
     "card_diagnostics",
+)
+
+FOCUS_WIDGETS = (
+    "focus_channels",
+    "focus_updates",
+    "focus_iptv",
+    "focus_picons",
+    "focus_softcam",
+    "focus_plugins",
+    "focus_backups",
+    "focus_system",
+    "focus_diagnostics",
 )
 
 CARD_TITLES = (
@@ -247,6 +269,15 @@ class E2FoorysMain(Screen):
         self["shortcut"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
         self["focus_title"] = Label("")
         self["focus_desc"] = Label("")
+        self["focus_channels"] = Label("")
+        self["focus_updates"] = Label("")
+        self["focus_iptv"] = Label("")
+        self["focus_picons"] = Label("")
+        self["focus_softcam"] = Label("")
+        self["focus_plugins"] = Label("")
+        self["focus_backups"] = Label("")
+        self["focus_system"] = Label("")
+        self["focus_diagnostics"] = Label("")
         self["card_channels"] = Label("")
         self["card_updates"] = Label("")
         self["card_iptv"] = Label("")
@@ -315,8 +346,13 @@ class E2FoorysMain(Screen):
         """Rysuje główny ekran jako niezależną siatkę narzędzi."""
 
         for index, name in enumerate(CARD_WIDGETS):
-            marker = ">" if index == self.card_index else " "
-            text = "%s %s\n%s" % (marker, CARD_TITLES[index], CARD_HINTS[index])
+            selected = index == self.card_index
+            if selected:
+                text = "[ WYBRANE ]\n%s" % CARD_TITLES[index]
+                self[FOCUS_WIDGETS[index]].show()
+            else:
+                text = "%s\n%s" % (CARD_TITLES[index], CARD_HINTS[index])
+                self[FOCUS_WIDGETS[index]].hide()
             self[name].setText(text)
 
         section_id, title, description = SECTIONS[self.card_index]
