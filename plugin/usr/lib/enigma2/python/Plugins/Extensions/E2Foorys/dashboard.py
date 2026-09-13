@@ -38,7 +38,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.6.3"
+VERSION = "0.6.4"
 
 
 MAIN_SKIN = """
@@ -47,22 +47,22 @@ MAIN_SKIN = """
     <eLabel position="0,5" size="1260,117" backgroundColor="#071727" />
     <eLabel position="26,20" size="4,78" backgroundColor="#28D7F5" />
     <eLabel position="36,18" size="86,82" backgroundColor="#0B2236" />
-    <widget name="logo" position="44,22" size="70,70" alphatest="blend" scale="1" />
-    <widget name="title" position="136,20" size="660,42" font="Regular;37" foregroundColor="#F7FBFF" backgroundColor="#071727" transparent="0" />
-    <widget name="subtitle" position="136,66" size="660,28" font="Regular;22" foregroundColor="#AFC6D9" backgroundColor="#071727" transparent="0" />
+    <widget name="logo" position="44,22" size="70,70" zPosition="2" alphatest="blend" scale="1" />
+    <widget name="title" position="136,20" size="660,42" zPosition="2" font="Regular;37" foregroundColor="#F7FBFF" backgroundColor="#071727" transparent="0" />
+    <widget name="subtitle" position="136,66" size="660,28" zPosition="2" font="Regular;22" foregroundColor="#AFC6D9" backgroundColor="#071727" transparent="0" />
     <eLabel position="838,15" size="386,106" backgroundColor="#0B2236" />
-    <widget name="version" position="862,20" size="350,26" font="Regular;23" foregroundColor="#28D7F5" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="862,48" size="350,29" font="Regular;25" foregroundColor="#F1F7FB" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="862,80" size="350,24" font="Regular;19" foregroundColor="#55DFA4" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
-    <widget name="shortcut" position="862,106" size="350,22" font="Regular;17" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="version" position="862,20" size="350,26" zPosition="2" font="Regular;23" foregroundColor="#28D7F5" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="862,48" size="350,29" zPosition="2" font="Regular;25" foregroundColor="#F1F7FB" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="862,80" size="350,24" zPosition="2" font="Regular;19" foregroundColor="#55DFA4" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="shortcut" position="862,106" size="350,22" zPosition="2" font="Regular;17" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <eLabel position="26,132" size="1208,2" backgroundColor="#1B4962" />
     <eLabel position="26,143" size="220,398" backgroundColor="#071A2B" />
     <eLabel position="26,143" size="220,2" backgroundColor="#28D7F5" />
     <widget name="side_title" position="42,151" size="188,25" zPosition="2" font="Regular;18" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
-    <widget name="side_menu" position="38,180" size="196,350" zPosition="2" itemHeight="38" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B8CBD9" foregroundColorSelected="#FFFFFF" backgroundColor="#0B1E30" backgroundColorSelected="#174D68" transparent="0" />
+    <widget name="side_menu" position="38,180" size="196,350" zPosition="2" itemHeight="38" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B8CBD9" foregroundColorSelected="#FFFFFF" backgroundColor="#0B1E30" backgroundColorSelected="#0B82A6" transparent="0" />
     <eLabel position="258,143" size="976,52" backgroundColor="#071A2B" />
-    <widget name="focus_title" position="274,153" size="650,34" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
-    <widget name="focus_desc" position="934,158" size="280,28" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
+    <widget name="focus_title" position="274,153" size="650,34" zPosition="2" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
+    <widget name="focus_desc" position="934,158" size="280,28" zPosition="2" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
 
     <eLabel position="258,182" size="5,106" backgroundColor="#28D7F5" />
     <eLabel position="582,182" size="5,106" backgroundColor="#B77CFF" />
@@ -96,9 +96,9 @@ MAIN_SKIN = """
 
     <eLabel position="26,548" size="1208,2" backgroundColor="#1B4962" />
     <eLabel position="258,558" size="976,34" backgroundColor="#071A2B" />
-    <widget name="decoder" position="274,562" size="500,27" font="Regular;18" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
-    <widget name="status" position="790,562" size="424,27" font="Regular;18" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
-    <widget name="hint" position="274,606" size="940,50" font="Regular;19" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <widget name="decoder" position="274,562" size="500,27" zPosition="2" font="Regular;18" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
+    <widget name="status" position="790,562" size="424,27" zPosition="2" font="Regular;18" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
+    <widget name="hint" position="274,606" size="940,50" zPosition="2" font="Regular;19" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
 </screen>
 """
 
