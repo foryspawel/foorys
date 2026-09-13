@@ -60,15 +60,11 @@ try {
     $lamedb = [regex]::Replace($lamedb, '(?im)^p:bzyk83\s*$', 'p:Foorys')
     Write-Utf8File -Path $lamedbPath -Content $lamedb
 
-    Copy-Bouquet -SourceRoot $sourceRoot -DestinationRoot $listRoot -SourceName "userbouquet.polskie.tv" -DestinationName "userbouquet.foorys.polskie.tv" -DisplayName "Foorys | Polskie"
-    Copy-Bouquet -SourceRoot $sourceRoot -DestinationRoot $listRoot -SourceName "userbouquet.fta13e.tv" -DestinationName "userbouquet.foorys.fta.tv" -DisplayName "Foorys | FTA Hotbird 13E"
-    Copy-Bouquet -SourceRoot $sourceRoot -DestinationRoot $listRoot -SourceName "userbouquet.dbe14.tv" -DestinationName "userbouquet.foorys.xxx.tv" -DisplayName "Foorys | XXX"
+    Copy-Bouquet -SourceRoot $sourceRoot -DestinationRoot $listRoot -SourceName "userbouquet.polskie.tv" -DestinationName "userbouquet.foorys.tv" -DisplayName "Foorys"
 
     $bouquets = @(
-        "#NAME Foorys | Hotbird 13E"
-        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.foorys.polskie.tv" ORDER BY bouquet'
-        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.foorys.fta.tv" ORDER BY bouquet'
-        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.foorys.xxx.tv" ORDER BY bouquet'
+        "#NAME Foorys"
+        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.foorys.tv" ORDER BY bouquet'
     ) -join "`n"
     Write-Utf8File -Path (Join-Path $listRoot "bouquets.tv") -Content ($bouquets + "`n")
 

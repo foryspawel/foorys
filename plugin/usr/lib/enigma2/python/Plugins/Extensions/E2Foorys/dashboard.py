@@ -33,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 
 
 MAIN_SKIN = """
@@ -105,7 +105,7 @@ SECTION_MENU_SKIN = """
 
 
 SECTIONS = (
-    ("channels", "Listy Foorys", "Pobieranie i bezpieczna instalacja własnej listy kanałów."),
+    ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list Foorys oraz Bzyk83."),
     ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
     ("iptv", "IPTV / Odtwarzacze", "Instalacja E2iPlayera oraz jego patcha."),
     ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
@@ -129,7 +129,7 @@ CARD_WIDGETS = (
 )
 
 CARD_TITLES = (
-    "LISTY FOORYS",
+    "LISTY KANAŁÓW",
     "AKTUALIZACJE",
     "IPTV / PLAYER",
     "PICONY",
@@ -141,7 +141,7 @@ CARD_TITLES = (
 )
 
 CARD_HINTS = (
-    "Polskie • FTA • XXX",
+    "Foorys • Bzyk83 • 13E",
     "Plugin i katalog GitHub",
     "E2iPlayer i patch",
     "Pobieranie piconów",

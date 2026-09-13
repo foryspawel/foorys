@@ -5,12 +5,32 @@
     {
       "id": "foorys-hotbird-13e-2026.08.23",
       "name": "Foorys Hotbird 13E",
-      "description": "Trzy bukiety Foorys: Polskie, FTA Hotbird 13E oraz XXX.",
+      "description": "Jeden bukiet Foorys z polskimi kanałami na Hotbirdzie 13E.",
       "author": "Foorys",
       "satellites": "Hotbird 13E",
       "version": "2026.08.23",
       "url": "channel-lists/foorys-hotbird-2026.08.23/foorys-hotbird-13e.zip",
-      "sha256": "8e0bf277808bb015268375bc2156b60fb71aeac77f5ee3b881c29f0c1f0b5f1f"
+      "sha256": "babb7ae750e654399b2c69ef2c8ffe103248b7eddb4c8656ba267c9ee9515989"
+    },
+    {
+      "id": "bzyk83-hotbird-13e-2026.08.23",
+      "name": "Bzyk83 Hotbird 13E",
+      "description": "Oryginalna lista Bzyk83 dla satelity Hotbird 13E.",
+      "author": "Bzyk83",
+      "satellites": "Hotbird 13E",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-hb.zip",
+      "sha256": "859843fe9022bfd40bb01d9052e0396770ac5a4749dccd9df420c1c13967234b"
+    },
+    {
+      "id": "bzyk83-dual-2026.08.23",
+      "name": "Bzyk83 Dual",
+      "description": "Oryginalna lista Bzyk83 dla Hotbird 13E i Astra 19.2E.",
+      "author": "Bzyk83",
+      "satellites": "Hotbird 13E + Astra 19.2E",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-dual.zip",
+      "sha256": "41972e91ea906e580692a6867ab30a870d1539b01577111de2b4f04612a40a47"
     }
   ],
   "plugins": [
@@ -66,9 +86,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.4.3_all.ipk",
-    "sha256": "cd88adc29cfa85f40452ae656b0ff6c135ce3c3dc5f6c6881384888db3ff7e70"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.4.4_all.ipk",
+    "sha256": "2cc1ebd6ef79e1cb38338071d4f652cd7100760d713a0956a4fefc626875cf01"
   }
 }
