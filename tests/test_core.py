@@ -27,6 +27,7 @@ class CoreTests(unittest.TestCase):
                 }
             ],
             "plugins": [],
+            "picons": [],
             "oscam_dvbapi": None,
         }
 
@@ -92,6 +93,19 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(
                 [os.path.basename(path) for path in core.find_channel_files(extracted)],
                 ["bouquets.radio"],
+            )
+
+    def test_find_picon_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            nested = os.path.join(directory, "nested")
+            os.makedirs(nested)
+            with open(os.path.join(nested, "channel.png"), "wb") as handle:
+                handle.write(b"png")
+            with open(os.path.join(nested, "readme.txt"), "wb") as handle:
+                handle.write(b"ignore")
+            self.assertEqual(
+                [os.path.basename(path) for path in core.find_picon_files(directory)],
+                ["channel.png"],
             )
 
     def test_version_is_newer(self):

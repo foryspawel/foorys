@@ -81,6 +81,34 @@ class OperationTests(unittest.TestCase):
             self.assertEqual(result["lines"], ["P:1884", "P:0B01", "P:1861"])
             self.assertTrue(result["backup"])
 
+    def test_install_picons_from_local_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source_dir = root / "source"
+            source_dir.mkdir()
+            (source_dir / "1_0_1_2.png").write_bytes(b"new picon")
+            (source_dir / "notes.txt").write_text("ignore\n", encoding="utf-8")
+            archive_path = root / "picons.zip"
+            with zipfile.ZipFile(str(archive_path), "w") as archive:
+                archive.write(str(source_dir / "1_0_1_2.png"), arcname="picons/1_0_1_2.png")
+                archive.write(str(source_dir / "notes.txt"), arcname="picons/notes.txt")
+
+            target = root / "picon"
+            item = {
+                "id": "picons-test",
+                "name": "Picons test",
+                "version": "1",
+                "url": archive_path.as_uri(),
+                "sha256": hashlib.sha256(archive_path.read_bytes()).hexdigest(),
+            }
+            result = operations.install_picons(
+                item,
+                {"picon_dir": str(target)},
+            )
+            self.assertEqual(result["kind"], "picons")
+            self.assertEqual(result["installed_count"], 1)
+            self.assertEqual((target / "1_0_1_2.png").read_bytes(), b"new picon")
+
 
 if __name__ == "__main__":
     unittest.main()

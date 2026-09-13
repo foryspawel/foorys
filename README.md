@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.2.2 pluginu dla Enigma2 do zarządzania listami kanałów,
-pakietami pluginów oraz plikiem `oscam.dvbapi`.
+Wersja 0.3.0 pluginu dla Enigma2 do zarządzania listami kanałów,
+pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.2.2
+## Co działa w wersji 0.3.0
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -26,9 +26,20 @@ pakietami pluginów oraz plikiem `oscam.dvbapi`.
   pakietów bez zmiany systemu,
 - przycisk aktualnego `oscam.dvbapi`, zapisujący wyłącznie `P:1884`, `P:0B01`
   i `P:1861`.
+- osobna zakładka **EPG / Picony** z centralnymi mirrorami Chocholousek dla
+  13.0E i 19.2E,
+- aktualizacja piconów tylko przez kopiowanie nowych plików PNG — stare,
+  nieobjęte paczką picony nie są kasowane,
+- konsola instalacji z postępem pobierania, wynikiem SHA-256 i wyraźnym
+  komunikatem **POWODZENIE** albo **BŁĄD**,
+- rzeczywiste chwilowe użycie CPU z `/proc/stat` zamiast błędnego przeliczania
+  load average na procent CPU,
+- pokazanie wolnego miejsca na **RootFS**; gdy `/media/hdd` nie jest
+  zamontowany, cache i kopie przechodzą do `/etc/enigma2/e2foorys`.
 
-Plugin nie zawiera żadnych konkretnych list ani pakietów. Są one dostarczane
-przez własny manifest repozytorium. W instalacji produkcyjnej używaj HTTPS:
+Lista kanałów, pluginy i picony są dostarczane wyłącznie przez centralny
+manifest właściciela repozytorium — użytkownik dekodera nie może dopisywać
+własnych pozycji do katalogu. W instalacji produkcyjnej używaj HTTPS:
 SHA-256 chroni pobrany plik przed przypadkowym uszkodzeniem, ale sam manifest
 powinien być dostarczany z zaufanego źródła.
 
@@ -41,7 +52,7 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.2.0
+  python tools/build_ipk.py --version 0.3.0
 ```
 
 Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.2.0_all.ipk`. Pakiet
@@ -72,8 +83,10 @@ Minimalny wpis listy kanałów wygląda tak:
 Manifest może używać URL-i względnych. Archiwum listy powinno zawierać pliki
 bezpośrednio lub w podkatalogu; plugin znajdzie tylko dozwolone nazwy plików.
 `oscam_dvbapi` i `plugin_update` są pojedynczymi obiektami w głównym JSON-ie,
-a `plugins` jest tablicą pakietów instalowanych przez `opkg`. Pole
-`plugin_update` wskazuje pakiet IPK następnej wersji pluginu. W zakładce
+a `plugins` jest tablicą pakietów instalowanych przez `opkg`. Tablica `picons`
+opisuje archiwa 7z, które są rozpakowywane przez `7za`/`7z`/`7zz` i kopiowane
+do katalogu ustawionego w `Katalog piconów`. Aktualizacja jest inkrementalna.
+Pole `plugin_update` wskazuje pakiet IPK następnej wersji pluginu. W zakładce
 `E2-Foorys / Aktualizacje` pojawi się przycisk tylko wtedy, gdy wersja z
 GitHuba jest wyższa od aktualnie uruchomionej.
 
@@ -85,7 +98,17 @@ Oscama:
 
 - listy kanałów: `/etc/enigma2`,
 - `oscam.dvbapi`: `/etc/tuxbox/config/oscam-emu/oscam.dvbapi`,
-- dane i kopie: `/media/hdd/e2foorys`.
+- dane i kopie: `/media/hdd/e2foorys` (jeżeli HDD/USB jest zamontowany),
+- awaryjny cache i kopie: `/etc/enigma2/e2foorys`, gdy magazyn zewnętrzny nie
+  jest zamontowany,
+- picony: `/usr/share/enigma2/picon`.
+
+Repozytorium zawiera pakiety XStreamity i Chocholousek Picons. Są to mirrory
+publikowane z zachowaniem informacji o źródle w manifeście. Picony 13.0E i
+19.2E są odświeżane centralnie przez `.github/workflows/update-picons.yml`
+co tydzień albo ręcznie przez **Actions → Aktualizuj picony → Run workflow**.
+Workflow pobiera archiwa ze strony [picon.cz](https://picon.cz/download-picons/picon-transparent-220x132/),
+sprawdza format 7z, wylicza SHA-256 i aktualizuje manifest.
 
 W **Opcjach/Ustawieniach pluginu** pozostaje także pole `Akcja instalacyjna` z
 akcjami E2iPlayer i Oscam stable. Wymagają one dodatkowego potwierdzenia,

@@ -25,6 +25,7 @@ from .operations import (
     install_e2iplayer,
     install_oscam_dvbapi,
     install_oscam_stable,
+    install_picons,
     install_plugin_package,
     list_backups,
     patch_e2iplayer,
@@ -32,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 
 
 MAIN_SKIN = """
@@ -40,34 +41,34 @@ MAIN_SKIN = """
     <eLabel position="0,0" size="1180,3" backgroundColor="#1683BB" />
     <eLabel position="20,102" size="1140,1" backgroundColor="#173049" />
     <widget name="logo" position="28,18" size="72,72" alphatest="blend" scale="1" />
-    <widget name="title" position="122,20" size="650,38" font="Regular;30" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="subtitle" position="122,61" size="650,27" font="Regular;18" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="version" position="850,14" size="290,22" font="Regular;17" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="850,38" size="290,22" font="Regular;17" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="850,62" size="290,18" font="Regular;14" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="quick_update" position="850,82" size="290,18" font="Regular;14" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="section_title" position="35,135" size="470,34" font="Regular;24" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="section_count" position="690,138" size="90,28" font="Regular;17" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
-    <widget name="sections" position="28,174" size="235,400" itemHeight="40" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
-    <widget name="items" position="302,174" size="480,400" itemHeight="42" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#135777" transparent="0" />
-    <widget name="info_title" position="830,135" size="305,34" font="Regular;22" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="info" position="830,177" size="305,122" font="Regular;17" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats_title" position="830,314" size="305,30" font="Regular;20" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats" position="830,350" size="305,170" font="Regular;17" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="decoder" position="830,532" size="305,38" font="Regular;16" foregroundColor="#55D6A0" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="title" position="122,20" size="650,42" font="Regular;34" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="subtitle" position="122,63" size="650,30" font="Regular;21" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="version" position="850,14" size="290,25" font="Regular;20" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="850,41" size="290,25" font="Regular;20" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="850,68" size="290,21" font="Regular;16" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="quick_update" position="850,91" size="290,21" font="Regular;16" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="section_title" position="35,135" size="470,38" font="Regular;28" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="section_count" position="690,138" size="90,30" font="Regular;20" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
+    <widget name="sections" position="28,174" size="235,400" itemHeight="46" font="Regular;23" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
+    <widget name="items" position="302,174" size="480,400" itemHeight="48" font="Regular;23" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#135777" transparent="0" />
+    <widget name="info_title" position="830,135" size="305,38" font="Regular;25" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="info" position="830,177" size="305,122" font="Regular;20" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="stats_title" position="830,314" size="305,34" font="Regular;23" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="stats" position="830,350" size="305,170" font="Regular;20" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="decoder" position="830,532" size="305,38" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0C1B2B" transparent="0" />
     <eLabel position="20,600" size="1140,1" backgroundColor="#173049" />
-    <widget name="status" position="28,610" size="1125,27" font="Regular;17" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="hint" position="28,644" size="1125,25" font="Regular;16" foregroundColor="#71899E" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="status" position="28,610" size="1125,27" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="hint" position="28,644" size="1125,25" font="Regular;18" foregroundColor="#71899E" backgroundColor="#0E1C2C" transparent="0" />
 </screen>
 """
 
 
 HEALTH_SKIN = """
 <screen name="E2FoorysHealth" position="center,center" size="1000,620" title="E2-Foorys - kondycja dekodera" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <widget name="title" position="30,22" size="940,42" font="Regular;28" foregroundColor="#18C7F5" />
-    <widget name="report" position="35,85" size="930,445" font="Regular;20" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="35,545" size="930,30" font="Regular;18" foregroundColor="#FFD24A" />
-    <widget name="hint" position="35,580" size="930,25" font="Regular;16" foregroundColor="#71899E" />
+    <widget name="title" position="30,22" size="940,46" font="Regular;32" foregroundColor="#18C7F5" />
+    <widget name="report" position="35,85" size="930,445" font="Regular;24" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="35,545" size="930,30" font="Regular;21" foregroundColor="#FFD24A" />
+    <widget name="hint" position="35,580" size="930,25" font="Regular;18" foregroundColor="#71899E" />
 </screen>
 """
 
@@ -76,6 +77,7 @@ SECTIONS = (
     ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list kanałów."),
     ("updates", "E2-Foorys / Aktualizacje", "Sprawdzanie manifestu i aktualizacja samego pluginu."),
     ("iptv", "IPTV / Odtwarzacze", "Instalacja E2iPlayera oraz jego patcha."),
+    ("picons", "EPG / Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
     ("softcam", "Softcam / OSCam", "Oscam stable, oscam.dvbapi i kontrola softcamów."),
     ("plugins", "Wtyczki / Feedy", "Pakiety IPK/DEB z własnego manifestu."),
     ("backups", "Kopie / Przywracanie", "Kopie bezpieczeństwa konfiguracji."),
@@ -321,6 +323,13 @@ class E2FoorysMain(Screen):
                 self._install_item("Instaluj E2iPlayer (Python 3)", "Oficjalny instalator E2iPlayer dla Python 3.", {"id": "e2iplayer", "name": "E2iPlayer", "version": "Python 3 / OE-Mirrors"}, install_e2iplayer, "Instalacja E2iPlayer"),
                 self._install_item("Patch E2iPlayer (hosttorrentyts)", "Patch dla wcześniej zainstalowanego E2iPlayera.", {"id": "e2iplayer-patch", "name": "E2iPlayer patch", "version": "hosttorrentyts"}, patch_e2iplayer, "Patch E2iPlayer"),
             ])
+        elif section_id == "picons":
+            for entry in manifest.get("picons", []):
+                result.append(self._install_item(None, entry.get("description"), entry, install_picons, "Aktualizacja piconów"))
+            if not result:
+                result.append(self._item("Brak pakietów piconów", "Centralna baza nie ma jeszcze opublikowanych archiwów piconów.", "info"))
+            result.append(self._item("Katalog docelowy piconów", "Aktualna ścieżka: %s. Zmienisz ją przez MENU → Ustawienia." % settings_dict().get("picon_dir", "/usr/share/enigma2/picon"), "settings"))
+            result.append(self._manifest_refresh_item())
         elif section_id == "softcam":
             result.append(self._install_item("Instaluj Oscam stable", "Feed OEA, opkg update i instalacja Oscam stable.", {"id": "oscam-stable", "name": "Oscam stable", "version": "OEA feed"}, install_oscam_stable, "Instalacja Oscam stable"))
             result.append(self._install_item("Pobierz aktualny oscam.dvbapi", "Zapisze dokładnie: P:1884, P:0B01, P:1861. Poprzedni plik zostanie zachowany w kopii.", {"id": "oscam-current", "name": "Aktualny oscam.dvbapi", "version": "Foorys current"}, install_current_oscam_dvbapi, "Aktualny oscam.dvbapi"))
@@ -342,14 +351,14 @@ class E2FoorysMain(Screen):
         elif section_id == "system":
             result.extend([
                 self._item("Sprawdź kondycję dekodera", "Model, obraz, CPU, RAM, flash, temperatura i uptime.", "health"),
-                self._item("Sprawdź wolne miejsce", "Użycie flasha oraz katalogu danych pluginu.", "free_space"),
+                self._item("Sprawdź wolne miejsce", "Wolne miejsce na rootfs oraz status magazynu danych.", "free_space"),
                 self._item("Restart GUI Enigma2", "Restart interfejsu po dodatkowym potwierdzeniu.", "restart_gui"),
                 self._item("Ustawienia E2-Foorys", "GitHub, manifest, ścieżki docelowe i kopie bezpieczeństwa.", "settings"),
             ])
         elif section_id == "diagnostics":
             result.extend([
                 self._item("Pełna diagnostyka dekodera", "Otwiera szczegółowy raport parametrów systemu.", "health"),
-                self._item("Wolne miejsce / magazyn", "Kontroluje flash oraz wskazany dysk HDD/USB.", "free_space"),
+                self._item("Wolne miejsce / magazyn", "Kontroluje rootfs oraz wskazany dysk HDD/USB.", "free_space"),
                 self._item("Zainstalowane pakiety softcam", "Pokazuje znalezione pakiety Oscam, softcam i E2iPlayer.", "packages"),
                 self._item("Odśwież dane diagnostyczne", "Ponownie odczytuje parametry bez zmiany konfiguracji.", "system_refresh"),
             ])
@@ -403,7 +412,7 @@ class E2FoorysMain(Screen):
             return
         self.manifest = result
         self._render_section()
-        self["status"].setText("GitHub OK: %d list, %d pluginów%s%s." % (len(result.get("channel_lists", [])), len(result.get("plugins", [])), ", oscam.dvbapi" if result.get("oscam_dvbapi") else "", ", aktualizacja" if result.get("plugin_update") else ""))
+        self["status"].setText("GitHub OK: %d list, %d pluginów, %d pakietów piconów%s%s." % (len(result.get("channel_lists", [])), len(result.get("plugins", [])), len(result.get("picons", [])), ", oscam.dvbapi" if result.get("oscam_dvbapi") else "", ", aktualizacja" if result.get("plugin_update") else ""))
         if quick_update_requested:
             self._quick_update_from_manifest()
 
@@ -454,7 +463,8 @@ class E2FoorysMain(Screen):
         memory = data.get("memory", {})
         flash = data.get("flash", {})
         storage = data.get("storage", {})
-        self["stats"].setText("CPU: %d%%   RAM: %d%%\nFlash: %d%%  wolne %s\nDysk: %d%%  wolne %s\nTemperatura: %s\nUptime: %s" % (data.get("cpu_percent", 0), memory.get("percent", 0), flash.get("percent", 0), _format_size(flash.get("free", 0)), storage.get("percent", 0), _format_size(storage.get("free", 0)), data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0))))
+        storage_status = "zamontowany: %d%% zajęte, wolne %s" % (storage.get("percent", 0), _format_size(storage.get("free", 0))) if storage.get("mounted", True) else "niezamontowany"
+        self["stats"].setText("CPU: %d%%   RAM: %d%%\nRootFS: %s wolne\n(%d%% zajęte)\nDysk: %s\nTemperatura: %s\nUptime: %s" % (data.get("cpu_percent", 0), memory.get("percent", 0), _format_size(flash.get("free", 0)), flash.get("percent", 0), storage_status, data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0))))
         self["top_stats"].setText("CPU: %d%%   RAM: %d%%" % (data.get("cpu_percent", 0), memory.get("percent", 0)))
         self["decoder"].setText("%s | %s | %s" % (data.get("model", "n/d"), data.get("version", "n/d"), "Enigma2 OK" if data.get("enigma2_running") else "Enigma2?"))
 
@@ -514,7 +524,11 @@ class E2FoorysMain(Screen):
             return
         flash = self.system_status.get("flash", {})
         storage = self.system_status.get("storage", {})
-        message = "Flash (%s)\nZajęte: %s / %s (%d%%)\nWolne: %s\n\nMagazyn (%s)\nZajęte: %s / %s (%d%%)\nWolne: %s" % (flash.get("mount", "/"), _format_size(flash.get("used", 0)), _format_size(flash.get("total", 0)), flash.get("percent", 0), _format_size(flash.get("free", 0)), storage.get("mount", "n/d"), _format_size(storage.get("used", 0)), _format_size(storage.get("total", 0)), storage.get("percent", 0), _format_size(storage.get("free", 0)))
+        if storage.get("mounted", True):
+            storage_message = "Zajęte: %s / %s (%d%%)\nWolne: %s" % (_format_size(storage.get("used", 0)), _format_size(storage.get("total", 0)), storage.get("percent", 0), _format_size(storage.get("free", 0)))
+        else:
+            storage_message = "Nie zamontowano docelowego magazynu (%s).\nPomiar zastępczy: %s" % (storage.get("path", "/media/hdd"), storage.get("mountpoint", storage.get("mount", "n/d")))
+        message = "RootFS (%s)\nZajęte: %s / %s (%d%%)\nWolne: %s\n\nMagazyn (%s)\n%s" % (flash.get("mountpoint", flash.get("mount", "/")), _format_size(flash.get("used", 0)), _format_size(flash.get("total", 0)), flash.get("percent", 0), _format_size(flash.get("free", 0)), storage.get("path", storage.get("mount", "n/d")), storage_message)
         self.session.open(MessageBox, message, MessageBox.TYPE_INFO, timeout=12)
 
     def _show_packages(self):
@@ -609,5 +623,6 @@ class HealthScreen(Screen):
         memory = data.get("memory", {})
         flash = data.get("flash", {})
         storage = data.get("storage", {})
-        self["report"].setText("Model: %s\nObraz: %s  %s  build %s\nArchitektura: %s\nPython: %s\n\nCPU: %d%% (load %.2f, rdzenie %d)\nRAM: %s / %s (%d%%)\nFlash: %s / %s (%d%%), wolne %s\nMagazyn: %s / %s (%d%%), wolne %s\nTemperatura: %s\nUptime: %s\nEnigma2: %s   opkg: %s" % (data.get("model", "n/d"), data.get("image", "n/d"), data.get("version", "n/d"), data.get("build", "n/d"), data.get("architecture", "n/d"), data.get("python", "n/d"), data.get("cpu_percent", 0), data.get("load", 0.0), data.get("cpu_count", 0), _format_size(memory.get("used", 0)), _format_size(memory.get("total", 0)), memory.get("percent", 0), _format_size(flash.get("used", 0)), _format_size(flash.get("total", 0)), flash.get("percent", 0), _format_size(flash.get("free", 0)), _format_size(storage.get("used", 0)), _format_size(storage.get("total", 0)), storage.get("percent", 0), _format_size(storage.get("free", 0)), data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0)), "uruchomiony" if data.get("enigma2_running") else "niepotwierdzony", "dostępne" if data.get("opkg_available") else "brak"))
+        storage_state = "zamontowany" if storage.get("mounted", True) else "NIEZAMONTOWANY"
+        self["report"].setText("Model: %s\nObraz: %s  %s  build %s\nArchitektura: %s\nPython: %s\n\nCPU: %d%% (load %.2f, rdzenie %d)\nRAM: %s / %s (%d%%)\nRootFS: %s / %s (%d%%), wolne %s\nMagazyn: %s (%s), wolne %s\nTemperatura: %s\nUptime: %s\nEnigma2: %s   opkg: %s" % (data.get("model", "n/d"), data.get("image", "n/d"), data.get("version", "n/d"), data.get("build", "n/d"), data.get("architecture", "n/d"), data.get("python", "n/d"), data.get("cpu_percent", 0), data.get("load", 0.0), data.get("cpu_count", 0), _format_size(memory.get("used", 0)), _format_size(memory.get("total", 0)), memory.get("percent", 0), _format_size(flash.get("used", 0)), _format_size(flash.get("total", 0)), flash.get("percent", 0), _format_size(flash.get("free", 0)), storage_state, storage.get("path", storage.get("mount", "n/d")), _format_size(storage.get("free", 0)), data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0)), "uruchomiony" if data.get("enigma2_running") else "niepotwierdzony", "dostępne" if data.get("opkg_available") else "brak"))
         self["status"].setText("Odczyt zakończony: %s" % time.strftime("%H:%M:%S"))

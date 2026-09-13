@@ -8,6 +8,7 @@ import json
 import os
 import platform
 import re
+import select
 import shutil
 import subprocess
 import tempfile
@@ -25,6 +26,7 @@ from .core import (
     atomic_copy,
     extract_archive,
     find_channel_files,
+    find_picon_files,
     is_channel_file_name,
     normalize_manifest,
     parse_manifest,
@@ -40,6 +42,8 @@ class OperationError(RuntimeError):
 USER_AGENT = "E2-Foorys/0.1 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
+STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
+MIN_STORAGE_FREE = 4 * 1024 * 1024
 
 # Akcje systemowe są stałe i nie są pobierane z manifestu. Każda z nich jest
 # uruchamiana dopiero po potwierdzeniu w GUI pluginu.
@@ -72,6 +76,15 @@ def _setting(settings, key, default=""):
     return value
 
 
+def _progress(callback, message):
+    if callback is None:
+        return
+    try:
+        callback(message)
+    except Exception:
+        pass
+
+
 def _read_text_file(path):
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as handle:
@@ -91,6 +104,45 @@ def _parse_key_value_file(path):
     return values
 
 
+def _mountpoint_for(path):
+    """Zwraca najdłuższy punkt montowania obejmujący wskazaną ścieżkę."""
+
+    requested = os.path.abspath(str(path or "/"))
+    best = "/"
+    mounts = _read_text_file("/proc/mounts")
+    for line in mounts.splitlines():
+        fields = line.split()
+        if len(fields) < 2:
+            continue
+        mount = fields[1].replace("\\040", " ").replace("\\011", "\t")
+        mount = os.path.normpath(mount)
+        if requested == mount or requested.startswith(mount.rstrip("/") + "/"):
+            if len(mount) > len(best):
+                best = mount
+    if mounts:
+        return best
+
+    candidate = requested
+    while candidate != os.path.dirname(candidate):
+        if os.path.ismount(candidate):
+            return candidate
+        candidate = os.path.dirname(candidate)
+    return "/" if os.path.ismount("/") else best
+
+
+def _expected_media_mount(path, mountpoint):
+    """Sprawdza, czy /media/hdd lub /media/usb ma własne montowanie."""
+
+    normalized = os.path.normpath(os.path.abspath(str(path or "/")))
+    if not normalized.startswith("/media/"):
+        return True
+    parts = normalized.split(os.sep)
+    if len(parts) < 3 or not parts[2]:
+        return True
+    device_root = os.path.join("/media", parts[2])
+    return mountpoint == device_root or mountpoint.startswith(device_root + "/")
+
+
 def _filesystem_usage(path):
     """Zwraca użycie systemu plików bez uruchamiania zewnętrznych komend."""
 
@@ -108,6 +160,10 @@ def _filesystem_usage(path):
         return {
             "path": requested,
             "mount": candidate,
+            "mountpoint": _mountpoint_for(candidate),
+            "mounted": _expected_media_mount(requested, _mountpoint_for(candidate)),
+            "fallback": candidate != requested,
+            "path_exists": os.path.exists(requested),
             "total": total,
             "free": free,
             "used": used,
@@ -117,6 +173,10 @@ def _filesystem_usage(path):
         return {
             "path": requested,
             "mount": candidate,
+            "mountpoint": _mountpoint_for(candidate),
+            "mounted": False,
+            "fallback": candidate != requested,
+            "path_exists": os.path.exists(requested),
             "total": 0,
             "free": 0,
             "used": 0,
@@ -146,6 +206,43 @@ def _memory_usage():
         "used": used,
         "percent": min(max(percent, 0), 100),
     }
+
+
+def _cpu_counters():
+    """Czyta sumaryczne liczniki CPU z /proc/stat."""
+
+    content = _read_text_file("/proc/stat")
+    for line in content.splitlines():
+        if not line.startswith("cpu "):
+            continue
+        try:
+            values = [int(value) for value in line.split()[1:]]
+        except (TypeError, ValueError):
+            return None
+        if len(values) < 4:
+            return None
+        total = sum(values[:8])
+        idle = values[3] + (values[4] if len(values) > 4 else 0)
+        return total, idle
+    return None
+
+
+def _cpu_usage(interval=0.25):
+    """Zwraca rzeczywiste zajęcie CPU z różnicy dwóch próbek."""
+
+    first = _cpu_counters()
+    if first is None:
+        return 0
+    time.sleep(interval)
+    second = _cpu_counters()
+    if second is None:
+        return 0
+    total_delta = second[0] - first[0]
+    idle_delta = second[1] - first[1]
+    if total_delta <= 0:
+        return 0
+    busy = max(total_delta - idle_delta, 0)
+    return min(max(int(round((busy * 100.0) / total_delta)), 0), 100)
 
 
 def _uptime_seconds():
@@ -205,7 +302,8 @@ def collect_system_status(settings=None):
     cpu_count_function = getattr(os, "cpu_count", None)
     cpu_count = cpu_count_function() if cpu_count_function else 1
     cpu_count = max(int(cpu_count or 1), 1)
-    cpu_percent = min(max(int(round(load * 100.0 / cpu_count)), 0), 100)
+    cpu_percent = _cpu_usage()
+    load_percent = min(max(int(round(load * 100.0 / cpu_count)), 0), 100)
     memory = _memory_usage()
     flash = _filesystem_usage("/")
     storage = _filesystem_usage(_setting(settings, "storage_dir", "/media/hdd"))
@@ -219,6 +317,7 @@ def collect_system_status(settings=None):
         "uptime": _uptime_seconds(),
         "load": load,
         "cpu_percent": cpu_percent,
+        "cpu_load_percent": load_percent,
         "cpu_count": cpu_count,
         "memory": memory,
         "flash": flash,
@@ -265,6 +364,28 @@ def _ensure_absolute_directory(path, label):
     return path
 
 
+def _storage_directory(settings):
+    """Wybiera magazyn danych, omijając niezamontowany /media/hdd."""
+
+    requested = os.path.abspath(
+        _setting(settings, "storage_dir", "/media/hdd/e2foorys")
+    )
+    usage = _filesystem_usage(requested)
+    if usage.get("mounted", True) and usage.get("free", 0) >= MIN_STORAGE_FREE:
+        return _ensure_absolute_directory(requested, "katalog danych")
+
+    fallback = os.path.abspath(
+        _setting(settings, "storage_fallback_dir", STORAGE_FALLBACK_DIR)
+    )
+    fallback_usage = _filesystem_usage(fallback)
+    if fallback_usage.get("free", 0) < MIN_STORAGE_FREE:
+        raise OperationError(
+            "Brak miejsca w katalogu danych (%s) i w awaryjnym rootfs (%s)."
+            % (requested, fallback)
+        )
+    return _ensure_absolute_directory(fallback, "awaryjny katalog danych")
+
+
 def _validate_download_url(url):
     parsed = urlparse(url)
     if parsed.scheme.lower() not in ("http", "https", "file"):
@@ -295,7 +416,7 @@ def fetch_manifest(manifest_url):
         raise OperationError("Nie można pobrać manifestu: %s" % exc)
 
     manifest = parse_manifest(raw)
-    for collection_name in ("channel_lists", "plugins"):
+    for collection_name in ("channel_lists", "plugins", "picons"):
         for item in manifest[collection_name]:
             item["url"] = urljoin(manifest_url, item["url"])
             _validate_download_url(item["url"])
@@ -314,10 +435,24 @@ def _safe_filename(value, fallback="package"):
     return value or fallback
 
 
-def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMIT):
+def _format_size(value):
+    units = ("B", "KB", "MB", "GB", "TB")
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "n/d"
+    index = 0
+    while abs(number) >= 1024 and index < len(units) - 1:
+        number /= 1024.0
+        index += 1
+    return "%d %s" % (int(number), units[index]) if index == 0 else "%.1f %s" % (number, units[index])
+
+
+def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMIT, progress=None):
     """Pobiera plik do .part, sprawdza SHA-256 i atomowo zmienia nazwę."""
 
     _validate_download_url(url)
+    _progress(progress, "Pobieranie: %s" % url)
     expected_sha256 = str(expected_sha256).lower()
     parent = os.path.dirname(os.path.abspath(destination))
     os.makedirs(parent, exist_ok=True)
@@ -326,6 +461,7 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
         os.unlink(temporary)
     request = Request(url, headers={"User-Agent": USER_AGENT})
     received = 0
+    last_report = 0
     try:
         with urlopen(request, timeout=60) as response, open(temporary, "wb") as output:
             while True:
@@ -336,6 +472,10 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
                 if received > max_bytes:
                     raise OperationError("Pobrany plik przekracza dozwolony limit.")
                 output.write(chunk)
+                if received - last_report >= 5 * 1024 * 1024:
+                    _progress(progress, "Pobrano %s" % _format_size(received))
+                    last_report = received
+        _progress(progress, "Pobrano %s — sprawdzam SHA-256..." % _format_size(received))
         if not verify_sha256(temporary, expected_sha256):
             actual = sha256_file(temporary)
             raise OperationError(
@@ -343,6 +483,7 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
                 % (expected_sha256, actual)
             )
         os.replace(temporary, destination)
+        _progress(progress, "SHA-256 OK — plik gotowy do instalacji.")
     except OperationError:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -352,6 +493,45 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
             os.unlink(temporary)
         raise OperationError("Pobieranie nie powiodło się: %s" % exc)
     return destination
+
+
+def _communicate_live(process, timeout, progress=None):
+    """Czyta stdout procesu liniami i przekazuje je do konsoli GUI."""
+
+    output = []
+    deadline = time.time() + timeout
+    stream = process.stdout
+    while True:
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            process.kill()
+            process.communicate()
+            raise OperationError("Proces przekroczył limit czasu.")
+        if process.poll() is not None:
+            break
+        try:
+            ready, _unused_write, _unused_error = select.select(
+                [stream], [], [], min(0.25, remaining)
+            )
+        except (OSError, ValueError):
+            ready = [stream]
+        if not ready:
+            continue
+        line = stream.readline()
+        if not line:
+            if process.poll() is not None:
+                break
+            continue
+        output.append(line)
+        _progress(progress, line.rstrip())
+
+    trailing = stream.read()
+    if trailing:
+        output.append(trailing)
+        for line in trailing.splitlines():
+            _progress(progress, line.rstrip())
+    process.wait()
+    return "".join(output)
 
 
 def _timestamp():
@@ -376,13 +556,11 @@ def _write_json(path, data):
     os.replace(temporary, path)
 
 
-def install_channel_list(item, settings):
+def install_channel_list(item, settings, progress=None):
     """Pobiera archiwum listy kanałów i instaluje tylko znane pliki E2."""
 
-    storage = _ensure_absolute_directory(
-        _setting(settings, "storage_dir", "/media/hdd/e2foorys"),
-        "katalog danych",
-    )
+    _progress(progress, "Przygotowuję katalog danych i kopię bezpieczeństwa...")
+    storage = _storage_directory(settings)
     destination = _ensure_absolute_directory(
         _setting(settings, "enigma2_dir", "/etc/enigma2"),
         "katalog Enigma2",
@@ -395,13 +573,14 @@ def install_channel_list(item, settings):
         archive_extension,
     )
     archive_path = os.path.join(cache, archive_name)
-    download_verified(item["url"], archive_path, item["sha256"])
+    download_verified(item["url"], archive_path, item["sha256"], progress=progress)
 
     staging = tempfile.mkdtemp(prefix="e2foorys-channels-", dir=storage)
     backup_metadata = []
     installed = []
     try:
         try:
+            _progress(progress, "Rozpakowuję archiwum listy kanałów...")
             extract_archive(archive_path, staging)
         except ArchiveError as exc:
             raise OperationError("Archiwum listy kanałów jest nieprawidłowe: %s" % exc)
@@ -412,6 +591,7 @@ def install_channel_list(item, settings):
         backup_root = os.path.join(storage, "backups", "channels-%s" % _timestamp())
         create_backup = bool(_setting(settings, "create_backup", True))
         seen_names = set()
+        _progress(progress, "Zapisuję rozpoznane pliki do %s..." % destination)
         for source in source_files:
             filename = os.path.basename(source)
             if not is_channel_file_name(filename):
@@ -439,16 +619,15 @@ def install_channel_list(item, settings):
             "backup": backup_root if backup_metadata else None,
         }
     finally:
+        _progress(progress, "Lista kanałów: operacja plikowa zakończona.")
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def install_oscam_dvbapi(item, settings):
+def install_oscam_dvbapi(item, settings, progress=None):
     """Pobiera oscam.dvbapi i podmienia go atomowo po wykonaniu kopii."""
 
-    storage = _ensure_absolute_directory(
-        _setting(settings, "storage_dir", "/media/hdd/e2foorys"),
-        "katalog danych",
-    )
+    _progress(progress, "Przygotowuję aktualizację oscam.dvbapi...")
+    storage = _storage_directory(settings)
     target = os.path.abspath(
         _setting(
             settings,
@@ -461,18 +640,20 @@ def install_oscam_dvbapi(item, settings):
         cache,
         "oscam-dvbapi-%s" % _safe_filename(item.get("version"), "latest"),
     )
-    download_verified(item["url"], downloaded, item["sha256"], max_bytes=16 * 1024 * 1024)
+    download_verified(item["url"], downloaded, item["sha256"], max_bytes=16 * 1024 * 1024, progress=progress)
 
     backup_metadata = []
     backup_root = os.path.join(storage, "backups", "oscam-%s" % _timestamp())
     if bool(_setting(settings, "create_backup", True)):
         _backup_existing(target, backup_root, backup_metadata)
+    _progress(progress, "Zapisuję plik do %s..." % target)
     atomic_copy(downloaded, target)
     if backup_metadata:
         _write_json(
             os.path.join(backup_root, "backup.json"),
             {"type": "oscam.dvbapi", "created_at": _timestamp(), "files": backup_metadata},
         )
+    _progress(progress, "oscam.dvbapi: zapis zakończony.")
     return {
         "kind": "oscam.dvbapi",
         "target": target,
@@ -481,13 +662,11 @@ def install_oscam_dvbapi(item, settings):
     }
 
 
-def install_current_oscam_dvbapi(_item, settings):
+def install_current_oscam_dvbapi(_item, settings, progress=None):
     """Zapisuje aktualny profil Foorys z dokładnie trzema regułami P:."""
 
-    storage = _ensure_absolute_directory(
-        _setting(settings, "storage_dir", "/media/hdd/e2foorys"),
-        "katalog danych",
-    )
+    _progress(progress, "Tworzę aktualny oscam.dvbapi z trzema regułami Foorys...")
+    storage = _storage_directory(settings)
     target = os.path.abspath(
         _setting(
             settings,
@@ -504,6 +683,7 @@ def install_current_oscam_dvbapi(_item, settings):
     try:
         with open(temporary, "w", encoding="utf-8") as handle:
             handle.write("\n".join(FOORYS_OSCAM_DVBAPI_LINES) + "\n")
+        _progress(progress, "Zapisuję dokładnie: P:1884, P:0B01, P:1861...")
         atomic_copy(temporary, target)
     finally:
         if os.path.exists(temporary):
@@ -514,6 +694,7 @@ def install_current_oscam_dvbapi(_item, settings):
             os.path.join(backup_root, "backup.json"),
             {"type": "oscam.dvbapi", "created_at": _timestamp(), "files": backup_metadata},
         )
+    _progress(progress, "oscam.dvbapi: zapis zakończony pomyślnie.")
     return {
         "kind": "oscam.dvbapi",
         "target": target,
@@ -523,13 +704,135 @@ def install_current_oscam_dvbapi(_item, settings):
     }
 
 
+def _find_7zip():
+    for name in ("7za", "7z", "7zz"):
+        executable = shutil.which(name)
+        if executable:
+            return executable
+    for executable in ("/usr/bin/7za", "/usr/bin/7z", "/usr/bin/7zz"):
+        if os.path.isfile(executable) and os.access(executable, os.X_OK):
+            return executable
+    return None
+
+
+def _extract_picons(archive_path, destination, progress=None):
+    """Rozpakowuje ZIP/tar lub 7z do katalogu tymczasowego."""
+
+    lower_name = archive_path.lower()
+    if not lower_name.endswith((".7z", ".7zip")):
+        try:
+            _progress(progress, "Rozpakowuję archiwum piconów...")
+            extract_archive(archive_path, destination)
+        except ArchiveError as exc:
+            raise OperationError("Archiwum piconów jest nieprawidłowe: %s" % exc)
+        return
+
+    executable = _find_7zip()
+    if not executable:
+        raise OperationError(
+            "Brak 7za/7z na dekoderze. Najpierw zainstaluj Chocholousek Picons "
+            "albo pakiet p7zip z feedu obrazu."
+        )
+    try:
+        _progress(progress, "Rozpakowuję 7z przy pomocy %s..." % executable)
+        process = subprocess.Popen(
+            [executable, "x", "-y", "-o%s" % destination, archive_path, "*.png"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+        output = _communicate_live(process, 900, progress=progress)
+    except OSError as exc:
+        raise OperationError("Nie można uruchomić 7za: %s" % exc)
+    if process.returncode != 0:
+        raise OperationError(
+            "7za zakończył się kodem %s:\n%s"
+            % (process.returncode, (output or "")[-3000:])
+        )
+
+
+def install_picons(item, settings, progress=None):
+    """Pobiera zweryfikowany pakiet piconów i aktualizuje pliki PNG."""
+
+    _progress(progress, "Przygotowuję aktualizację piconów...")
+    target = _ensure_absolute_directory(
+        _setting(settings, "picon_dir", "/usr/share/enigma2/picon"),
+        "katalog piconów",
+    )
+    temporary_root = tempfile.mkdtemp(prefix="e2foorys-picons-")
+    archive_extension = os.path.splitext(urlparse(item["url"]).path)[1].lower() or ".archive"
+    archive_path = os.path.join(
+        temporary_root,
+        "picons-%s-%s%s"
+        % (
+            _safe_filename(item.get("id")),
+            _safe_filename(item.get("version")),
+            archive_extension,
+        ),
+    )
+    staging = os.path.join(temporary_root, "staging")
+    try:
+        download_verified(item["url"], archive_path, item["sha256"], progress=progress)
+        os.makedirs(staging, exist_ok=True)
+        _extract_picons(archive_path, staging, progress=progress)
+        source_files = find_picon_files(staging)
+        if not source_files:
+            raise OperationError("Archiwum nie zawiera plików PNG piconów.")
+
+        staging_root = os.path.realpath(staging)
+        names = set()
+        total_size = 0
+        for source in source_files:
+            if os.path.islink(source) or not os.path.isfile(source):
+                raise OperationError("Archiwum piconów zawiera niedozwolony plik.")
+            try:
+                inside = os.path.commonpath((staging_root, os.path.realpath(source))) == staging_root
+            except ValueError:
+                inside = False
+            if not inside:
+                raise OperationError("Picon wychodzi poza katalog tymczasowy.")
+            filename = os.path.basename(source)
+            key = filename.lower()
+            if key in names:
+                raise OperationError("Archiwum zawiera duplikat piconu: %s" % filename)
+            names.add(key)
+            total_size += os.path.getsize(source)
+
+        try:
+            stats = os.statvfs(target)
+            free = int(stats.f_bavail) * int(stats.f_frsize or stats.f_bsize or 4096)
+            if free < total_size:
+                raise OperationError(
+                    "Za mało miejsca w katalogu piconów: potrzeba %s, wolne %s."
+                    % (_format_size(total_size), _format_size(free))
+                )
+        except AttributeError:
+            pass
+
+        installed = []
+        _progress(progress, "Aktualizuję %d piconów w %s..." % (len(source_files), target))
+        for source in source_files:
+            filename = os.path.basename(source)
+            atomic_copy(source, os.path.join(target, filename))
+            installed.append(filename)
+        _progress(progress, "Picony: aktualizacja zakończona pomyślnie.")
+        return {
+            "kind": "picons",
+            "name": item.get("name", item.get("id", "picony")),
+            "version": item.get("version", ""),
+            "target": target,
+            "installed_count": len(installed),
+            "installed": installed,
+            "mode": "incremental",
+        }
+    finally:
+        shutil.rmtree(temporary_root, ignore_errors=True)
+
+
 def list_backups(settings=None):
     """Zwraca krótką listę kopii zapisanych przez plugin."""
 
-    root = os.path.join(
-        os.path.abspath(_setting(settings or {}, "storage_dir", "/media/hdd/e2foorys")),
-        "backups",
-    )
+    root = os.path.join(_storage_directory(settings or {}), "backups")
     result = []
     if not os.path.isdir(root):
         return {"root": root, "backups": result}
@@ -550,10 +853,11 @@ def list_backups(settings=None):
     return {"root": root, "backups": result}
 
 
-def _run_opkg(package_path, timeout=600):
+def _run_opkg(package_path, timeout=600, progress=None):
     executable = shutil.which("opkg") or "/usr/bin/opkg"
     if not os.path.exists(executable):
         raise OperationError("Nie znaleziono programu opkg na dekoderze.")
+    _progress(progress, "Uruchamiam opkg install %s..." % package_path)
     try:
         process = subprocess.Popen(
             [executable, "install", package_path],
@@ -561,11 +865,7 @@ def _run_opkg(package_path, timeout=600):
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
-        output, _unused = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.communicate()
-        raise OperationError("Instalacja pakietu opkg przekroczyła limit czasu.")
+        output = _communicate_live(process, timeout, progress=progress)
     except OSError as exc:
         raise OperationError("Nie można uruchomić opkg: %s" % exc)
     if process.returncode != 0:
@@ -575,13 +875,14 @@ def _run_opkg(package_path, timeout=600):
     return output[-3000:]
 
 
-def _run_shell_command(command, timeout=900):
+def _run_shell_command(command, timeout=900, progress=None):
     """Uruchamia wyłącznie stałą akcję pluginu przez powłokę dekodera."""
 
     if not isinstance(command, str) or not command.strip():
         raise OperationError("Pusta komenda instalacyjna.")
     if not os.path.exists("/bin/sh"):
         raise OperationError("Na dekoderze brakuje /bin/sh.")
+    _progress(progress, "Uruchamiam polecenie instalacyjne...")
     try:
         process = subprocess.Popen(
             ["/bin/sh", "-c", command],
@@ -589,11 +890,7 @@ def _run_shell_command(command, timeout=900):
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
-        output, _unused = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.communicate()
-        raise OperationError("Instalator przekroczył limit czasu.")
+        output = _communicate_live(process, timeout, progress=progress)
     except OSError as exc:
         raise OperationError("Nie można uruchomić instalatora: %s" % exc)
     if process.returncode != 0:
@@ -604,24 +901,24 @@ def _run_shell_command(command, timeout=900):
     return output[-3000:]
 
 
-def install_e2iplayer(_item, _settings):
+def install_e2iplayer(_item, _settings, progress=None):
     """Instaluje bieżącą gałąź Python 3 E2iPlayer z OE-Mirrors."""
 
-    output = _run_shell_command(E2IPLAYER_INSTALL_COMMAND)
+    output = _run_shell_command(E2IPLAYER_INSTALL_COMMAND, progress=progress)
     return {"kind": "e2iplayer", "name": "E2iPlayer", "output": output}
 
 
-def patch_e2iplayer(_item, _settings):
+def patch_e2iplayer(_item, _settings, progress=None):
     """Nakłada patch hosttorrentyts na zainstalowany E2iPlayer."""
 
-    output = _run_shell_command(E2IPLAYER_PATCH_COMMAND)
+    output = _run_shell_command(E2IPLAYER_PATCH_COMMAND, progress=progress)
     return {"kind": "e2iplayer-patch", "name": "E2iPlayer patch", "output": output}
 
 
-def install_oscam_stable(_item, _settings):
+def install_oscam_stable(_item, _settings, progress=None):
     """Instaluje oscam-stable z feedu OEA zgodnie z komendą użytkownika."""
 
-    output = _run_shell_command(OSCAM_STABLE_COMMAND)
+    output = _run_shell_command(OSCAM_STABLE_COMMAND, progress=progress)
     return {
         "kind": "oscam-stable",
         "name": "Oscam stable",
@@ -630,16 +927,13 @@ def install_oscam_stable(_item, _settings):
     }
 
 
-def install_plugin_package(item, settings):
+def install_plugin_package(item, settings, progress=None):
     """Pobiera i instaluje pakiet .ipk przez opkg."""
 
     package_type = str(item.get("package_type", "ipk")).lower()
     if package_type not in ("ipk", "deb"):
         raise OperationError("Nieobsługiwany typ pakietu: %s" % package_type)
-    storage = _ensure_absolute_directory(
-        _setting(settings, "storage_dir", "/media/hdd/e2foorys"),
-        "katalog danych",
-    )
+    storage = _storage_directory(settings)
     packages = _ensure_absolute_directory(os.path.join(storage, "packages"), "pakiety")
     extension = "." + package_type
     filename = "%s-%s%s" % (
@@ -648,8 +942,8 @@ def install_plugin_package(item, settings):
         extension,
     )
     package_path = os.path.join(packages, filename)
-    download_verified(item["url"], package_path, item["sha256"])
-    output = _run_opkg(package_path)
+    download_verified(item["url"], package_path, item["sha256"], progress=progress)
+    output = _run_opkg(package_path, progress=progress)
     return {
         "kind": "plugin",
         "name": item.get("name", item.get("id", "")),

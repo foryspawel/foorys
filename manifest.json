@@ -1,16 +1,134 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-13T00:00:00Z",
-  "channel_lists": [],
-  "plugins": [],
+  "generated_at": "2026-09-13T12:28:15Z",
+  "channel_lists": [
+    {
+      "id": "bzyk83-3x1-2026.08.23",
+      "name": "Bzyk83 3x1",
+      "description": "Lista kanałów Bzyk83 dla konfiguracji 3x1.",
+      "author": "Bzyk83",
+      "satellites": "3x1",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-3x1.zip",
+      "sha256": "e131c9644c5babc081018a519a65a8e29f31b062b9bdb85752e8ea68a01e3010"
+    },
+    {
+      "id": "bzyk83-4x1-2026.08.23",
+      "name": "Bzyk83 4x1",
+      "description": "Lista kanałów Bzyk83 dla konfiguracji 4x1.",
+      "author": "Bzyk83",
+      "satellites": "4x1",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-4x1.zip",
+      "sha256": "45598add2e57d474a23c2e2bcefc00d8f58dc75ce829139d59f84cfc3af892fa"
+    },
+    {
+      "id": "bzyk83-5x1-2026.08.23",
+      "name": "Bzyk83 5x1",
+      "description": "Lista kanałów Bzyk83 dla konfiguracji 5x1.",
+      "author": "Bzyk83",
+      "satellites": "5x1",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-5x1.zip",
+      "sha256": "76b7c8280b7c420ee1b8d6aa0527b48f4e8cd26a429caf2233c8b24397c72100"
+    },
+    {
+      "id": "bzyk83-6x1-2026.08.23",
+      "name": "Bzyk83 6x1",
+      "description": "Lista kanałów Bzyk83 dla konfiguracji 6x1.",
+      "author": "Bzyk83",
+      "satellites": "6x1",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-6x1.zip",
+      "sha256": "a64b81ffc4e2260453e9f1b460ef85033ec7fe71c8d7a6b10301706bd693fda2"
+    },
+    {
+      "id": "bzyk83-8x1-2026.08.23",
+      "name": "Bzyk83 8x1",
+      "description": "Lista kanałów Bzyk83 dla konfiguracji 8x1.",
+      "author": "Bzyk83",
+      "satellites": "8x1",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-8x1.zip",
+      "sha256": "1fa06339c0827f4f36ae2217db14c04e6fe30467081aaf1db83a11e7d25d83e1"
+    },
+    {
+      "id": "bzyk83-dual-2026.08.23",
+      "name": "Bzyk83 Dual 13E + 19.2E",
+      "description": "Lista kanałów Bzyk83 dla Hotbird 13E i Astra 19.2E.",
+      "author": "Bzyk83",
+      "satellites": "13E + 19.2E",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-dual.zip",
+      "sha256": "41972e91ea906e580692a6867ab30a870d1539b01577111de2b4f04612a40a47"
+    },
+    {
+      "id": "bzyk83-hb-2026.08.23",
+      "name": "Bzyk83 Hotbird 13E",
+      "description": "Lista kanałów Bzyk83 dla satelity Hotbird 13E.",
+      "author": "Bzyk83",
+      "satellites": "13E",
+      "version": "2026.08.23",
+      "url": "channel-lists/bzyk83-2026.08.23/bzyk83-hb.zip",
+      "sha256": "859843fe9022bfd40bb01d9052e0396770ac5a4749dccd9df420c1c13967234b"
+    }
+  ],
+  "plugins": [
+    {
+      "id": "xstreamity",
+      "name": "XStreamity",
+      "description": "Odtwarzacz IPTV dla Enigma2; dane playlisty użytkownik wpisuje po instalacji.",
+      "author": "KiddaC",
+      "version": "5.58-20260720",
+      "package_type": "ipk",
+      "url": "plugins/enigma2-plugin-extensions-xstreamity_5.58-20260720_all.ipk",
+      "sha256": "38f0063848b89672116ee5e32a8c775251bd95bddc59c1ac8967b7b5ab8e40b3",
+      "source_url": "https://github.com/kiddac/XStreamity"
+    },
+    {
+      "id": "chocholousek-picons",
+      "name": "Chocholousek Picons",
+      "description": "Narzędzia i obsługa piconów Chocholousek; pakiet IPK.",
+      "author": "Chocholoušek / s3n0",
+      "version": "5.0.240904",
+      "package_type": "ipk",
+      "url": "plugins/enigma2-plugin-extensions-chocholousek-picons_5.0.240904_all.ipk",
+      "sha256": "ed89bd4a4ac3b450585ff28ce8b8a7ce263c47753f4d781f5304b4102daef86",
+      "source_url": "https://github.com/s3n0/e2plugins"
+    }
+  ],
+  "picons": [
+    {
+      "id": "chocholousek-220x132-13.0e",
+      "name": "Chocholousek Picons 220x132 13.0E",
+      "description": "Transparentne picony 220x132 dla 13.0E, mirror centralny E2-Foorys; aktualizacja inkrementalna.",
+      "version": "2026.01.07",
+      "archive_type": "7z",
+      "satellites": "13.0E",
+      "url": "picons/picontransparent-220x132-13.0E.7z",
+      "sha256": "c9d8336946a5e3274482378e5820451ebec7c7805b48ef79c212539bab8219e4",
+      "source_url": "https://picon.cz/download-picons/picon-transparent-220x132/"
+    },
+    {
+      "id": "chocholousek-220x132-19.2e",
+      "name": "Chocholousek Picons 220x132 19.2E",
+      "description": "Transparentne picony 220x132 dla 19.2E, mirror centralny E2-Foorys; aktualizacja inkrementalna.",
+      "version": "2026.01.07",
+      "archive_type": "7z",
+      "satellites": "19.2E",
+      "url": "picons/picontransparent-220x132-19.2E.7z",
+      "sha256": "65771299616c7c2356cbaf12befb60a186c9b1ada714a0f57062c49650dc120a",
+      "source_url": "https://picon.cz/download-picons/picon-transparent-220x132/"
+    }
+  ],
   "oscam_dvbapi": null,
   "plugin_update": {
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.2.2_all.ipk",
-    "sha256": "8ad34e1aca01d1e040af6009f36c48f1c9ae7b42663a69a8430b64220ae88cb3"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.0_all.ipk",
+    "sha256": "f635650e875480d98f51e3575e84b3cd979785ae73a43d93702700b59c114079"
   }
 }

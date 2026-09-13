@@ -13,6 +13,7 @@ from Components.ConfigList import ConfigListScreen
 from Components.Label import Label
 from Components.MenuList import MenuList
 from Components.Pixmap import Pixmap
+from Components.ScrollLabel import ScrollLabel
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
@@ -46,10 +47,10 @@ MAIN_SKIN = """
 
 CATALOG_SKIN = """
 <screen name="E2FoorysCatalog" position="center,center" size="1000,620" title="E2-Foorys">
-    <widget name="title" position="30,20" size="940,45" font="Regular;30" />
-    <widget name="list" position="30,85" size="940,420" scrollbarMode="showOnDemand" />
-    <widget name="status" position="30,525" size="940,35" font="Regular;22" />
-    <widget name="hint" position="30,565" size="940,30" font="Regular;18" />
+    <widget name="title" position="30,20" size="940,50" font="Regular;34" />
+    <widget name="list" position="30,85" size="940,420" itemHeight="52" font="Regular;25" scrollbarMode="showOnDemand" />
+    <widget name="status" position="30,525" size="940,35" font="Regular;24" />
+    <widget name="hint" position="30,565" size="940,30" font="Regular;21" />
 </screen>
 """
 
@@ -57,12 +58,15 @@ CATALOG_SKIN = """
 class AsyncJob(object):
     """Wykonuje I/O poza głównym wątkiem GUI i wraca przez eTimer."""
 
-    def __init__(self, callback):
+    def __init__(self, callback, progress_callback=None):
         self.callback = callback
+        self.progress_callback = progress_callback
         self.thread = None
         self.result = None
         self.error = None
         self.trace = ""
+        self._progress_messages = []
+        self._progress_lock = threading.Lock()
         self.timer = eTimer() if eTimer is not None else None
         if self.timer is not None:
             try:
@@ -92,7 +96,21 @@ class AsyncJob(object):
             self.timer.start(200, True)
         return True
 
+    def emit(self, message):
+        """Dodaje komunikat z wątku roboczego do kolejki GUI."""
+
+        if message is None:
+            return
+        with self._progress_lock:
+            self._progress_messages.append(str(message))
+
     def _poll(self):
+        with self._progress_lock:
+            messages = list(self._progress_messages)
+            del self._progress_messages[:]
+        if self.progress_callback is not None:
+            for message in messages:
+                self.progress_callback(message)
         if self.running:
             self.timer.start(200, True)
             return
@@ -101,6 +119,63 @@ class AsyncJob(object):
     def stop(self):
         if self.timer is not None:
             self.timer.stop()
+
+
+CONSOLE_SKIN = """
+<screen name="E2FoorysConsole" position="center,center" size="1100,650" title="E2-Foorys - konsola" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
+    <widget name="title" position="30,20" size="1040,48" font="Regular;32" foregroundColor="#18C7F5" />
+    <widget name="log" position="30,82" size="1040,460" font="Regular;22" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="30,555" size="1040,38" font="Regular;24" foregroundColor="#FFD24A" />
+    <widget name="hint" position="30,605" size="1040,28" font="Regular;20" foregroundColor="#71899E" />
+</screen>
+"""
+
+
+class ConsoleScreen(Screen):
+    """Czytelny, przewijany log instalacji uruchomionej w tle."""
+
+    skin = CONSOLE_SKIN
+
+    def __init__(self, session, title):
+        Screen.__init__(self, session)
+        self.lines = []
+        self.running = True
+        self["title"] = Label(title)
+        self["log"] = ScrollLabel("")
+        self["status"] = Label("OPERACJA W TOKU — proszę czekać...")
+        self["hint"] = Label("Konsola instalacji; EXIT będzie dostępny po zakończeniu.")
+        self["actions"] = ActionMap(
+            ["OkCancelActions"],
+            {"ok": self.close_screen, "cancel": self.close_screen},
+            -1,
+        )
+
+    def write(self, message):
+        text = str(message or "")
+        if not text:
+            return
+        new_lines = text.replace("\r", "").splitlines() or [text]
+        self.lines.extend(new_lines)
+        if len(self.lines) > 300:
+            del self.lines[:-300]
+        try:
+            self["log"].setText("\n".join(self.lines))
+            self["log"].lastPage()
+        except Exception:
+            pass
+
+    def finish(self, success, message):
+        self.running = False
+        result_text = "POWODZENIE: %s" if success else "BŁĄD: %s"
+        self["status"].setText(result_text % (message or "operacja zakończona"))
+        self["hint"].setText("OK/EXIT: zamknij konsolę i wróć do katalogu instalacji.")
+        self.write(result_text % (message or "operacja zakończona"))
+
+    def close_screen(self):
+        if self.running:
+            self.write("Operacja nadal trwa — zamknięcie jest zablokowane.")
+            return
+        self.close()
 
 
 def _versioned_label(item):
@@ -232,7 +307,7 @@ class E2FoorysMain(Screen):
         elif action == "info":
             self.session.open(
                 MessageBox,
-                "E2-Foorys 0.1.1\n\n"
+                "E2-Foorys 0.3.0\n\n"
                 "Zarządzanie listami kanałów, pakietami IPK/DEB "
                 "oraz oscam.dvbapi.\n\n"
                 "Każdy plik z repozytorium jest weryfikowany SHA-256.",
@@ -301,6 +376,7 @@ class CatalogScreen(Screen):
         self.entries = [entry for entry in entries if entry]
         self.operation = operation
         self.job = None
+        self.console = None
         self.closed = False
         self["title"] = Label(title)
         self["list"] = MenuList([(_versioned_label(entry), entry.get("id", "")) for entry in self.entries])
@@ -351,14 +427,33 @@ class CatalogScreen(Screen):
         if not answer:
             return
         self["status"].setText("Pobieranie i instalacja - proszę czekać...")
-        self.job = AsyncJob(self._finished)
-        self.job.start(self.operation, item, settings_dict())
+        self.console = self.session.open(
+            ConsoleScreen,
+            "%s — %s" % (self.title_text, item.get("name", item.get("id", "element"))),
+        )
+        if self.console is not None:
+            self.console.write("E2-Foorys: rozpoczynam operację.")
+            self.console.write("Element: %s [%s]" % (item.get("name", item.get("id", "?")), item.get("version", "?")))
+        self.job = AsyncJob(self._finished, self._console_progress)
+        self.job.start(self._run_operation, item)
+
+    def _run_operation(self, item):
+        return self.operation(item, settings_dict(), self.job.emit)
+
+    def _console_progress(self, message):
+        if self.console is not None:
+            try:
+                self.console.write(message)
+            except Exception:
+                pass
 
     def _finished(self, result, error):
         self.job = None
         if self.closed:
             return
         if error:
+            if self.console is not None:
+                self.console.finish(False, str(error))
             self["status"].setText("Operacja nieudana.")
             self.session.open(
                 MessageBox,
@@ -367,6 +462,8 @@ class CatalogScreen(Screen):
                 timeout=12,
             )
             return
+        if self.console is not None:
+            self.console.finish(True, "operacja zakończona pomyślnie")
         self["status"].setText("Operacja zakończona pomyślnie.")
         message = self._result_message(result)
         self.session.openWithCallback(
@@ -391,6 +488,8 @@ class CatalogScreen(Screen):
             return "Patch E2iPlayer został wykonany.\n\nZrestartować GUI Enigma2?"
         if kind == "oscam-stable":
             return "Oscam stable został zainstalowany.\n\nZrestartować GUI Enigma2?"
+        if kind == "picons":
+            return "Picony zostały zaktualizowane inkrementalnie.\n\nLiczba plików: %s\nKatalog: %s\n\nZrestartować GUI Enigma2?" % (result.get("installed_count", 0), result.get("target", ""))
         return "Plugin '%s' zainstalowany.\n\nZrestartować GUI Enigma2?" % result.get("name", "plugin")
 
     def _after_success(self, restart=False):
@@ -412,8 +511,8 @@ class CatalogScreen(Screen):
 class E2FoorysConfig(Screen, ConfigListScreen):
     skin = """
     <screen name="E2FoorysConfig" position="center,center" size="1000,560" title="E2-Foorys - ustawienia">
-        <widget name="config" position="30,35" size="940,430" scrollbarMode="showOnDemand" />
-        <widget name="hint" position="30,490" size="940,35" font="Regular;22" />
+        <widget name="config" position="30,35" size="940,430" itemHeight="38" font="Regular;25" scrollbarMode="showOnDemand" />
+        <widget name="hint" position="30,490" size="940,35" font="Regular;24" />
     </screen>
     """
 

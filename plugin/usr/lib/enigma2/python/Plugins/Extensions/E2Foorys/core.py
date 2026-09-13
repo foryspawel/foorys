@@ -114,10 +114,13 @@ def normalize_manifest(data):
 
     channel_lists = data.get("channel_lists", [])
     plugins = data.get("plugins", [])
+    picons = data.get("picons", [])
     if not isinstance(channel_lists, list):
         raise ManifestError("Pole 'channel_lists' musi być tablicą.")
     if not isinstance(plugins, list):
         raise ManifestError("Pole 'plugins' musi być tablicą.")
+    if not isinstance(picons, list):
+        raise ManifestError("Pole 'picons' musi być tablicą.")
 
     result = dict(data)
     result["schema_version"] = 1
@@ -128,6 +131,10 @@ def normalize_manifest(data):
     result["plugins"] = [
         _validate_download_item(item, "plugins", index)
         for index, item in enumerate(plugins)
+    ]
+    result["picons"] = [
+        _validate_download_item(item, "picons", index)
+        for index, item in enumerate(picons)
     ]
 
     oscam = data.get("oscam_dvbapi")
@@ -261,6 +268,23 @@ def extract_archive(archive_path, destination, max_total_bytes=256 * 1024 * 1024
             _extract_tar(archive_path, destination, max_total_bytes)
         except (tarfile.TarError, OSError) as exc:
             raise ArchiveError("Nie można rozpakować archiwum: %s" % exc)
+
+
+def is_picon_file_name(name):
+    """Rozpoznaje wyłącznie grafiki picon w formacie PNG."""
+
+    return os.path.basename(str(name or "")).lower().endswith(".png")
+
+
+def find_picon_files(root):
+    """Znajduje picony w katalogu staging, bez zapisywania innych plików."""
+
+    found = []
+    for current_root, _directories, files in os.walk(root):
+        for filename in files:
+            if is_picon_file_name(filename):
+                found.append(os.path.join(current_root, filename))
+    return sorted(found)
 
 
 def is_channel_file_name(name):

@@ -46,6 +46,10 @@ def ensure_config():
         section.storage_dir = ConfigText(
             default="/media/hdd/e2foorys", fixed_size=False
         )
+    if not hasattr(section, "picon_dir"):
+        section.picon_dir = ConfigText(
+            default="/usr/share/enigma2/picon", fixed_size=False
+        )
     if not hasattr(section, "create_backup"):
         section.create_backup = ConfigYesNo(default=True)
     if not hasattr(section, "system_action"):
@@ -70,6 +74,7 @@ def settings_dict():
         "enigma2_dir": section.enigma2_dir.value.strip(),
         "oscam_dvbapi_path": section.oscam_dvbapi_path.value.strip(),
         "storage_dir": section.storage_dir.value.strip(),
+        "picon_dir": section.picon_dir.value.strip(),
         "create_backup": bool(section.create_backup.value),
     }
 
@@ -80,6 +85,7 @@ def config_entries():
         getConfigListEntry("Katalog list kanałów", section.enigma2_dir),
         getConfigListEntry("Ścieżka oscam.dvbapi", section.oscam_dvbapi_path),
         getConfigListEntry("Katalog danych i kopii", section.storage_dir),
+        getConfigListEntry("Katalog piconów", section.picon_dir),
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
         getConfigListEntry("Akcja instalacyjna", section.system_action),
     ]

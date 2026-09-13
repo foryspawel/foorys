@@ -5,3 +5,6 @@ dist/
 build/
 *.ipk
 .github-upload-staging-*/
+.vendor-cache/
+bzyk83-source-temp/
+.vendor-ipk-*/

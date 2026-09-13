@@ -22,6 +22,19 @@
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ],
+  "picons": [
+    {
+      "id": "example-picons-13.0e",
+      "name": "Przykładowe picony 13.0E",
+      "description": "Archiwum 7z z plikami PNG; aktualizacja jest inkrementalna.",
+      "version": "2026.09.13",
+      "archive_type": "7z",
+      "satellites": "13.0E",
+      "url": "picons/example-13.0E.7z",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "source_url": "https://example.invalid/picons"
+    }
+  ],
   "oscam_dvbapi": {
     "id": "oscam-dvbapi",
     "name": "oscam.dvbapi",
@@ -34,9 +47,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Nowszy pakiet pluginu z repozytorium GitHub",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.2.2_all.ipk",
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.0_all.ipk",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }
 }
