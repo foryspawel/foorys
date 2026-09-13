@@ -47,9 +47,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Nowszy pakiet pluginu z repozytorium GitHub",
-    "version": "0.6.2",
+    "version": "0.6.3",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk",
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.6.3_all.ipk",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }
 }

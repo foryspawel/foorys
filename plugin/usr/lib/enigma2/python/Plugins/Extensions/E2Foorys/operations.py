@@ -497,6 +497,14 @@ def _clean_iptv_text(value, fallback=""):
     return value[:240] or fallback
 
 
+def _clean_iptv_name(value, fallback=""):
+    """Usuwa techniczny prefiks kraju z nazwy wyświetlanej w bukiecie."""
+
+    value = _clean_iptv_text(value, fallback)
+    value = re.sub(r"^PL\s*(?::|\|)\s*", "", value, flags=re.IGNORECASE)
+    return value.strip() or fallback
+
+
 def _clean_iptv_url(value):
     """Czyści atrybut URL bez skracania linków z parametrami playlisty."""
 
@@ -526,7 +534,7 @@ def parse_iptv_m3u(text):
                 value = match.group(2) or match.group(3) or match.group(4) or ""
                 key = match.group(1).lower()
                 attributes[key] = _clean_iptv_url(value) if key == "tvg-logo" else _clean_iptv_text(value)
-            name = _clean_iptv_text(
+            name = _clean_iptv_name(
                 attributes.get("tvg-name") or title,
                 "Kanał %d" % (len(entries) + 1),
             )
@@ -952,7 +960,7 @@ def _install_iptv_picons(entries, target, progress=None):
 
 def _install_iptv_bouquet(entries, settings, bouquet_name, bouquet_filename,
                           progress=None):
-    """Zapisuje playlistę jako bukiet i opcjonalnie pobiera do niej picony."""
+    """Zapisuje playlistę jako bukiet bez automatycznego pobierania piconów."""
 
     destination = _ensure_absolute_directory(
         _setting(settings, "enigma2_dir", "/etc/enigma2"),
@@ -990,27 +998,14 @@ def _install_iptv_bouquet(entries, settings, bouquet_name, bouquet_filename,
     )
 
     picon_result = {"installed": 0, "failed": 0, "available": 0}
-    if bool(_setting(settings, "iptv_install_picons", True)):
-        try:
-            picon_result = _install_iptv_picons(
-                entries,
-                _setting(settings, "picon_dir", "/usr/share/enigma2/picon"),
-                progress=progress,
-            )
-        except Exception as exc:
-            # Picony są dodatkiem do bukietu. Brak miejsca lub niedostępny
-            # katalog nie może usuwać poprawnie zapisanej playlisty.
-            _progress(progress, "Picony IPTV pominięte: %s" % exc)
-            picon_result = {"installed": 0, "failed": 1, "available": 0}
-    else:
-        _progress(progress, "Pobieranie piconów IPTV jest wyłączone w ustawieniach.")
+    _progress(progress, "Picony IPTV nie są pobierane automatycznie.")
 
     if backup_metadata:
         _write_json(
             os.path.join(backup_root, "backup.json"),
             {"type": "iptv", "created_at": _timestamp(), "files": backup_metadata},
         )
-    _progress(progress, "%s: bukiet i picony są gotowe." % bouquet_name)
+    _progress(progress, "%s: bukiet jest gotowy." % bouquet_name)
     return {
         "kind": "iptv",
         "name": bouquet_name,
@@ -1024,7 +1019,7 @@ def _install_iptv_bouquet(entries, settings, bouquet_name, bouquet_filename,
 
 
 def install_iptv_playlist(_item, settings, progress=None):
-    """Tworzy osobny bukiet Foorys IPTV i pobiera jego picony z playlisty."""
+    """Tworzy osobny bukiet Foorys IPTV bez pobierania piconów."""
 
     _progress(progress, "Przygotowuję bukiet Foorys IPTV...")
     playlist = _download_iptv_text(_iptv_playlist_url(settings), progress=progress)
@@ -1036,6 +1031,30 @@ def install_iptv_playlist(_item, settings, progress=None):
         IPTV_BOUQUET_FILENAME,
         progress=progress,
     )
+
+
+def install_iptv_picons(_item, settings, progress=None):
+    """Pobiera picony IPTV osobno, na wyraźne żądanie użytkownika."""
+
+    _progress(progress, "Przygotowuję osobne pobieranie piconów IPTV...")
+    playlist = _download_iptv_text(_iptv_playlist_url(settings), progress=progress)
+    entries = parse_iptv_m3u(playlist)
+    for index, entry in enumerate(entries, 1):
+        _service_ref, picon_name = _iptv_service_reference(entry, index)
+        entry["picon_name"] = picon_name
+    result = _install_iptv_picons(
+        entries,
+        _setting(settings, "picon_dir", "/usr/share/enigma2/picon"),
+        progress=progress,
+    )
+    _progress(progress, "Picony IPTV: zakończono osobną aktualizację.")
+    return {
+        "kind": "iptv_picons",
+        "name": "Picony Foorys IPTV",
+        "channels": len(entries),
+        "picons": result.get("installed", 0),
+        "picon_failures": result.get("failed", 0),
+    }
 
 
 def install_oscam_dvbapi(item, settings, progress=None):

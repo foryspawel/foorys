@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.2" }
+      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.3" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -100,12 +100,12 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.2]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.3]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
     if (sectionId === "iptv") return [
-      item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U z DNS Foorys IPTV, tworzy osobny bukiet i pobiera picony z tvg-logo.", "Bukiet główny", "foorys-iptv", "install"),
+      item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U i tworzy osobny bukiet. Picony są opcjonalne i pobierane osobno.", "Bukiet główny", "foorys-iptv", "install"),
       item("Konfiguracja Foorys IPTV", "W dekoderze wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie lokalnie.", "MENU → Ustawienia", "iptv-settings", "settings"),
-      item("Automatyczne picony IPTV", "Po instalacji bukietu picony z playlisty są zapisywane w katalogu piconów.", "tvg-logo", "iptv-picons", "info")
+      item("Pobierz picony IPTV osobno", "Pobiera picony z playlisty do katalogu piconów. Operacja jest dobrowolna.", "tvg-logo", "iptv-picons", "install")
     ];
     if (sectionId === "picons") {
       return (manifest.picons || []).map(function (entry) { return item(entry.name, entry.description, "Wersja " + entry.version, entry.id, "install"); }).concat([item("Odśwież katalog piconów", "Pobiera aktualne dane z centralnej bazy.", "ZIELONY", "picons-refresh", "refresh")]);

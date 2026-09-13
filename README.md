@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.6.2 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.6.3 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.6.2
+## Co działa w wersji 0.6.3
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -39,8 +39,8 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
   zamontowany, cache i kopie przechodzą do `/etc/enigma2/e2foorys`.
 - osobny bukiet **Foorys IPTV** dla playlisty Europe / Polskie IPTV,
   z importem M3U przez DNS `iptv.forys.pro` albo prywatny link M3U,
-- automatyczne pobieranie piconów PNG z atrybutu `tvg-logo` playlisty i
-  przypisywanie ich do usług w bukiecie IPTV,
+- osobna, dobrowolna aktualizacja piconów IPTV PNG z atrybutu `tvg-logo`
+  playlisty; instalacja bukietu nie pobiera piconów automatycznie,
 - prywatne dane playlisty (link, login i hasło) są przechowywane wyłącznie
   w konfiguracji dekodera i nigdy nie trafiają do manifestu ani repozytorium.
 
@@ -59,15 +59,15 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.6.2
+  python tools/build_ipk.py --version 0.6.3
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.3_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
-scp dist/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk root@DEKODER:/tmp/
-ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk
+scp dist/enigma2-plugin-extensions-e2foorys_0.6.3_all.ipk root@DEKODER:/tmp/
+ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.3_all.ipk
 ```
 
 Po instalacji plugin znajduje się w menu wtyczek jako `E2-Foorys`.

@@ -66,8 +66,6 @@ def ensure_config():
         section.iptv_username = ConfigText(default="", fixed_size=False)
     if not hasattr(section, "iptv_password"):
         section.iptv_password = ConfigPassword(default="", fixed_size=False)
-    if not hasattr(section, "iptv_install_picons"):
-        section.iptv_install_picons = ConfigYesNo(default=True)
     if not hasattr(section, "create_backup"):
         section.create_backup = ConfigYesNo(default=True)
     if not hasattr(section, "show_in_main_menu"):
@@ -101,7 +99,6 @@ def settings_dict():
         "iptv_dns": section.iptv_dns.value.strip() or IPTV_FORYS_DNS,
         "iptv_username": section.iptv_username.value.strip(),
         "iptv_password": section.iptv_password.value,
-        "iptv_install_picons": bool(section.iptv_install_picons.value),
         "create_backup": bool(section.create_backup.value),
         "show_in_main_menu": bool(section.show_in_main_menu.value),
     }
@@ -118,7 +115,6 @@ def config_entries():
         getConfigListEntry("DNS Foorys IPTV", section.iptv_dns),
         getConfigListEntry("Login Foorys IPTV", section.iptv_username),
         getConfigListEntry("Hasło Foorys IPTV", section.iptv_password),
-        getConfigListEntry("Pobieraj picony z playlisty IPTV", section.iptv_install_picons),
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
         getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
         getConfigListEntry("Akcja instalacyjna", section.system_action),

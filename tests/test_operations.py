@@ -29,6 +29,16 @@ file:///tmp/local.ts
         self.assertEqual(result[0]["tvg_logo"], "https://cdn.example/tvp1.png")
         self.assertEqual(result[1]["group"], "Informacja")
 
+    def test_parse_iptv_m3u_removes_polish_prefixes(self):
+        playlist = """#EXTM3U
+#EXTINF:-1,PL: TVP Sport HD
+https://stream.example/live/sport
+#EXTINF:-1,PL | Canal+ Extra 1
+https://stream.example/live/extra
+"""
+        result = operations.parse_iptv_m3u(playlist)
+        self.assertEqual([entry["name"] for entry in result], ["TVP Sport HD", "Canal+ Extra 1"])
+
     def test_install_iptv_playlist_creates_named_bouquet_and_picons(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -51,7 +61,6 @@ file:///tmp/local.ts
                 "enigma2_dir": str(enigma2),
                 "picon_dir": str(picon_dir),
                 "iptv_m3u_url": playlist.as_uri(),
-                "iptv_install_picons": True,
                 "create_backup": True,
             }
             with mock.patch.object(operations, "_storage_directory", return_value=str(storage)):
@@ -62,14 +71,13 @@ file:///tmp/local.ts
             self.assertEqual(result["kind"], "iptv")
             self.assertEqual(result["name"], "Foorys IPTV")
             self.assertEqual(result["channels"], 1)
-            self.assertEqual(result["picons"], 1)
+            self.assertEqual(result["picons"], 0)
             content = bouquet.read_text(encoding="utf-8")
             self.assertIn("#NAME Foorys IPTV", content)
             self.assertIn("#DESCRIPTION TVP 1", content)
             self.assertIn('FROM BOUQUET "userbouquet.foorys-iptv.tv"', bouquets_tv.read_text(encoding="utf-8"))
-            picon_name = next(picon_dir.glob("*.png"))
-            self.assertEqual(picon_name.read_bytes(), logo.read_bytes())
-            self.assertTrue(any("Foorys IPTV: bukiet i picony" in line for line in progress))
+            self.assertFalse(picon_dir.exists() and list(picon_dir.glob("*.png")))
+            self.assertTrue(any("Foorys IPTV: bukiet jest gotowy" in line for line in progress))
 
     def test_install_channel_list_from_local_archive(self):
         with tempfile.TemporaryDirectory() as directory:

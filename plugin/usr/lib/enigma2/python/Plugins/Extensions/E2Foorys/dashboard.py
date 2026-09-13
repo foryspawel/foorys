@@ -24,6 +24,7 @@ from .operations import (
     install_current_oscam_dvbapi,
     install_e2iplayer,
     install_iptv_playlist,
+    install_iptv_picons,
     change_root_password,
     install_oscam_dvbapi,
     install_oscam_stable,
@@ -37,7 +38,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 
 
 MAIN_SKIN = """
@@ -57,8 +58,8 @@ MAIN_SKIN = """
     <eLabel position="26,132" size="1208,2" backgroundColor="#1B4962" />
     <eLabel position="26,143" size="220,398" backgroundColor="#071A2B" />
     <eLabel position="26,143" size="220,2" backgroundColor="#28D7F5" />
-    <widget name="side_title" position="42,151" size="188,25" font="Regular;18" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
-    <widget name="side_menu" position="38,180" size="196,350" itemHeight="38" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B8CBD9" foregroundColorSelected="#FFFFFF" backgroundColor="#0B1E30" backgroundColorSelected="#174D68" transparent="0" />
+    <widget name="side_title" position="42,151" size="188,25" zPosition="2" font="Regular;18" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
+    <widget name="side_menu" position="38,180" size="196,350" zPosition="2" itemHeight="38" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B8CBD9" foregroundColorSelected="#FFFFFF" backgroundColor="#0B1E30" backgroundColorSelected="#174D68" transparent="0" />
     <eLabel position="258,143" size="976,52" backgroundColor="#071A2B" />
     <widget name="focus_title" position="274,153" size="650,34" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
     <widget name="focus_desc" position="934,158" size="280,28" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
@@ -84,14 +85,14 @@ MAIN_SKIN = """
     <widget name="focus_diagnostics" position="916,425" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
 
     <widget name="card_channels" position="276,193" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_updates" position="600,193" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_iptv" position="924,193" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_picons" position="276,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_softcam" position="600,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_plugins" position="924,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_backups" position="276,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_system" position="600,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_diagnostics" position="924,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_updates" position="600,193" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_iptv" position="924,193" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_picons" position="276,313" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_softcam" position="600,313" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_plugins" position="924,313" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_backups" position="276,433" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_system" position="600,433" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_diagnostics" position="924,433" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
 
     <eLabel position="26,548" size="1208,2" backgroundColor="#1B4962" />
     <eLabel position="258,558" size="976,34" backgroundColor="#071A2B" />
@@ -454,7 +455,7 @@ class E2FoorysMain(Screen):
             result.extend([
                 self._install_item(
                     "Instaluj listę Foorys IPTV",
-                    "Pobiera playlistę M3U z DNS Foorys IPTV, tworzy osobny bukiet i pobiera picony z tvg-logo.",
+                    "Pobiera playlistę M3U i tworzy osobny bukiet. Picony są opcjonalne i pobierane osobno.",
                     {"id": "foorys-iptv", "name": "Foorys IPTV", "version": "Europe / Polskie IPTV"},
                     install_iptv_playlist,
                     "Instalacja Foorys IPTV",
@@ -464,10 +465,12 @@ class E2FoorysMain(Screen):
                     "W ustawieniach wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie na dekoderze.",
                     "settings",
                 ),
-                self._item(
-                    "Automatyczne picony IPTV",
-                    "Po instalacji bukietu picony z atrybutu tvg-logo są zapisywane w katalogu piconów.",
-                    "info",
+                self._install_item(
+                    "Pobierz picony IPTV osobno",
+                    "Pobiera picony z atrybutu tvg-logo do katalogu piconów. Operacja jest dobrowolna.",
+                    {"id": "foorys-iptv-picons", "name": "Picony Foorys IPTV", "version": "playlist tvg-logo"},
+                    install_iptv_picons,
+                    "Picony Foorys IPTV",
                 ),
             ])
         elif section_id == "picons":
