@@ -303,7 +303,7 @@ class CatalogScreen(Screen):
         self.job = None
         self.closed = False
         self["title"] = Label(title)
-        self["list"] = MenuList([_versioned_label(entry) for entry in self.entries])
+        self["list"] = MenuList([(_versioned_label(entry), entry.get("id", "")) for entry in self.entries])
         self["status"] = Label("Wybierz element i naciśnij OK.")
         self["hint"] = Label("OK: instaluj   EXIT: wróć")
         self["actions"] = ActionMap(

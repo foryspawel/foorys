@@ -14,7 +14,7 @@ from Components.Pixmap import Pixmap
 from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
-from .config import ensure_config, save_config, settings_dict, config_entries
+from .config import central_manifest_url, ensure_config, settings_dict
 from .core import version_is_newer
 from .operations import (
     collect_installed_packages,
@@ -32,7 +32,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 
 MAIN_SKIN = """
@@ -46,7 +46,8 @@ MAIN_SKIN = """
     <widget name="title" position="122,20" size="650,38" font="Regular;30" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
     <widget name="subtitle" position="122,61" size="650,27" font="Regular;18" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
     <widget name="version" position="850,24" size="290,28" font="Regular;18" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="850,55" size="290,28" font="Regular;18" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="850,55" size="290,24" font="Regular;18" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="quick_update" position="850,82" size="290,18" font="Regular;14" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
     <widget name="section_title" position="35,135" size="470,34" font="Regular;24" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="section_count" position="690,138" size="90,28" font="Regular;17" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
     <widget name="sections" position="28,174" size="235,400" itemHeight="40" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
@@ -150,6 +151,7 @@ class E2FoorysMain(Screen):
         self.system_job = None
         self.action_job = None
         self.closed = False
+        self.quick_update_requested = False
         self["logo"] = Pixmap()
         self["title"] = Label("E2-Foorys")
         self["subtitle"] = Label("Panel zarządzania Enigma2")
@@ -157,7 +159,8 @@ class E2FoorysMain(Screen):
         self["clock"] = Label("")
         self["section_title"] = Label("")
         self["section_count"] = Label("")
-        self["sections"] = MenuList([section[1] for section in SECTIONS])
+        self["quick_update"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
+        self["sections"] = MenuList([(section[1], section[0]) for section in SECTIONS])
         self["items"] = MenuList([])
         self["info_title"] = Label("")
         self["info"] = Label("")
@@ -179,6 +182,7 @@ class E2FoorysMain(Screen):
                 "pageUp": self.page_up,
                 "pageDown": self.page_down,
                 "green": self.refresh_all,
+                "blue": self.quick_update,
                 "info": self.show_health,
             },
             -1,
@@ -199,6 +203,9 @@ class E2FoorysMain(Screen):
         except Exception:
             pass
         self._update_clock()
+        # OpenATV renderuje zawartość MenuList dopiero po utworzeniu instancji
+        # GUI; ponowne zasilenie list usuwa pusty ekran przy pierwszym wejściu.
+        self._render_section()
 
     def _update_clock(self):
         self["clock"].setText(time.strftime("%d.%m.%Y  %H:%M"))
@@ -309,7 +316,7 @@ class E2FoorysMain(Screen):
                 result.append(self._item("E2-Foorys jest aktualny  [%s]" % VERSION, "GitHub nie udostępnia nowszej wersji pluginu.", "info"))
             else:
                 result.append(self._item("Brak pakietu aktualizacji", "Manifest GitHub nie ma jeszcze obiektu plugin_update.", "info"))
-            result.append(self._item("Połączono z: %s" % settings_dict().get("github_repo", "foryspawel/foorys"), "Adres GitHub i gałąź można zmienić w Ustawieniach.", "info"))
+            result.append(self._item("Centralna baza: %s" % settings_dict().get("github_repo", "foryspawel/foorys"), "Źródło jest stałe i zarządzane w centralnym repozytorium GitHub.", "info"))
         elif section_id == "iptv":
             result.extend([
                 self._install_item("Instaluj E2iPlayer (Python 3)", "Oficjalny instalator E2iPlayer dla Python 3.", {"id": "e2iplayer", "name": "E2iPlayer", "version": "Python 3 / OE-Mirrors"}, install_e2iplayer, "Instalacja E2iPlayer"),
@@ -354,7 +361,7 @@ class E2FoorysMain(Screen):
         self.section_items = self._items_for_section(section_id)
         self["section_title"].setText(title)
         self["section_count"].setText("%d/%d" % (self.section_index + 1, len(SECTIONS)))
-        self["items"].setList([item["title"] for item in self.section_items])
+        self["items"].setList([(item["title"], item["action"]) for item in self.section_items])
         self._move_to_index(self["items"], 0)
         self["info_title"].setText(title)
         self["info"].setText(_short_description(description))
@@ -368,14 +375,7 @@ class E2FoorysMain(Screen):
             self["info"].setText(_short_description(item.get("description", "")))
 
     def _manifest_url(self):
-        values = settings_dict()
-        if values.get("manifest_url"):
-            return values["manifest_url"]
-        repo = values.get("github_repo", "foryspawel/foorys").strip().strip("/")
-        branch = values.get("github_branch", "main").strip() or "main"
-        if not repo:
-            return ""
-        return "https://raw.githubusercontent.com/%s/%s/manifest.json" % (repo, branch)
+        return central_manifest_url()
 
     def _refresh_manifest(self):
         if self.manifest_job is not None and self.manifest_job.running:
@@ -393,14 +393,46 @@ class E2FoorysMain(Screen):
         self.manifest_job = None
         if self.closed:
             return
+        quick_update_requested = self.quick_update_requested
+        self.quick_update_requested = False
         if error:
             self.manifest = None
             self._render_section()
             self["status"].setText("GitHub/manifest: %s" % error)
+            if quick_update_requested:
+                self.session.open(MessageBox, "Nie udało się sprawdzić aktualizacji:\n%s" % error, MessageBox.TYPE_ERROR, timeout=10)
             return
         self.manifest = result
         self._render_section()
         self["status"].setText("GitHub OK: %d list, %d pluginów%s%s." % (len(result.get("channel_lists", [])), len(result.get("plugins", [])), ", oscam.dvbapi" if result.get("oscam_dvbapi") else "", ", aktualizacja" if result.get("plugin_update") else ""))
+        if quick_update_requested:
+            self._quick_update_from_manifest()
+
+    def quick_update(self):
+        """Skrót z niebieskiego przycisku: sprawdza i uruchamia aktualizację."""
+
+        if self.action_job is not None and self.action_job.running:
+            self["status"].setText("Inna operacja jest jeszcze uruchomiona.")
+            return
+        self.quick_update_requested = True
+        self._refresh_manifest()
+
+    def _quick_update_from_manifest(self):
+        update = (self.manifest or {}).get("plugin_update")
+        if update and version_is_newer(update.get("version"), VERSION):
+            self.session.open(
+                CatalogScreen,
+                "Szybka aktualizacja E2-Foorys",
+                [update],
+                install_plugin_package,
+            )
+            return
+        self.session.open(
+            MessageBox,
+            "E2-Foorys jest aktualny (%s)." % VERSION,
+            MessageBox.TYPE_INFO,
+            timeout=8,
+        )
 
     def _refresh_system_status(self):
         if self.system_job is not None and self.system_job.running:

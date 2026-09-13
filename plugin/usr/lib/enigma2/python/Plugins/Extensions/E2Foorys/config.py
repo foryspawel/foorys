@@ -15,16 +15,27 @@ from Components.config import (
 )
 
 
+# Centralna baza pluginu. Nie jest edytowalna z poziomu dekodera — wpisy,
+# listy kanałów i pakiety są zarządzane wyłącznie w repozytorium właściciela.
+CENTRAL_GITHUB_REPOSITORY = "foryspawel/foorys"
+CENTRAL_GITHUB_BRANCH = "main"
+
+
+def central_manifest_url():
+    return "https://raw.githubusercontent.com/%s/%s/manifest.json" % (
+        CENTRAL_GITHUB_REPOSITORY,
+        CENTRAL_GITHUB_BRANCH,
+    )
+
+
 def ensure_config():
     if not hasattr(config.plugins, "e2foorys"):
         config.plugins.e2foorys = ConfigSubsection()
     section = config.plugins.e2foorys
     if not hasattr(section, "manifest_url"):
         section.manifest_url = ConfigText(default="", fixed_size=False)
-    if not hasattr(section, "github_repo"):
-        section.github_repo = ConfigText(default="foryspawel/foorys", fixed_size=False)
-    if not hasattr(section, "github_branch"):
-        section.github_branch = ConfigText(default="main", fixed_size=False)
+    # Stare pola github_repo/github_branch mogą pozostać w zapisanej
+    # konfiguracji po aktualizacji, ale nie są już używane ani pokazywane.
     if not hasattr(section, "enigma2_dir"):
         section.enigma2_dir = ConfigText(default="/etc/enigma2", fixed_size=False)
     if not hasattr(section, "oscam_dvbapi_path"):
@@ -53,9 +64,9 @@ def ensure_config():
 def settings_dict():
     section = ensure_config()
     return {
-        "manifest_url": section.manifest_url.value.strip(),
-        "github_repo": section.github_repo.value.strip(),
-        "github_branch": section.github_branch.value.strip(),
+        "manifest_url": central_manifest_url(),
+        "github_repo": CENTRAL_GITHUB_REPOSITORY,
+        "github_branch": CENTRAL_GITHUB_BRANCH,
         "enigma2_dir": section.enigma2_dir.value.strip(),
         "oscam_dvbapi_path": section.oscam_dvbapi_path.value.strip(),
         "storage_dir": section.storage_dir.value.strip(),
@@ -66,9 +77,6 @@ def settings_dict():
 def config_entries():
     section = ensure_config()
     return [
-        getConfigListEntry("Repozytorium GitHub (owner/repo)", section.github_repo),
-        getConfigListEntry("Gałąź GitHub", section.github_branch),
-        getConfigListEntry("Własny URL manifestu (puste = GitHub)", section.manifest_url),
         getConfigListEntry("Katalog list kanałów", section.enigma2_dir),
         getConfigListEntry("Ścieżka oscam.dvbapi", section.oscam_dvbapi_path),
         getConfigListEntry("Katalog danych i kopii", section.storage_dir),
