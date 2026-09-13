@@ -12,7 +12,7 @@ opkg install enigma2-plugin-extensions-e2foorys
 Feed jest publikowany z repozytorium GitHub pod adresem:
 
 ```text
-https://raw.githubusercontent.com/foryspawel/foorys/main/feed
+https://raw.githubusercontent.com/foryspawel/foorys/refs/heads/main/feed
 ```
 
 Indeks `Packages.gz` jest generowany skryptem `tools/build_opkg_feed.py`.
