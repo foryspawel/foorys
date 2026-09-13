@@ -69,6 +69,12 @@ def ensure_config():
         section.create_backup = ConfigYesNo(default=True)
     if not hasattr(section, "show_in_main_menu"):
         section.show_in_main_menu = ConfigYesNo(default=True)
+    if not hasattr(section, "relay_url"):
+        section.relay_url = ConfigText(default="https://169.58.3.89:9443", fixed_size=False)
+    if not hasattr(section, "relay_pairing_code"):
+        section.relay_pairing_code = ConfigPassword(default="", fixed_size=False)
+    if not hasattr(section, "relay_device_token"):
+        section.relay_device_token = ConfigPassword(default="", fixed_size=False)
     return section
 
 
@@ -90,6 +96,9 @@ def settings_dict():
         "iptv_password": section.iptv_password.value,
         "create_backup": bool(section.create_backup.value),
         "show_in_main_menu": bool(section.show_in_main_menu.value),
+        "relay_url": section.relay_url.value.strip(),
+        "relay_pairing_code": section.relay_pairing_code.value,
+        "relay_device_token": section.relay_device_token.value,
     }
 
 
@@ -102,6 +111,8 @@ def config_entries():
         getConfigListEntry("Katalog piconów", section.picon_dir),
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
         getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
+        getConfigListEntry("Adres Foorys Relay", section.relay_url),
+        getConfigListEntry("Kod parowania Relay", section.relay_pairing_code),
     ]
 
 

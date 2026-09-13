@@ -8,10 +8,10 @@ const path = require("path");
 const PORT = Number(process.env.PORT || 8080);
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const STATE_FILE = path.join(DATA_DIR, "state.json");
-const ADMIN_TOKEN = String(process.env.FOORYS_RELAY_ADMIN_TOKEN || "");
+const ADMIN_SECRET = String(process.env.FOORYS_RELAY_ADMIN_PASSWORD || process.env.FOORYS_RELAY_ADMIN_TOKEN || "");
 const ALLOWED_ACTIONS = new Set(["status", "refresh_catalog", "diagnostics", "update_plugin"]);
 
-if (ADMIN_TOKEN.length < 32) throw new Error("FOORYS_RELAY_ADMIN_TOKEN musi mieć co najmniej 32 znaki.");
+if (ADMIN_SECRET.length < 8) throw new Error("Hasło administratora Relay musi mieć co najmniej 8 znaków.");
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
 
 function loadState() {
@@ -39,8 +39,20 @@ function readJson(request) {
   });
 }
 function admin(request) {
-  const token = String(request.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  return token && crypto.timingSafeEqual(Buffer.from(hash(token)), Buffer.from(hash(ADMIN_TOKEN)));
+  const authorization = String(request.headers.authorization || "");
+  let candidate = authorization.replace(/^Bearer\s+/i, "");
+  if (/^Basic\s+/i.test(authorization)) {
+    try {
+      const decoded = Buffer.from(authorization.replace(/^Basic\s+/i, ""), "base64").toString("utf8");
+      const separator = decoded.indexOf(":");
+      candidate = decoded.slice(0, separator) === "foorys" ? decoded.slice(separator + 1) : "";
+    } catch (_error) { candidate = ""; }
+  }
+  return Boolean(candidate) && crypto.timingSafeEqual(Buffer.from(hash(candidate)), Buffer.from(hash(ADMIN_SECRET)));
+}
+function staticFile(response, filename, type) {
+  response.writeHead(200, { "content-type": type, "cache-control": "no-store" });
+  response.end(fs.readFileSync(path.join(__dirname, "web", filename)));
 }
 function device(request) {
   const token = String(request.headers["x-foorys-device-token"] || "");
@@ -56,6 +68,9 @@ const server = http.createServer(async (request, response) => {
   try {
     cleanup();
     const url = new URL(request.url, "http://relay.local");
+    if (request.method === "GET" && url.pathname === "/") return staticFile(response, "index.html", "text/html; charset=utf-8");
+    if (request.method === "GET" && url.pathname === "/app.js") return staticFile(response, "app.js", "application/javascript; charset=utf-8");
+    if (request.method === "GET" && url.pathname === "/app.css") return staticFile(response, "app.css", "text/css; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true });
     if (url.pathname.startsWith("/v1/admin/")) {
       if (!admin(request)) return json(response, 401, { error: "Brak autoryzacji administratora." });
