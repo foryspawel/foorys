@@ -21,8 +21,8 @@ from .layout import scaled_skin
 from .operations import (
     collect_installed_packages,
     collect_system_status,
+    diagnose_internet_speed,
     diagnose_network,
-    diagnose_satellite_connection,
     fetch_manifest,
     install_channel_list,
     install_current_oscam_dvbapi,
@@ -42,7 +42,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.6.9"
+VERSION = "0.7.0"
 
 
 MAIN_SKIN = scaled_skin("""
@@ -546,18 +546,18 @@ class E2FoorysMain(Screen):
                     catalog_title="Diagnostyka sieci",
                 ),
                 self._item(
-                    "Diagnostyka połączenia satelitarnego",
-                    "Sprawdza wykryte tunery DVB, blokadę sygnału, SNR/AGC i BER.",
+                    "Szybki test prędkości internetu",
+                    "Mierzy prędkość pobierania z serwera testowego. Nie zapisuje pliku na dekoderze.",
                     "diagnostic",
                     entry={
-                        "id": "satellite-diagnostic",
-                        "name": "Połączenie satelitarne",
-                        "version": "odczyt bieżący",
-                        "description": "Test tunerów i bieżącej blokady sygnału satelitarnego.",
+                        "id": "internet-speed",
+                        "name": "Test prędkości internetu",
+                        "version": "pomiar bieżący",
+                        "description": "Krótki pomiar pobierania bez zmiany ustawień dekodera.",
                         "operation_kind": "diagnostic",
                     },
-                    operation=diagnose_satellite_connection,
-                    catalog_title="Diagnostyka satelitarna",
+                    operation=diagnose_internet_speed,
+                    catalog_title="Test prędkości internetu",
                 ),
                 self._item("Odśwież dane diagnostyczne", "Ponownie odczytuje parametry bez zmiany konfiguracji.", "system_refresh"),
             ])

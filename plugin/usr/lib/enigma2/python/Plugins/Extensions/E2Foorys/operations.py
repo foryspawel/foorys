@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.6.9 Enigma2"
+USER_AGENT = "E2-Foorys/0.7.0 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -507,6 +507,48 @@ def diagnose_network(_item=None, settings=None, progress=None):
         "kind": "network",
         "ok": bool(internet_ok),
         "summary": summary,
+    }
+
+
+def diagnose_internet_speed(_item=None, settings=None, progress=None):
+    """Krótki pomiar pobierania bez zapisywania danych na dysku."""
+
+    del _item, settings
+    url = "https://speed.cloudflare.com/__down?bytes=3145728"
+    request = Request(url, headers={"User-Agent": USER_AGENT})
+    response = None
+    received = 0
+    started = time.time()
+    try:
+        _progress(progress, "Łączenie z serwerem testowym...")
+        response = urlopen(request, timeout=10)
+        while received < 3145728:
+            chunk = response.read(min(65536, 3145728 - received))
+            if not chunk:
+                break
+            received += len(chunk)
+            elapsed = max(time.time() - started, 0.01)
+            _progress(progress, "Pobrano %d KB (%.1f Mb/s)" % (received // 1024, (received * 8.0 / elapsed) / 1000000.0))
+            if elapsed >= 20:
+                break
+    except Exception as exc:
+        return {
+            "kind": "internet-speed",
+            "ok": False,
+            "summary": "Test prędkości internetu nie powiódł się: %s" % _safe_network_error(exc),
+        }
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
+    elapsed = max(time.time() - started, 0.01)
+    megabits = (received * 8.0 / elapsed) / 1000000.0
+    return {
+        "kind": "internet-speed",
+        "ok": received >= 65536,
+        "summary": "Szybki test internetu\n\nPobrano: %.1f MB w %.1f s\nPrędkość pobierania: %.1f Mb/s\n\nWynik orientacyjny — zależy od serwera, Wi-Fi/LAN i chwilowego obciążenia łącza." % (received / 1048576.0, elapsed, megabits),
     }
 
 
@@ -1078,11 +1120,15 @@ def _communicate_live(process, timeout, progress=None):
             if process.poll() is not None:
                 break
             continue
+        # Python 3 returns bytes unless universal_newlines=True was supplied.
+        # Every caller receives text; Python 2.7 remains supported via to_text.
+        line = to_text(line)
         output.append(line)
         _progress(progress, line.rstrip())
 
     trailing = stream.read()
     if trailing:
+        trailing = to_text(trailing)
         output.append(trailing)
         for line in trailing.splitlines():
             _progress(progress, line.rstrip())
