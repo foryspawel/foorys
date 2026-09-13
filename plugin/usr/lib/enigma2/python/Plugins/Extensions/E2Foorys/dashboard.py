@@ -33,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.4.1"
+VERSION = "0.4.2"
 
 
 MAIN_SKIN = """
@@ -51,34 +51,25 @@ MAIN_SKIN = """
     <widget name="focus_title" position="36,143" size="660,36" font="Regular;30" foregroundColor="#26C8F5" backgroundColor="#0B1827" transparent="0" />
     <widget name="focus_desc" position="710,147" size="514,30" font="Regular;22" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
 
-    <eLabel position="32,182" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="32,182" size="5,106" backgroundColor="#26C8F5" />
-    <eLabel position="440,182" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="440,182" size="5,106" backgroundColor="#B97CFF" />
-    <eLabel position="848,182" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="848,182" size="5,106" backgroundColor="#55D6A0" />
-    <eLabel position="32,302" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="32,302" size="5,106" backgroundColor="#FFB347" />
-    <eLabel position="440,302" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="440,302" size="5,106" backgroundColor="#F06BCB" />
-    <eLabel position="848,302" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="848,302" size="5,106" backgroundColor="#4EA7FF" />
-    <eLabel position="32,422" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="32,422" size="5,106" backgroundColor="#9A8CFF" />
-    <eLabel position="440,422" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="440,422" size="5,106" backgroundColor="#FFC857" />
-    <eLabel position="848,422" size="380,106" backgroundColor="#0C1B2B" />
     <eLabel position="848,422" size="5,106" backgroundColor="#FF6B6B" />
 
-    <widget name="card_channels" position="50,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_updates" position="458,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_iptv" position="866,193" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_picons" position="50,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_softcam" position="458,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_plugins" position="866,313" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_backups" position="50,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_system" position="458,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_diagnostics" position="866,433" size="350,84" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_channels" position="50,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_updates" position="458,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_iptv" position="866,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_picons" position="50,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_softcam" position="458,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_plugins" position="866,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_backups" position="50,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_system" position="458,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_diagnostics" position="866,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
 
     <eLabel position="26,548" size="1208,1" backgroundColor="#173049" />
     <widget name="decoder" position="36,558" size="590,34" font="Regular;21" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" />
