@@ -9,9 +9,15 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "icons": {
+    "128": "icons/foorys.png"
+  },
   "action": {
     "default_title": "Foorys E2i Helper",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/foorys.png"
+    }
   },
   "content_scripts": [
     {
