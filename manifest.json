@@ -93,7 +93,7 @@
       "version": "5.0.240904",
       "package_type": "ipk",
       "url": "plugins/enigma2-plugin-extensions-chocholousek-picons_5.0.240904_all.ipk",
-      "sha256": "ed89bd4a4ac3b450585ff28ce8b8a7ce263c47753f4d781f5304b4102daef86",
+      "sha256": "ed89bd4a4ac3b450585ff28ceb8d8a7ce263c47753f4d781f5304b4102daef86",
       "source_url": "https://github.com/s3n0/e2plugins"
     }
   ],
@@ -126,9 +126,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.0_all.ipk",
-    "sha256": "d312925733361ad051bc07ef3f0a5bcff34355020fc56829323f510db5483d51"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.1_all.ipk",
+    "sha256": "6203c78d5bad2170355494bac50c0337c1ea97833437a195062ddfc80a31d3b8"
   }
 }

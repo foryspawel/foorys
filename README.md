@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.3.0 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.3.1 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.3.0
+## Co działa w wersji 0.3.1
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -18,7 +18,7 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 - logo Foorys używane jako ikona w menu Enigma2 i znak nagłówka panelu,
 - weryfikacja SHA-256 każdego pobieranego pliku,
 - walidacja ścieżek w archiwach, aby uniknąć zapisu poza katalogiem staging.
-- panel AIO-like z osobnymi zakładkami: listy kanałów, aktualizacje, IPTV,
+- panel E2-Foorys z osobnymi zakładkami: listy kanałów, aktualizacje, IPTV,
   Softcam/OSCam, pluginy, kopie, system i diagnostyka,
 - domyślne połączenie z `foryspawel/foorys` przez `manifest.json` na GitHubie,
 - aktualizacja samego E2-Foorys przez pobranie pakietu IPK z GitHuba,
@@ -43,8 +43,8 @@ własnych pozycji do katalogu. W instalacji produkcyjnej używaj HTTPS:
 SHA-256 chroni pobrany plik przed przypadkowym uszkodzeniem, ale sam manifest
 powinien być dostarczany z zaufanego źródła.
 
-Układ pluginu jest przygotowany do dalszej rozbudowy w stylu PanelAIO: lekki
-entry point, osobne moduły operacji i bezpieczeństwa oraz warstwa UI, a logo
+Układ pluginu jest przygotowany do dalszej rozbudowy: lekki entry point,
+osobne moduły operacji i bezpieczeństwa oraz warstwa UI, a logo
 znajduje się w paczce jako `foorys.png`.
 
 ## Budowanie IPK
@@ -52,7 +52,7 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.3.0
+  python tools/build_ipk.py --version 0.3.1
 ```
 
 Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.2.0_all.ipk`. Pakiet

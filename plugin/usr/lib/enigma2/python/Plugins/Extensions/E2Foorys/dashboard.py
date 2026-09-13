@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Panel AIO-like E2-Foorys z zakładkami i diagnostyką dekodera."""
+"""Panel E2-Foorys z zakładkami i diagnostyką dekodera."""
 
 from __future__ import absolute_import
 
@@ -33,51 +33,51 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 
 MAIN_SKIN = """
-<screen name="E2FoorysMain" position="center,center" size="1180,680" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <eLabel position="0,0" size="1180,3" backgroundColor="#1683BB" />
-    <eLabel position="20,102" size="1140,1" backgroundColor="#173049" />
-    <widget name="logo" position="28,18" size="72,72" alphatest="blend" scale="1" />
-    <widget name="title" position="122,20" size="650,42" font="Regular;34" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="subtitle" position="122,63" size="650,30" font="Regular;21" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="version" position="850,14" size="290,25" font="Regular;20" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="850,41" size="290,25" font="Regular;20" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="850,68" size="290,21" font="Regular;16" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="quick_update" position="850,91" size="290,21" font="Regular;16" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="section_title" position="35,135" size="470,38" font="Regular;28" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="section_count" position="690,138" size="90,30" font="Regular;20" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
-    <widget name="sections" position="28,174" size="235,400" itemHeight="46" font="Regular;23" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
-    <widget name="items" position="302,174" size="480,400" itemHeight="48" font="Regular;23" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#135777" transparent="0" />
-    <widget name="info_title" position="830,135" size="305,38" font="Regular;25" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="info" position="830,177" size="305,122" font="Regular;20" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats_title" position="830,314" size="305,34" font="Regular;23" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="stats" position="830,350" size="305,170" font="Regular;20" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="decoder" position="830,532" size="305,38" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0C1B2B" transparent="0" />
-    <eLabel position="20,600" size="1140,1" backgroundColor="#173049" />
-    <widget name="status" position="28,610" size="1125,27" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="hint" position="28,644" size="1125,25" font="Regular;18" foregroundColor="#71899E" backgroundColor="#0E1C2C" transparent="0" />
+<screen name="E2FoorysMain" position="center,center" size="1260,700" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
+    <eLabel position="0,0" size="1260,3" backgroundColor="#1683BB" />
+    <eLabel position="20,104" size="1220,1" backgroundColor="#173049" />
+    <widget name="logo" position="28,16" size="82,82" alphatest="blend" scale="1" />
+    <widget name="title" position="130,18" size="700,46" font="Regular;38" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="subtitle" position="130,66" size="700,32" font="Regular;24" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="version" position="900,13" size="330,28" font="Regular;23" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="900,43" size="330,28" font="Regular;23" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="900,73" size="330,24" font="Regular;18" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="quick_update" position="900,96" size="330,24" font="Regular;18" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="section_title" position="32,136" size="650,40" font="Regular;30" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="section_count" position="770,139" size="125,31" font="Regular;22" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
+    <widget name="sections" position="28,180" size="285,420" itemHeight="50" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#B5C6D6" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#124C6A" transparent="0" />
+    <widget name="items" position="330,180" size="565,420" itemHeight="52" font="Regular;25" scrollbarMode="showOnDemand" foregroundColor="#D8E3ED" foregroundColorSelected="#FFFFFF" backgroundColor="#0C1B2B" backgroundColorSelected="#135777" transparent="0" />
+    <widget name="info_title" position="920,136" size="310,40" font="Regular;27" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="info" position="920,180" size="310,132" font="Regular;22" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="stats_title" position="920,326" size="310,36" font="Regular;25" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="stats" position="920,366" size="310,184" font="Regular;22" foregroundColor="#B8C9D8" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="decoder" position="920,558" size="310,38" font="Regular;19" foregroundColor="#55D6A0" backgroundColor="#0C1B2B" transparent="0" />
+    <eLabel position="20,615" size="1220,1" backgroundColor="#173049" />
+    <widget name="status" position="28,625" size="1205,30" font="Regular;21" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
+    <widget name="hint" position="28,662" size="1205,27" font="Regular;19" foregroundColor="#71899E" backgroundColor="#0E1C2C" transparent="0" />
 </screen>
 """
 
 
 HEALTH_SKIN = """
-<screen name="E2FoorysHealth" position="center,center" size="1000,620" title="E2-Foorys - kondycja dekodera" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <widget name="title" position="30,22" size="940,46" font="Regular;32" foregroundColor="#18C7F5" />
-    <widget name="report" position="35,85" size="930,445" font="Regular;24" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="35,545" size="930,30" font="Regular;21" foregroundColor="#FFD24A" />
-    <widget name="hint" position="35,580" size="930,25" font="Regular;18" foregroundColor="#71899E" />
+<screen name="E2FoorysHealth" position="center,center" size="1120,650" title="E2-Foorys - kondycja dekodera" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
+    <widget name="title" position="32,22" size="1055,50" font="Regular;36" foregroundColor="#18C7F5" />
+    <widget name="report" position="38,88" size="1045,475" font="Regular;27" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="38,575" size="1045,32" font="Regular;23" foregroundColor="#FFD24A" />
+    <widget name="hint" position="38,613" size="1045,27" font="Regular;20" foregroundColor="#71899E" />
 </screen>
 """
 
 
 SECTIONS = (
     ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list kanałów."),
-    ("updates", "E2-Foorys / Aktualizacje", "Sprawdzanie manifestu i aktualizacja samego pluginu."),
+    ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
     ("iptv", "IPTV / Odtwarzacze", "Instalacja E2iPlayera oraz jego patcha."),
-    ("picons", "EPG / Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
+    ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
     ("softcam", "Softcam / OSCam", "Oscam stable, oscam.dvbapi i kontrola softcamów."),
     ("plugins", "Wtyczki / Feedy", "Pakiety IPK/DEB z własnego manifestu."),
     ("backups", "Kopie / Przywracanie", "Kopie bezpieczeństwa konfiguracji."),
@@ -128,6 +128,27 @@ def _short_description(value, width=39, limit=7):
     return "\n".join(lines[:limit])
 
 
+def _friendly_manifest_error(error):
+    """Zamienia techniczny błąd manifestu na komunikat dla użytkownika."""
+
+    text = str(error or "Nieznany błąd.")
+    lowered = text.lower()
+    if "sha256" in lowered or "suma" in lowered:
+        return (
+            "Centralny katalog zawiera błędny wpis sumy pliku.\n"
+            "Aktualizacja nie została uruchomiona. Poprawka repozytorium jest "
+            "w przygotowaniu — spróbuj ponownie przyciskiem ZIELONY.\n\n"
+            "Szczegóły: %s" % text
+        )
+    if "manifest" in lowered or "json" in lowered:
+        return (
+            "Nie można odczytać centralnego katalogu GitHub.\n"
+            "Sprawdź połączenie z internetem i spróbuj ponownie przyciskiem "
+            "ZIELONY.\n\nSzczegóły: %s" % text
+        )
+    return "Nie można połączyć z centralną bazą GitHub.\n\nSzczegóły: %s" % text
+
+
 def _entry_label(entry):
     return "%s  [%s]" % (
         entry.get("name", entry.get("id", "?")),
@@ -154,12 +175,12 @@ class E2FoorysMain(Screen):
         self.quick_update_requested = False
         self["logo"] = Pixmap()
         self["title"] = Label("E2-Foorys")
-        self["subtitle"] = Label("Panel zarządzania Enigma2")
+        self["subtitle"] = Label("Proste centrum zarządzania dekoderem")
         self["version"] = Label("Foorys v%s" % VERSION)
         self["clock"] = Label("")
         self["section_title"] = Label("Listy kanałów")
         self["section_count"] = Label("1/%d" % len(SECTIONS))
-        self["quick_update"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
+        self["quick_update"] = Label("NIEBIESKI: AKTUALIZUJ PLUGIN")
         self["sections"] = MenuList([(section[1], section[0]) for section in SECTIONS])
         self["items"] = MenuList([])
         self["info_title"] = Label("Listy kanałów")
@@ -169,7 +190,7 @@ class E2FoorysMain(Screen):
         self["top_stats"] = Label("CPU: --   RAM: --")
         self["decoder"] = Label("Odczytywanie stanu dekodera...")
         self["status"] = Label("Łączenie z centralną bazą GitHub...")
-        self["hint"] = Label("LEWO/PRAWO: zakładka   OK: wybierz   ZIELONY: odśwież   MENU: ustawienia   EXIT: zamknij")
+        self["hint"] = Label("LEWO/PRAWO: zakładka   GÓRA/DÓŁ: wybierz   OK: otwórz   NIEBIESKI: aktualizacja   EXIT: zamknij")
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions", "MenuActions", "ColorActions"],
             {
@@ -309,6 +330,7 @@ class E2FoorysMain(Screen):
                 result.append(self._item("Brak list w centralnej bazie", "Centralne listy kanałów są publikowane w repozytorium Foorys. Aktualny adres bazy: %s" % central_manifest_url(), "info"))
             result.append(self._manifest_refresh_item())
         elif section_id == "updates":
+            result.append(self._item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Naciśnij OK, aby pobrać katalog i zainstalować najnowszą wersję E2-Foorys.", "quick_update"))
             result.append(self._manifest_refresh_item())
             update = manifest.get("plugin_update")
             if update and version_is_newer(update.get("version"), VERSION):
@@ -367,7 +389,7 @@ class E2FoorysMain(Screen):
     def _render_section(self):
         section_id, title, description = SECTIONS[self.section_index]
         self.section_items = self._items_for_section(section_id)
-        self["section_title"].setText(title)
+        self["section_title"].setText("%d. %s" % (self.section_index + 1, title))
         self["section_count"].setText("%d/%d" % (self.section_index + 1, len(SECTIONS)))
         self["items"].setList([(item["title"], item["action"]) for item in self.section_items])
         self._move_to_index(self["items"], 0)
@@ -404,11 +426,12 @@ class E2FoorysMain(Screen):
         quick_update_requested = self.quick_update_requested
         self.quick_update_requested = False
         if error:
-            self.manifest = None
-            self._render_section()
-            self["status"].setText("GitHub/manifest: %s" % error)
+            friendly_error = _friendly_manifest_error(error)
+            if self.manifest is None:
+                self._render_section()
+            self["status"].setText("GitHub: nie udało się odświeżyć katalogu — poprzednie dane pozostają.")
             if quick_update_requested:
-                self.session.open(MessageBox, "Nie udało się sprawdzić aktualizacji:\n%s" % error, MessageBox.TYPE_ERROR, timeout=10)
+                self.session.open(MessageBox, friendly_error, MessageBox.TYPE_ERROR, timeout=14)
             return
         self.manifest = result
         self._render_section()
@@ -422,12 +445,24 @@ class E2FoorysMain(Screen):
         if self.action_job is not None and self.action_job.running:
             self["status"].setText("Inna operacja jest jeszcze uruchomiona.")
             return
+        if self.manifest_job is not None and self.manifest_job.running:
+            self["status"].setText("Sprawdzam już centralny katalog GitHub...")
+            return
         self.quick_update_requested = True
         self._refresh_manifest()
 
     def _quick_update_from_manifest(self):
         update = (self.manifest or {}).get("plugin_update")
-        if update and version_is_newer(update.get("version"), VERSION):
+        if not update:
+            self.session.open(
+                MessageBox,
+                "Centralna baza nie udostępnia pakietu aktualizacji E2-Foorys.\n\n"
+                "Spróbuj ponownie później albo odśwież katalog przyciskiem ZIELONY.",
+                MessageBox.TYPE_INFO,
+                timeout=10,
+            )
+            return
+        if version_is_newer(update.get("version"), VERSION):
             self.session.open(
                 CatalogScreen,
                 "Szybka aktualizacja E2-Foorys",
@@ -437,7 +472,7 @@ class E2FoorysMain(Screen):
             return
         self.session.open(
             MessageBox,
-            "E2-Foorys jest aktualny (%s)." % VERSION,
+            "E2-Foorys jest aktualny (%s).\n\nW centralnej bazie nie ma nowszej wersji." % VERSION,
             MessageBox.TYPE_INFO,
             timeout=8,
         )
@@ -484,6 +519,8 @@ class E2FoorysMain(Screen):
         action = item.get("action")
         if action == "refresh":
             self._refresh_manifest()
+        elif action == "quick_update":
+            self.quick_update()
         elif action == "install":
             self.session.open(CatalogScreen, item.get("catalog_title", "E2-Foorys"), [item.get("entry")], item.get("operation"))
         elif action == "health":

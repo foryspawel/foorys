@@ -46,11 +46,11 @@ MAIN_SKIN = """
 """
 
 CATALOG_SKIN = """
-<screen name="E2FoorysCatalog" position="center,center" size="1000,620" title="E2-Foorys">
-    <widget name="title" position="30,20" size="940,50" font="Regular;34" />
-    <widget name="list" position="30,85" size="940,420" itemHeight="52" font="Regular;25" scrollbarMode="showOnDemand" />
-    <widget name="status" position="30,525" size="940,35" font="Regular;24" />
-    <widget name="hint" position="30,565" size="940,30" font="Regular;21" />
+<screen name="E2FoorysCatalog" position="center,center" size="1180,680" title="E2-Foorys">
+    <widget name="title" position="35,22" size="1110,54" font="Regular;38" />
+    <widget name="list" position="35,94" size="1110,458" itemHeight="58" font="Regular;28" scrollbarMode="showOnDemand" />
+    <widget name="status" position="35,570" size="1110,38" font="Regular;26" />
+    <widget name="hint" position="35,620" size="1110,32" font="Regular;22" />
 </screen>
 """
 
@@ -122,11 +122,11 @@ class AsyncJob(object):
 
 
 CONSOLE_SKIN = """
-<screen name="E2FoorysConsole" position="center,center" size="1100,650" title="E2-Foorys - konsola" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <widget name="title" position="30,20" size="1040,48" font="Regular;32" foregroundColor="#18C7F5" />
-    <widget name="log" position="30,82" size="1040,460" font="Regular;22" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="status" position="30,555" size="1040,38" font="Regular;24" foregroundColor="#FFD24A" />
-    <widget name="hint" position="30,605" size="1040,28" font="Regular;20" foregroundColor="#71899E" />
+<screen name="E2FoorysConsole" position="center,center" size="1200,700" title="E2-Foorys - konsola" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
+    <widget name="title" position="35,20" size="1130,54" font="Regular;36" foregroundColor="#18C7F5" />
+    <widget name="log" position="35,92" size="1130,500" font="Regular;24" foregroundColor="#D8E3ED" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="status" position="35,610" size="1130,40" font="Regular;26" foregroundColor="#FFD24A" />
+    <widget name="hint" position="35,660" size="1130,30" font="Regular;22" foregroundColor="#71899E" />
 </screen>
 """
 
@@ -307,7 +307,7 @@ class E2FoorysMain(Screen):
         elif action == "info":
             self.session.open(
                 MessageBox,
-                "E2-Foorys 0.3.0\n\n"
+                "E2-Foorys 0.3.1\n\n"
                 "Zarządzanie listami kanałów, pakietami IPK/DEB "
                 "oraz oscam.dvbapi.\n\n"
                 "Każdy plik z repozytorium jest weryfikowany SHA-256.",
@@ -380,8 +380,8 @@ class CatalogScreen(Screen):
         self.closed = False
         self["title"] = Label(title)
         self["list"] = MenuList([(_versioned_label(entry), entry.get("id", "")) for entry in self.entries])
-        self["status"] = Label("Wybierz element i naciśnij OK.")
-        self["hint"] = Label("OK: instaluj   EXIT: wróć")
+        self["status"] = Label("Wybierz pozycję i naciśnij OK, aby rozpocząć.")
+        self["hint"] = Label("OK: instaluj   GÓRA/DÓŁ: wybierz   EXIT: wróć")
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions"],
             {"ok": self.confirm, "cancel": self.close_screen},
@@ -510,9 +510,9 @@ class CatalogScreen(Screen):
 
 class E2FoorysConfig(Screen, ConfigListScreen):
     skin = """
-    <screen name="E2FoorysConfig" position="center,center" size="1000,560" title="E2-Foorys - ustawienia">
-        <widget name="config" position="30,35" size="940,430" itemHeight="38" font="Regular;25" scrollbarMode="showOnDemand" />
-        <widget name="hint" position="30,490" size="940,35" font="Regular;24" />
+    <screen name="E2FoorysConfig" position="center,center" size="1100,640" title="E2-Foorys - ustawienia">
+        <widget name="config" position="35,38" size="1030,500" itemHeight="44" font="Regular;27" scrollbarMode="showOnDemand" />
+        <widget name="hint" position="35,570" size="1030,38" font="Regular;24" />
     </screen>
     """
 

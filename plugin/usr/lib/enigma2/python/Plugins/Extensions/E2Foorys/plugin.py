@@ -20,7 +20,7 @@ def Plugins(**kwargs):
     descriptors = [
         PluginDescriptor(
             name="E2-Foorys",
-            description="Panel AIO: listy, aktualizacje, softcam i diagnostyka",
+            description="E2-Foorys: listy, aktualizacje, softcam i diagnostyka",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="foorys.png",
             fnc=main,
@@ -30,7 +30,7 @@ def Plugins(**kwargs):
         descriptors.append(
             PluginDescriptor(
                 name="E2-Foorys",
-                description="Panel AIO: listy, aktualizacje, softcam i diagnostyka",
+                description="E2-Foorys: listy, aktualizacje, softcam i diagnostyka",
                 where=PluginDescriptor.WHERE_EXTENSIONSMENU,
                 icon="foorys.png",
                 fnc=main,
