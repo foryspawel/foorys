@@ -43,7 +43,7 @@ from .relay import check_relay, pair_relay
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 
 
 MAIN_SKIN = scaled_skin("""
@@ -526,7 +526,7 @@ class E2FoorysMain(Screen):
                 self._item("Restart GUI Enigma2", "Restart interfejsu po dodatkowym potwierdzeniu.", "restart_gui"),
                 self._item("Zmień hasło root", "Dwukrotne wpisanie nowego hasła; hasło nie jest zapisywane przez plugin.", "root_password"),
                 self._item("Ustawienia E2-Foorys", "GitHub, manifest, ścieżki docelowe i kopie bezpieczeństwa.", "settings"),
-                self._item("Połącz ten dekoder z Foorys Relay", "Wpisz kod z panelu Relay, aby włączyć zdalne, kontrolowane zarządzanie.", "relay_pair"),
+                self._item("Połącz ten dekoder z Foorys Relay", "Po kliknięciu wpisz 4-cyfrowy kod z panelu Relay.", "relay_pair"),
                 self._item("Sprawdź połączenie Foorys Relay", "Wysyła bezpieczny heartbeat i sprawdza, czy Relay widzi ten dekoder.", "relay_status"),
             ])
         elif section_id == "diagnostics":
@@ -990,13 +990,7 @@ class SectionMenuScreen(Screen):
         elif action == "iptv_settings":
             self.controller.open_iptv_settings()
         elif action == "relay_pair":
-            self.session.open(
-                CatalogScreen,
-                "Foorys Relay — parowanie",
-                [{"id": "relay-pair", "name": "Połącz ten dekoder", "version": "kod z panelu"}],
-                pair_relay,
-                True,
-            )
+            self._request_relay_pairing_code()
         elif action == "relay_status":
             self.session.open(
                 CatalogScreen,
@@ -1012,6 +1006,50 @@ class SectionMenuScreen(Screen):
                 MessageBox.TYPE_INFO,
                 timeout=10,
             )
+
+    def _request_relay_pairing_code(self):
+        """Prosi o krótki kod dopiero po wybraniu akcji parowania."""
+
+        try:
+            from Screens.VirtualKeyBoard import VirtualKeyBoard
+        except ImportError:
+            self.session.open(
+                MessageBox,
+                "Brak klawiatury ekranowej na tym obrazie Enigma2.",
+                MessageBox.TYPE_ERROR,
+                timeout=8,
+            )
+            return
+        self.session.openWithCallback(
+            self._relay_pairing_code_entered,
+            VirtualKeyBoard,
+            title="Wpisz 4-cyfrowy kod Foorys Relay",
+            text="",
+        )
+
+    def _relay_pairing_code_entered(self, value):
+        code = to_text(value).strip()
+        if len(code) != 4 or any(character not in "0123456789" for character in code):
+            if code:
+                self.session.open(
+                    MessageBox,
+                    "Kod parowania musi zawierać dokładnie 4 cyfry.",
+                    MessageBox.TYPE_ERROR,
+                    timeout=8,
+                )
+            return
+        section = ensure_config()
+        section.relay_pairing_code.value = code
+        from .config import save_config
+
+        save_config()
+        self.session.open(
+            CatalogScreen,
+            "Foorys Relay — parowanie",
+            [{"id": "relay-pair", "name": "Połącz ten dekoder", "version": "kod 4-cyfrowy"}],
+            pair_relay,
+            True,
+        )
 
 
 class HealthScreen(Screen):
