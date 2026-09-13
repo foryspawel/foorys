@@ -36,58 +36,63 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.4.7"
+VERSION = "0.4.9"
 
 
 MAIN_SKIN = """
-<screen name="E2FoorysMain" position="center,center" size="1260,700" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
-    <eLabel position="0,0" size="1260,5" backgroundColor="#26C8F5" />
-    <eLabel position="26,18" size="4,74" backgroundColor="#26C8F5" />
-    <widget name="logo" position="44,20" size="70,70" alphatest="blend" scale="1" />
-    <widget name="title" position="132,18" size="620,44" font="Regular;38" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
-    <widget name="subtitle" position="132,64" size="620,30" font="Regular;23" foregroundColor="#B7C8D8" backgroundColor="#0B1827" transparent="0" />
-    <widget name="version" position="870,16" size="358,28" font="Regular;24" foregroundColor="#28C8F5" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="870,47" size="358,29" font="Regular;25" foregroundColor="#E0EAF2" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="top_stats" position="870,78" size="358,25" font="Regular;20" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="shortcut" position="870,104" size="358,24" font="Regular;19" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <eLabel position="26,132" size="1208,1" backgroundColor="#173049" />
-    <widget name="focus_title" position="36,143" size="660,36" font="Regular;30" foregroundColor="#26C8F5" backgroundColor="#0B1827" transparent="0" />
-    <widget name="focus_desc" position="710,147" size="514,30" font="Regular;22" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
+<screen name="E2FoorysMain" position="center,center" size="1260,700" title="E2-Foorys" backgroundColor="#040A12" borderWidth="2" borderColor="#1E9BCB">
+    <eLabel position="0,0" size="1260,5" backgroundColor="#28D7F5" />
+    <eLabel position="0,5" size="1260,117" backgroundColor="#071727" />
+    <eLabel position="26,20" size="4,78" backgroundColor="#28D7F5" />
+    <eLabel position="36,18" size="86,82" backgroundColor="#0B2236" />
+    <widget name="logo" position="44,22" size="70,70" alphatest="blend" scale="1" />
+    <widget name="title" position="136,20" size="660,42" font="Regular;37" foregroundColor="#F7FBFF" backgroundColor="#071727" transparent="0" />
+    <widget name="subtitle" position="136,66" size="660,28" font="Regular;22" foregroundColor="#AFC6D9" backgroundColor="#071727" transparent="0" />
+    <eLabel position="838,15" size="386,106" backgroundColor="#0B2236" />
+    <widget name="version" position="862,20" size="350,26" font="Regular;23" foregroundColor="#28D7F5" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="862,48" size="350,29" font="Regular;25" foregroundColor="#F1F7FB" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="862,80" size="350,24" font="Regular;19" foregroundColor="#55DFA4" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="shortcut" position="862,106" size="350,22" font="Regular;17" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <eLabel position="26,132" size="1208,2" backgroundColor="#1B4962" />
+    <eLabel position="26,143" size="1208,52" backgroundColor="#071A2B" />
+    <widget name="focus_title" position="42,153" size="720,34" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
+    <widget name="focus_desc" position="780,158" size="434,28" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
 
-    <eLabel position="32,182" size="5,106" backgroundColor="#26C8F5" />
-    <eLabel position="440,182" size="5,106" backgroundColor="#B97CFF" />
-    <eLabel position="848,182" size="5,106" backgroundColor="#55D6A0" />
+    <eLabel position="32,182" size="5,106" backgroundColor="#28D7F5" />
+    <eLabel position="427,182" size="5,106" backgroundColor="#B77CFF" />
+    <eLabel position="822,182" size="5,106" backgroundColor="#55DFA4" />
     <eLabel position="32,302" size="5,106" backgroundColor="#FFB347" />
-    <eLabel position="440,302" size="5,106" backgroundColor="#F06BCB" />
-    <eLabel position="848,302" size="5,106" backgroundColor="#4EA7FF" />
+    <eLabel position="427,302" size="5,106" backgroundColor="#F06BCB" />
+    <eLabel position="822,302" size="5,106" backgroundColor="#4EA7FF" />
     <eLabel position="32,422" size="5,106" backgroundColor="#9A8CFF" />
-    <eLabel position="440,422" size="5,106" backgroundColor="#FFC857" />
-    <eLabel position="848,422" size="5,106" backgroundColor="#FF6B6B" />
+    <eLabel position="427,422" size="5,106" backgroundColor="#FFC857" />
+    <eLabel position="822,422" size="5,106" backgroundColor="#FF6B6B" />
 
-    <widget name="focus_channels" position="42,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_updates" position="450,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_iptv" position="858,185" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_picons" position="42,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_softcam" position="450,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_plugins" position="858,305" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_backups" position="42,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_system" position="450,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
-    <widget name="focus_diagnostics" position="858,425" size="366,100" zPosition="1" backgroundColor="#FFD24A" transparent="0" />
+    <widget name="focus_channels" position="42,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_updates" position="437,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_iptv" position="832,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_picons" position="42,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_softcam" position="437,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_plugins" position="832,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_backups" position="42,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_system" position="437,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_diagnostics" position="832,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
 
-    <widget name="card_channels" position="50,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_updates" position="458,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_iptv" position="866,193" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_picons" position="50,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_softcam" position="458,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_plugins" position="866,313" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_backups" position="50,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_system" position="458,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
-    <widget name="card_diagnostics" position="866,433" size="350,84" zPosition="3" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
+    <widget name="card_channels" position="50,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_updates" position="445,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_iptv" position="840,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_picons" position="50,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_softcam" position="445,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_plugins" position="840,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_backups" position="50,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_system" position="445,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_diagnostics" position="840,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
 
-    <eLabel position="26,548" size="1208,1" backgroundColor="#173049" />
-    <widget name="decoder" position="36,558" size="590,34" font="Regular;21" foregroundColor="#55D6A0" backgroundColor="#0B1827" transparent="0" />
-    <widget name="status" position="650,558" size="574,34" font="Regular;21" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" horizontalAlignment="right" />
-    <widget name="hint" position="36,604" size="1188,56" font="Regular;22" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" />
+    <eLabel position="26,548" size="1208,2" backgroundColor="#1B4962" />
+    <eLabel position="26,558" size="1208,34" backgroundColor="#071A2B" />
+    <widget name="decoder" position="42,562" size="600,27" font="Regular;20" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
+    <widget name="status" position="658,562" size="556,27" font="Regular;20" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
+    <widget name="hint" position="42,606" size="1172,50" font="Regular;21" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
 </screen>
 """
 

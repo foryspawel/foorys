@@ -14,15 +14,15 @@
   ];
 
   var tiles = [
-    ["channels", "LISTY KANAŁÓW", "Foorys • Bzyk83 • 13E"],
-    ["updates", "AKTUALIZACJE", "Plugin i katalog GitHub"],
-    ["iptv", "IPTV / PLAYER", "Odtwarzacze IPTV"],
-    ["picons", "PICONY", "Pobieranie piconów"],
-    ["softcam", "OSCAM / SOFTCAM", "Stable • EMU • NCam"],
-    ["plugins", "PLUGINY", "E2iPlayer • XStreamity"],
-    ["backups", "KOPIE ZAPASOWE", "Dostępne kopie plików"],
-    ["system", "SYSTEM", "Miejsce • Root • GUI"],
-    ["diagnostics", "DIAGNOSTYKA", "CPU • RAM • RootFS"]
+    ["channels", "LISTY KANAŁÓW", "Foorys • Bzyk83 • 13E", "◫"],
+    ["updates", "AKTUALIZACJE", "Plugin i katalog GitHub", "↻"],
+    ["iptv", "IPTV / PLAYER", "Odtwarzacze IPTV", "▶"],
+    ["picons", "PICONY", "Pobieranie piconów", "✦"],
+    ["softcam", "OSCAM / SOFTCAM", "Stable • EMU • NCam", "◎"],
+    ["plugins", "PLUGINY", "E2iPlayer • XStreamity", "✣"],
+    ["backups", "KOPIE ZAPASOWE", "Dostępne kopie plików", "▦"],
+    ["system", "SYSTEM", "Miejsce • Root • GUI", "⚙"],
+    ["diagnostics", "DIAGNOSTYKA", "CPU • RAM • RootFS", "⌁"]
   ];
 
   var fallbackManifest = {
@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.4.8" }
+    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.4.9" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -74,7 +74,7 @@
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", index === state.selected ? "true" : "false");
       button.setAttribute("aria-label", tile[1] + ": " + tile[2]);
-      button.innerHTML = "<span class=\"tile-accent\"></span><span class=\"tile-content\"><span class=\"tile-number\">" + String(index + 1).padStart(2, "0") + (index === state.selected ? " • WYBRANE" : "") + "</span><span class=\"tile-title\">" + tile[1] + "</span><span class=\"tile-hint\">" + (index === state.selected ? "ENTER — otwórz kategorię" : tile[2]) + "</span></span>";
+      button.innerHTML = "<span class=\"tile-accent\"></span><span class=\"tile-icon\" aria-hidden=\"true\">" + tile[3] + "</span><span class=\"tile-content\"><span class=\"tile-number\">" + String(index + 1).padStart(2, "0") + (index === state.selected ? " • WYBRANE" : "") + "</span><span class=\"tile-title\">" + tile[1] + "</span><span class=\"tile-hint\">" + (index === state.selected ? "ENTER — otwórz kategorię" : tile[2]) + "</span></span>";
       button.addEventListener("click", function () { selectTile(index); });
       button.addEventListener("dblclick", function () { openSection(index); });
       button.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openSection(index); } });
@@ -100,7 +100,7 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.4.7]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.4.9]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
     if (sectionId === "iptv") return [item("E2iPlayer jest w zakładce Wtyczki / Feedy", "Instalatory E2iPlayera znajdują się razem z pozostałymi pluginami.", "Informacja", "iptv-info", "info")];
     if (sectionId === "picons") {
