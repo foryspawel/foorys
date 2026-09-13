@@ -488,14 +488,6 @@ class CatalogScreen(Screen):
                 warning,
                 result.get("bouquet", ""),
             )
-        if kind == "iptv-test":
-            warning = "\nNie udało się pobrać części piconów: %d." % result.get("picon_failures", 0) if result.get("picon_failures") else ""
-            return "Test IPTV pobrany.\n\nKanały: %d\nPicony: %d%s\nBukiet testowy: %s\n\nZrestartować GUI Enigma2?" % (
-                result.get("channels", 0),
-                result.get("picons", 0),
-                warning,
-                result.get("bouquet", ""),
-            )
         if kind == "oscam.dvbapi":
             return "oscam.dvbapi zaktualizowany:\n%s\n\nZrestartować GUI Enigma2?" % result.get("target", "")
         if kind == "e2iplayer":
