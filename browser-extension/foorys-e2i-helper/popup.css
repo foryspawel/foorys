@@ -1,0 +1,10 @@
+body { margin: 0; width: 340px; background: #071727; color: #f5f9ff; font: 14px Arial, sans-serif; }
+main { padding: 20px; }
+.eyebrow { margin: 0 0 8px; color: #28d7f5; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+h1 { margin: 0 0 20px; font-size: 24px; }
+label { display: block; margin-bottom: 7px; color: #b8c9d7; }
+input { box-sizing: border-box; width: 100%; border: 1px solid #2b7e9d; border-radius: 6px; background: #0b2236; color: #fff; padding: 10px; }
+button { width: 100%; margin-top: 10px; border: 0; border-radius: 6px; background: #28d7f5; color: #021019; cursor: pointer; font-weight: bold; padding: 10px; }
+.secondary { background: #163b53; color: #dcebf5; }
+.hint { color: #b8c9d7; line-height: 1.45; }
+#status { min-height: 18px; color: #55dfa4; }

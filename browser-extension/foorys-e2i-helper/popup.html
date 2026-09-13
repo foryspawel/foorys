@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foorys E2i Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">E2IPLAYER · LOCAL HELPER</p>
+    <h1>Foorys E2i Helper</h1>
+    <label for="decoder">Adres dekodera</label>
+    <input id="decoder" inputmode="url" placeholder="192.168.18.177:9001">
+    <button id="save">Zapisz adres</button>
+    <button id="open" class="secondary">Otwórz stronę dekodera</button>
+    <p class="hint">Po komunikacie E2iPlayera otwórz adres z QR w tej przeglądarce i przejdź weryfikację ręcznie. Sesja zostanie przekazana do dekodera automatycznie.</p>
+    <p id="status" role="status"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
