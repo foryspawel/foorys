@@ -15,7 +15,7 @@ function New-ArMember {
     )
 
     $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    $header = ('{0,-16}{1,-12}{2,-6}{3,-6}{4,-8}{5,-10}`n' -f $Name, $timestamp, 0, 0, '100644', $Content.Length)
+    $header = ('{0,-16}{1,-12}{2,-6}{3,-6}{4,-8}{5,-10}' -f $Name, $timestamp, 0, 0, '100644', $Content.Length) + [char]96 + [char]10
     $headerBytes = [Text.Encoding]::ASCII.GetBytes($header)
     if ($headerBytes.Length -ne 60) {
         throw "Nieprawidłowy nagłówek ar dla $Name ($($headerBytes.Length) bajtów)."

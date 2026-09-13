@@ -82,7 +82,7 @@
       "version": "5.58-20260720",
       "package_type": "ipk",
       "url": "plugins/enigma2-plugin-extensions-xstreamity_5.58-20260720_all.ipk",
-      "sha256": "38f0063848b89672116ee5e32a8c775251bd95bddc59c1ac8967b7b5ab8e40b3",
+      "sha256": "452fb471eb5b06b3c400b2d24b3fb2504e853e1f0a08509a2a796b554a7f34ea",
       "source_url": "https://github.com/kiddac/XStreamity"
     },
     {
@@ -129,6 +129,6 @@
     "version": "0.3.0",
     "package_type": "ipk",
     "url": "releases/enigma2-plugin-extensions-e2foorys_0.3.0_all.ipk",
-    "sha256": "f635650e875480d98f51e3575e84b3cd979785ae73a43d93702700b59c114079"
+    "sha256": "d312925733361ad051bc07ef3f0a5bcff34355020fc56829323f510db5483d51"
   }
 }
