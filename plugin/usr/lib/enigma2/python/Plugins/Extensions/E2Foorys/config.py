@@ -22,7 +22,9 @@ CENTRAL_GITHUB_BRANCH = "main"
 
 
 def central_manifest_url():
-    return "https://raw.githubusercontent.com/%s/%s/manifest.json" % (
+    # Ten adres jest odświeżany poprawnie po publikacji nowego commita, w
+    # przeciwieństwie do cache raw.githubusercontent.com na części obrazów E2.
+    return "https://github.com/%s/raw/refs/heads/%s/manifest.json" % (
         CENTRAL_GITHUB_REPOSITORY,
         CENTRAL_GITHUB_BRANCH,
     )

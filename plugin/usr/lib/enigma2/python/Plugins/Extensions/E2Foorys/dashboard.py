@@ -33,7 +33,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.4.4"
+VERSION = "0.4.5"
 
 
 MAIN_SKIN = """
@@ -107,10 +107,10 @@ SECTION_MENU_SKIN = """
 SECTIONS = (
     ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list Foorys oraz Bzyk83."),
     ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
-    ("iptv", "IPTV / Odtwarzacze", "Instalacja E2iPlayera oraz jego patcha."),
+    ("iptv", "IPTV / Odtwarzacze", "Informacje o odtwarzaczach IPTV."),
     ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
     ("softcam", "Softcam / OSCam", "Oscam stable, oscam.dvbapi i kontrola softcamów."),
-    ("plugins", "Wtyczki / Feedy", "Pakiety IPK/DEB z własnego manifestu."),
+    ("plugins", "Wtyczki / Feedy", "Instalacja E2iPlayera i pakietów z centralnej bazy."),
     ("backups", "Kopie / Przywracanie", "Kopie bezpieczeństwa konfiguracji."),
     ("system", "System / Konserwacja", "Podstawowe operacje administracyjne GUI."),
     ("diagnostics", "Diagnostyka / Naprawa", "Kondycja, wolne miejsce i pakiety."),
@@ -143,10 +143,10 @@ CARD_TITLES = (
 CARD_HINTS = (
     "Foorys • Bzyk83 • 13E",
     "Plugin i katalog GitHub",
-    "E2iPlayer i patch",
+    "Odtwarzacze IPTV",
     "Pobieranie piconów",
     "Stable i oscam.dvbapi",
-    "XStreamity • Picons",
+    "E2iPlayer • XStreamity",
     "Dostępne kopie plików",
     "Miejsce • Restart GUI",
     "CPU • RAM • RootFS",
@@ -391,10 +391,7 @@ class E2FoorysMain(Screen):
                 result.append(self._item("Brak pakietu aktualizacji", "Manifest GitHub nie ma jeszcze obiektu plugin_update.", "info"))
             result.append(self._item("Centralna baza GitHub", central_manifest_url(), "info"))
         elif section_id == "iptv":
-            result.extend([
-                self._install_item("Instaluj E2iPlayer (Python 3)", "Oficjalny instalator E2iPlayer dla Python 3.", {"id": "e2iplayer", "name": "E2iPlayer", "version": "Python 3 / OE-Mirrors"}, install_e2iplayer, "Instalacja E2iPlayer"),
-                self._install_item("Patch E2iPlayer (hosttorrentyts)", "Patch dla wcześniej zainstalowanego E2iPlayera.", {"id": "e2iplayer-patch", "name": "E2iPlayer patch", "version": "hosttorrentyts"}, patch_e2iplayer, "Patch E2iPlayer"),
-            ])
+            result.append(self._item("E2iPlayer jest w zakładce Wtyczki / Feedy", "Instalację E2iPlayera i jego patcha znajdziesz teraz razem z pozostałymi pluginami.", "info"))
         elif section_id == "picons":
             for entry in manifest.get("picons", []):
                 result.append(self._install_item(None, entry.get("description"), entry, install_picons, "Aktualizacja piconów"))
@@ -409,6 +406,10 @@ class E2FoorysMain(Screen):
                 result.append(self._install_item(None, manifest["oscam_dvbapi"].get("description"), manifest["oscam_dvbapi"], install_oscam_dvbapi, "Aktualizacja oscam.dvbapi z manifestu"))
             result.append(self._item("Sprawdź zainstalowane softcamy", "Odczyta pakiety opkg zawierające Oscam, softcam lub E2iPlayer.", "packages"))
         elif section_id == "plugins":
+            result.extend([
+                self._install_item("Instaluj E2iPlayer (Python 3)", "Oficjalny instalator E2iPlayer dla Python 3.", {"id": "e2iplayer", "name": "E2iPlayer", "version": "Python 3 / OE-Mirrors"}, install_e2iplayer, "Instalacja E2iPlayer"),
+                self._install_item("Patch E2iPlayer (hosttorrentyts)", "Patch dla wcześniej zainstalowanego E2iPlayera.", {"id": "e2iplayer-patch", "name": "E2iPlayer patch", "version": "hosttorrentyts"}, patch_e2iplayer, "Patch E2iPlayer"),
+            ])
             for entry in manifest.get("plugins", []):
                 result.append(self._install_item(None, entry.get("description"), entry, install_plugin_package, "Instalacja pluginu"))
             if not result:

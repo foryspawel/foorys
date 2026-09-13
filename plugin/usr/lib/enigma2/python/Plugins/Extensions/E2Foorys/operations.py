@@ -408,7 +408,11 @@ def fetch_manifest(manifest_url):
     """Pobiera i waliduje manifest, rozwijając względne URL-e."""
 
     _validate_download_url(manifest_url)
-    request = Request(manifest_url, headers={"User-Agent": USER_AGENT})
+    # Raw GitHub może przez chwilę zwracać wcześniejszą wersję pliku. Znacznik
+    # czasu i nagłówki wymuszają pobranie świeżego katalogu po ZIELONYM.
+    separator = "&" if "?" in manifest_url else "?"
+    download_url = "%s%se2foorys_refresh=%d" % (manifest_url, separator, int(time.time() * 1000))
+    request = Request(download_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache", "Pragma": "no-cache"})
     try:
         with urlopen(request, timeout=25) as response:
             raw = _read_response(response, MANIFEST_LIMIT)
