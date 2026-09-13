@@ -1,0 +1,30 @@
+--- a/IPTVPlayer/hosts/hostfilman.py
++++ b/IPTVPlayer/hosts/hostfilman.py
+@@
+-    def getPage(self, baseUrl, addParams={}, post_data=None):
+-        if addParams == {}:
+-            addParams = dict(self.defaultParams)
++    def _syncCloudflareUserAgent(self, data):
++        """Keep the User-Agent returned by MyE2i for all later requests."""
++        try:
++            cf_user = data.meta.get("cf_user", "")
++        except Exception:
++            cf_user = ""
++        if cf_user and cf_user != self.HTTP_HEADER.get("User-Agent", ""):
++            self.USER_AGENT = cf_user
++            self.HTTP_HEADER["User-Agent"] = cf_user
++            self.AJAX_HEADER["User-Agent"] = cf_user
++            self.defaultParams["header"] = self.HTTP_HEADER
++            printDBG("Filman: synchronized Cloudflare User-Agent")
++
++    def getPage(self, baseUrl, addParams=None, post_data=None):
++        if addParams is None:
++            addParams = dict(self.defaultParams)
++        else:
++            addParams = dict(addParams)
++        if "header" in addParams:
++            addParams["header"] = dict(addParams["header"])
+         baseUrl = self.cm.iriToUri(baseUrl)
+         sts, data = self.cm.getPageCFProtection(baseUrl, addParams, post_data)
++        self._syncCloudflareUserAgent(data)
+         return sts, data
