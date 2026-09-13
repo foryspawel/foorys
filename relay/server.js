@@ -52,6 +52,11 @@ function saveState() {
 }
 function hash(value) { return crypto.createHash("sha256").update(String(value)).digest("hex"); }
 function random(bytes) { return crypto.randomBytes(bytes).toString("base64url"); }
+function newPairingCode() {
+  let code;
+  do { code = String(crypto.randomInt(100000, 1000000)); } while (state.pairings[code]);
+  return code;
+}
 function json(response, status, value) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   response.end(JSON.stringify(value));
@@ -118,7 +123,7 @@ const server = http.createServer(async (request, response) => {
         return json(response, 200, { jobs });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/pairings") {
-        const code = random(18); state.pairings[code] = { expiresAt: Date.now() + 15 * 60000 }; saveState();
+        const code = newPairingCode(); state.pairings[code] = { expiresAt: Date.now() + 15 * 60000 }; saveState();
         return json(response, 201, { pairingCode: code, expiresInSeconds: 900 });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {

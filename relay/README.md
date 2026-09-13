@@ -6,4 +6,4 @@ Panel administratora używa oddzielnego hasła, a dekodery osobnych tokenów. Re
 
 W produkcji usługa ma być dostępna wyłącznie przez Nginx TLS na porcie 9443 pod domeną `raport.forys.pro`. Rekord DNS `raport.forys.pro` musi wskazywać na adres VPS `169.58.3.89`; nie zmieniaj przy tym rekordu używanego przez aplikację firmową. Certyfikat i klucz prywatny należy trzymać tylko na serwerze, a hasło administratora w pliku `.env` z uprawnieniami `600`.
 
-Po sparowaniu wtyczka E2-Foorys pracuje w tle: wysyła heartbeat co minutę i pobiera zadania co 20 sekund. Kod parowania jest jednorazowy i ważny 15 minut. Token urządzenia jest przechowywany tylko na dekoderze.
+Po sparowaniu wtyczka E2-Foorys pracuje w tle: wysyła heartbeat co minutę i pobiera zadania co 20 sekund. Nowy kod parowania ma 6 cyfr, jest jednorazowy i ważny 15 minut. Token urządzenia jest przechowywany tylko na dekoderze.
