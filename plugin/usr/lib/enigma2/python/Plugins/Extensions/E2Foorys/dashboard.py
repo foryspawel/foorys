@@ -39,10 +39,11 @@ from .operations import (
     patch_e2iplayer,
     validate_root_password,
 )
+from .relay import check_relay, pair_relay
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 
 MAIN_SKIN = scaled_skin("""
@@ -525,6 +526,8 @@ class E2FoorysMain(Screen):
                 self._item("Restart GUI Enigma2", "Restart interfejsu po dodatkowym potwierdzeniu.", "restart_gui"),
                 self._item("Zmień hasło root", "Dwukrotne wpisanie nowego hasła; hasło nie jest zapisywane przez plugin.", "root_password"),
                 self._item("Ustawienia E2-Foorys", "GitHub, manifest, ścieżki docelowe i kopie bezpieczeństwa.", "settings"),
+                self._item("Połącz ten dekoder z Foorys Relay", "Wpisz kod z panelu Relay, aby włączyć zdalne, kontrolowane zarządzanie.", "relay_pair"),
+                self._item("Sprawdź połączenie Foorys Relay", "Wysyła bezpieczny heartbeat i sprawdza, czy Relay widzi ten dekoder.", "relay_status"),
             ])
         elif section_id == "diagnostics":
             result.extend([
@@ -986,6 +989,22 @@ class SectionMenuScreen(Screen):
             self.controller.open_settings()
         elif action == "iptv_settings":
             self.controller.open_iptv_settings()
+        elif action == "relay_pair":
+            self.session.open(
+                CatalogScreen,
+                "Foorys Relay — parowanie",
+                [{"id": "relay-pair", "name": "Połącz ten dekoder", "version": "kod z panelu"}],
+                pair_relay,
+                True,
+            )
+        elif action == "relay_status":
+            self.session.open(
+                CatalogScreen,
+                "Foorys Relay — test połączenia",
+                [{"id": "relay-check", "name": "Sprawdź połączenie", "version": "heartbeat"}],
+                check_relay,
+                True,
+            )
         elif action == "info":
             self.session.open(
                 MessageBox,

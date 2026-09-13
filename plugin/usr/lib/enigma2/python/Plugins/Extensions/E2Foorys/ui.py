@@ -447,6 +447,25 @@ class CatalogScreen(Screen):
                 timeout=18,
             )
             return
+        if isinstance(result, dict) and result.get("kind") in ("relay-pair", "relay-check"):
+            relay_ok = bool(result.get("ok"))
+            if self.console is not None:
+                self.console.finish(
+                    relay_ok,
+                    "połączenie gotowe" if relay_ok else "Relay zgłosił problem",
+                )
+            self["status"].setText(
+                "Foorys Relay: połączono."
+                if relay_ok
+                else "Foorys Relay: operacja nieudana."
+            )
+            self.session.open(
+                MessageBox,
+                self._result_message(result),
+                MessageBox.TYPE_INFO if relay_ok else MessageBox.TYPE_ERROR,
+                timeout=12,
+            )
+            return
         if isinstance(result, dict) and result.get("kind") in ("channels", "iptv"):
             reloaded = self._reload_service_lists()
             if self.console is not None:
@@ -522,6 +541,10 @@ class CatalogScreen(Screen):
             return "Diagnostyka sieci:\n\n%s" % result.get("summary", "Brak szczegółów.")
         if kind == "satellite":
             return "Diagnostyka połączenia satelitarnego:\n\n%s" % result.get("summary", "Brak szczegółów.")
+        if kind == "relay-pair":
+            return "Dekoder został sparowany z Foorys Relay.\n\nPołączenie będzie działać automatycznie w tle. Token pozostaje zapisany wyłącznie na tym dekoderze."
+        if kind == "relay-check":
+            return "Połączenie z Foorys Relay działa.\n\nBieżący stan dekodera został wysłany do panelu administratora."
         return "Plugin '%s' zainstalowany.\n\nZrestartować GUI Enigma2?" % result.get("name", "plugin")
 
     def _after_success(self, restart=False):

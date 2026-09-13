@@ -9,7 +9,33 @@ const PORT = Number(process.env.PORT || 8080);
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const STATE_FILE = path.join(DATA_DIR, "state.json");
 const ADMIN_SECRET = String(process.env.FOORYS_RELAY_ADMIN_PASSWORD || process.env.FOORYS_RELAY_ADMIN_TOKEN || "");
-const ALLOWED_ACTIONS = new Set(["status", "refresh_catalog", "diagnostics", "update_plugin"]);
+const ACTIONS = {
+  status: "Stan dekodera",
+  diagnostics: "Pełna diagnostyka",
+  network_diagnostic: "Diagnostyka sieci",
+  speed_test: "Test prędkości internetu",
+  refresh_catalog: "Odśwież katalog",
+  install_foorys_channels: "Instaluj listę Foorys",
+  install_bzyk83_hotbird: "Instaluj Bzyk83 Hotbird",
+  install_bzyk83_dual: "Instaluj Bzyk83 Dual",
+  install_channel: "Instaluj listę z katalogu",
+  install_foorys_iptv: "Instaluj Foorys IPTV",
+  install_picons_hotbird: "Picony Hotbird 13E",
+  install_picons: "Instaluj picony z katalogu",
+  install_plugin: "Instaluj plugin z katalogu",
+  install_xstreamity: "Instaluj XStreamity",
+  install_chocholousek: "Instaluj Chocholousek Picons",
+  install_e2iplayer: "Instaluj E2iPlayer",
+  install_oscam_stable: "Instaluj Oscam stable",
+  install_oscam_emu: "Instaluj OSCam-emu",
+  install_ncam: "Instaluj NCam",
+  install_cccam: "Instaluj CCcam",
+  oscam_dvbapi: "Aktualizuj oscam.dvbapi",
+  update_plugin: "Aktualizuj E2-Foorys",
+  restart_gui: "Restart GUI Enigma2",
+};
+const ALLOWED_ACTIONS = new Set(Object.keys(ACTIONS));
+const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin"]);
 
 if (ADMIN_SECRET.length < 8) throw new Error("Hasło administratora Relay musi mieć co najmniej 8 znaków.");
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
@@ -62,6 +88,16 @@ function cleanup() {
   const now = Date.now();
   for (const [code, pairing] of Object.entries(state.pairings)) if (pairing.expiresAt < now) delete state.pairings[code];
   state.jobs = state.jobs.filter(job => job.createdAt > now - 7 * 86400000);
+  for (const item of Object.values(state.devices)) {
+    if (item.lastSeenAt && item.lastSeenAt < now - 120000) item.status = "offline";
+  }
+}
+function jobParams(action, value) {
+  if (!ACTION_PARAMS.has(action)) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const id = String(value.id || "").trim();
+  if (!/^[A-Za-z0-9._+-]{1,160}$/.test(id)) return null;
+  return { id };
 }
 
 const server = http.createServer(async (request, response) => {
@@ -75,14 +111,22 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname.startsWith("/v1/admin/")) {
       if (!admin(request)) return json(response, 401, { error: "Brak autoryzacji administratora." });
       if (request.method === "GET" && url.pathname === "/v1/admin/devices") return json(response, 200, { devices: Object.values(state.devices).map(({ tokenHash, ...item }) => item) });
+      if (request.method === "GET" && url.pathname === "/v1/admin/actions") return json(response, 200, { actions: ACTIONS });
+      if (request.method === "GET" && url.pathname === "/v1/admin/jobs") {
+        const deviceId = String(url.searchParams.get("deviceId") || "");
+        const jobs = state.jobs.filter(job => !deviceId || job.deviceId === deviceId).slice(-100).reverse();
+        return json(response, 200, { jobs });
+      }
       if (request.method === "POST" && url.pathname === "/v1/admin/pairings") {
         const code = random(18); state.pairings[code] = { expiresAt: Date.now() + 15 * 60000 }; saveState();
         return json(response, 201, { pairingCode: code, expiresInSeconds: 900 });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);
-        if (!state.devices[body.deviceId] || !ALLOWED_ACTIONS.has(body.action)) return json(response, 400, { error: "Nieprawidłowy dekoder lub akcja." });
-        const job = { id: random(12), deviceId: body.deviceId, action: body.action, createdAt: Date.now(), status: "pending" };
+        const action = String(body.action || "");
+        const params = jobParams(action, body.params);
+        if (!state.devices[body.deviceId] || !ALLOWED_ACTIONS.has(action) || params === null) return json(response, 400, { error: "Nieprawidłowy dekoder, akcja lub parametr." });
+        const job = { id: random(12), deviceId: body.deviceId, action, params, createdAt: Date.now(), status: "pending" };
         state.jobs.push(job); saveState(); return json(response, 201, { job });
       }
       return json(response, 404, { error: "Nie znaleziono." });
@@ -100,13 +144,14 @@ const server = http.createServer(async (request, response) => {
       const body = await readJson(request); current.lastSeenAt = Date.now(); current.status = "online"; current.metrics = body.metrics || {}; saveState(); return json(response, 200, { ok: true });
     }
     if (request.method === "GET" && url.pathname === "/v1/device/jobs") {
-      const jobs = state.jobs.filter(job => job.deviceId === current.id && job.status === "pending");
-      jobs.forEach(job => { job.status = "delivered"; }); saveState(); return json(response, 200, { jobs });
+      const now = Date.now();
+      const jobs = state.jobs.filter(job => job.deviceId === current.id && (job.status === "pending" || (job.status === "delivered" && (job.deliveredAt || 0) < now - 120000))).slice(0, 3);
+      jobs.forEach(job => { job.status = "delivered"; job.deliveredAt = now; }); saveState(); return json(response, 200, { jobs });
     }
     if (request.method === "POST" && /^\/v1\/device\/jobs\/[^/]+\/result$/.test(url.pathname)) {
       const job = state.jobs.find(item => item.id === url.pathname.split("/")[4] && item.deviceId === current.id);
       if (!job) return json(response, 404, { error: "Nie znaleziono zadania." });
-      const body = await readJson(request); job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1000); saveState(); return json(response, 200, { ok: true });
+      const body = await readJson(request); job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now(); saveState(); return json(response, 200, { ok: true });
     }
     return json(response, 404, { error: "Nie znaleziono." });
   } catch (error) { return json(response, 500, { error: "Błąd Relay." }); }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-13T15:30:00Z",
+  "generated_at": "2026-09-13T19:50:00Z",
   "channel_lists": [
     {
       "id": "foorys-hotbird-13e-2026.09.13",
@@ -87,9 +87,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.7.0_all.ipk",
-    "sha256": "d8d852f7e66af7d86b468c2c8034d01484dccdad78e68e81bc3ea0c13197fd7a"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.8.0_all.ipk",
+    "sha256": "10507267877c621deb3f2eed5c3fa95959b848e01b69538022f1d971293664a2"
   }
 }

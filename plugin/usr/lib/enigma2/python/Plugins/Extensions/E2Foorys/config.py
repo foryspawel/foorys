@@ -24,6 +24,8 @@ except ImportError:  # pragma: no cover - starsze obrazy Enigma2
 CENTRAL_GITHUB_REPOSITORY = "foryspawel/foorys"
 CENTRAL_GITHUB_BRANCH = "main"
 IPTV_FORYS_DNS = "iptv.forys.pro"
+RELAY_DEFAULT_URL = "https://raport.forys.pro:9443"
+RELAY_CERT_SHA256 = "bfc91e3fa75d5628fd908622e76bc7c92c4ad68f380a76c5e58557dc33c8be88"
 
 
 def central_manifest_url():
@@ -70,11 +72,19 @@ def ensure_config():
     if not hasattr(section, "show_in_main_menu"):
         section.show_in_main_menu = ConfigYesNo(default=True)
     if not hasattr(section, "relay_url"):
-        section.relay_url = ConfigText(default="https://169.58.3.89:9443", fixed_size=False)
+        section.relay_url = ConfigText(default=RELAY_DEFAULT_URL, fixed_size=False)
+    if not hasattr(section, "relay_enabled"):
+        section.relay_enabled = ConfigYesNo(default=True)
+    if not hasattr(section, "relay_device_name"):
+        section.relay_device_name = ConfigText(default="Foorys dekoder", fixed_size=False)
     if not hasattr(section, "relay_pairing_code"):
         section.relay_pairing_code = ConfigPassword(default="", fixed_size=False)
+    if not hasattr(section, "relay_device_id"):
+        section.relay_device_id = ConfigText(default="", fixed_size=False)
     if not hasattr(section, "relay_device_token"):
         section.relay_device_token = ConfigPassword(default="", fixed_size=False)
+    if not hasattr(section, "relay_cert_sha256"):
+        section.relay_cert_sha256 = ConfigText(default=RELAY_CERT_SHA256, fixed_size=False)
     return section
 
 
@@ -97,8 +107,12 @@ def settings_dict():
         "create_backup": bool(section.create_backup.value),
         "show_in_main_menu": bool(section.show_in_main_menu.value),
         "relay_url": section.relay_url.value.strip(),
+        "relay_enabled": bool(section.relay_enabled.value),
+        "relay_device_name": section.relay_device_name.value.strip() or "Foorys dekoder",
         "relay_pairing_code": section.relay_pairing_code.value,
+        "relay_device_id": section.relay_device_id.value.strip(),
         "relay_device_token": section.relay_device_token.value,
+        "relay_cert_sha256": section.relay_cert_sha256.value.strip().lower(),
     }
 
 
@@ -112,6 +126,8 @@ def config_entries():
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
         getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
         getConfigListEntry("Adres Foorys Relay", section.relay_url),
+        getConfigListEntry("Automatyczne połączenie Relay", section.relay_enabled),
+        getConfigListEntry("Nazwa tego dekodera w Relay", section.relay_device_name),
         getConfigListEntry("Kod parowania Relay", section.relay_pairing_code),
     ]
 
