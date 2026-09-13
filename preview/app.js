@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.5" }
+      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.6" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -87,7 +87,7 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.5]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.6]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
     if (sectionId === "iptv") return [
       item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U i tworzy osobny bukiet. Picony są opcjonalne i pobierane osobno.", "Bukiet główny", "foorys-iptv", "install"),
@@ -110,7 +110,7 @@
     ].concat((manifest.plugins || []).map(function (entry) { return item(entry.name, entry.description, "Wersja " + entry.version, entry.id, "install"); }));
     if (sectionId === "backups") return [item("Pokaż dostępne kopie", "Wyświetla kopie list kanałów i oscam.dvbapi.", "Podgląd raportu", "backups", "install"), item("Otwórz ustawienia ścieżek", "Katalog kopii zmienisz w ustawieniach.", "Konfiguracja", "settings", "settings")];
     if (sectionId === "system") return [item("Sprawdź kondycję dekodera", "Model, obraz, CPU, RAM, flash, temperatura i uptime.", "Dane demonstracyjne", "health", "install"), item("Sprawdź wolne miejsce", "Wolne miejsce na rootfs i magazynie danych.", "Dane demonstracyjne", "free-space", "install"), item("Restart GUI Enigma2", "Restart interfejsu po potwierdzeniu.", "Nieaktywne w podglądzie", "restart", "info"), item("Zmień hasło root", "Dwukrotne wpisanie nowego hasła i końcowe potwierdzenie.", "Formularz demonstracyjny", "root-password", "password"), item("Ustawienia E2-Foorys", "GitHub, ścieżki docelowe i kopie bezpieczeństwa.", "Konfiguracja", "settings", "settings")];
-    if (sectionId === "diagnostics") return [item("Pełna diagnostyka dekodera", "Otwiera szczegółowy raport parametrów systemu.", "Dane demonstracyjne", "health", "install"), item("Wolne miejsce / magazyn", "Kontroluje rootfs oraz dysk HDD/USB.", "Dane demonstracyjne", "free-space", "install"), item("Zainstalowane pakiety softcam", "Pokazuje znalezione pakiety.", "Dane demonstracyjne", "packages", "install"), item("Odśwież dane diagnostyczne", "Ponownie odczytuje parametry.", "ZIELONY", "diagnostics-refresh", "refresh")];
+    if (sectionId === "diagnostics") return [item("Pełna diagnostyka dekodera", "Otwiera szczegółowy raport parametrów systemu.", "Dane demonstracyjne", "health", "install"), item("Wolne miejsce / magazyn", "Kontroluje rootfs oraz dysk HDD/USB.", "Dane demonstracyjne", "free-space", "install"), item("Diagnostyka sieci", "Sprawdza interfejs, bramę, DNS i połączenie HTTPS z centralną bazą.", "Test bieżący", "network-diagnostic", "install"), item("Diagnostyka połączenia satelitarnego", "Sprawdza wykryte tunery DVB, blokadę sygnału, SNR/AGC i BER.", "Test bieżący", "satellite-diagnostic", "install"), item("Zainstalowane pakiety softcam", "Pokazuje znalezione pakiety.", "Dane demonstracyjne", "packages", "install"), item("Odśwież dane diagnostyczne", "Ponownie odczytuje parametry.", "ZIELONY", "diagnostics-refresh", "refresh")];
     return [];
   }
 

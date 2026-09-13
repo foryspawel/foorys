@@ -6,11 +6,13 @@ from __future__ import absolute_import
 
 import json
 import hashlib
+import glob
 import os
 import platform
 import re
 import select
 import shutil
+import socket
 import subprocess
 import tempfile
 import time
@@ -376,6 +378,236 @@ def collect_system_status(settings=None):
         "temperature": _temperature(),
         "enigma2_running": _process_running("enigma2"),
         "opkg_available": bool(shutil.which("opkg") or os.path.exists("/usr/bin/opkg")),
+    }
+
+
+def _default_network_route():
+    """Zwraca interfejs i bramę domyślnej trasy z /proc/net/route."""
+
+    content = _read_text_file("/proc/net/route")
+    for line in content.splitlines()[1:]:
+        fields = line.split()
+        if len(fields) < 4 or fields[1] != "00000000":
+            continue
+        try:
+            gateway_value = int(fields[2], 16)
+            gateway = ".".join(
+                str((gateway_value >> shift) & 0xFF)
+                for shift in (0, 8, 16, 24)
+            )
+        except (TypeError, ValueError):
+            gateway = "n/d"
+        return fields[0], gateway
+    return "", ""
+
+
+def _interface_state(interface):
+    if not interface:
+        return "n/d"
+    return _read_text_file("/sys/class/net/%s/operstate" % interface) or "n/d"
+
+
+def _interface_ipv4(interface):
+    """Odczytuje pierwszy adres IPv4 bez używania powłoki."""
+
+    executable = shutil.which("ip")
+    if not executable or not interface:
+        return "n/d"
+    try:
+        process = subprocess.Popen(
+            [executable, "-4", "-o", "addr", "show", "dev", interface],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+        output, _unused = process.communicate(timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return "n/d"
+    for field in output.split():
+        if "/" not in field:
+            continue
+        address = field.split("/", 1)[0]
+        try:
+            socket.inet_aton(address)
+            return field
+        except OSError:
+            continue
+    return "n/d"
+
+
+def _network_diagnostic_lines(settings=None, progress=None):
+    """Wykonuje odczyt trasy, DNS i połączenia TCP do centralnej bazy."""
+
+    lines = []
+
+    def add(message):
+        lines.append(message)
+        _progress(progress, message)
+
+    add("Diagnostyka sieci Foorys")
+    interface, gateway = _default_network_route()
+    if interface:
+        add(
+            "Interfejs: %s (%s), IPv4: %s"
+            % (interface, _interface_state(interface), _interface_ipv4(interface))
+        )
+        add("Brama domyślna: %s" % (gateway or "n/d"))
+    else:
+        add("Brama domyślna: nie wykryto")
+
+    host = "raw.githubusercontent.com"
+    addresses = []
+    try:
+        infos = socket.getaddrinfo(host, 443, 0, socket.SOCK_STREAM)
+        for _family, _socktype, _proto, _canonname, sockaddr in infos:
+            address = sockaddr[0]
+            if address not in addresses:
+                addresses.append(address)
+        add("DNS: OK (%s)" % (addresses[0] if addresses else "adres niedostępny"))
+    except (OSError, socket.error) as exc:
+        add("DNS: BŁĄD (%s)" % _safe_network_error(exc))
+
+    internet_ok = False
+    for address in addresses:
+        try:
+            sock = socket.create_connection((address, 443), timeout=5)
+            sock.close()
+            internet_ok = True
+            break
+        except OSError:
+            continue
+    add("Internet HTTPS: %s" % ("OK" if internet_ok else "BŁĄD"))
+    if settings and _setting(settings, "manifest_url", ""):
+        add("Centralna baza: adres skonfigurowany")
+    else:
+        add("Centralna baza: używany adres domyślny")
+    return lines, internet_ok
+
+
+def diagnose_network(settings=None, progress=None):
+    """Sprawdza interfejs, trasę, DNS i wyjście HTTPS do GitHuba."""
+
+    lines, internet_ok = _network_diagnostic_lines(settings, progress)
+    summary = "\n".join(lines)
+    if not internet_ok:
+        raise OperationError(summary)
+    return {
+        "kind": "network",
+        "ok": True,
+        "summary": summary,
+    }
+
+
+def _frontend_signal_percent(value):
+    """Konwertuje typową wartość SNR/AGC z /proc/stb/frontend na procent."""
+
+    text = str(value or "").strip().lower()
+    if not text:
+        return "n/d"
+    try:
+        number = int(text, 0)
+    except (TypeError, ValueError):
+        return text
+    if number <= 100:
+        return "%d%%" % max(number, 0)
+    return "%d%%" % min(max(int(round(number * 100.0 / 65535.0)), 0), 100)
+
+
+def _frontend_lock(value):
+    text = str(value or "").strip().lower()
+    if not text:
+        return None
+    if text in ("yes", "true", "locked", "lock"):
+        return True
+    if text in ("no", "false", "unlocked", "unlock"):
+        return False
+    try:
+        return int(text, 0) != 0
+    except (TypeError, ValueError):
+        return None
+
+
+def _satellite_frontends():
+    """Zbiera wykryte frontend-y DVB oraz dostępne wartości sygnału."""
+
+    proc_paths = [
+        path for path in glob.glob("/proc/stb/frontend/[0-9]*")
+        if os.path.isdir(path)
+    ]
+    proc_paths.sort()
+    device_paths = sorted(glob.glob("/dev/dvb/adapter*/frontend*"))
+    count = max(len(proc_paths), len(device_paths))
+    result = []
+    for index in range(count):
+        proc_path = proc_paths[index] if index < len(proc_paths) else ""
+        device_path = device_paths[index] if index < len(device_paths) else ""
+        values = {}
+        for name in ("lock", "tuner_state", "snr", "ber", "agc", "frequency", "system"):
+            if proc_path:
+                values[name] = _read_text_file(os.path.join(proc_path, name))
+        result.append(
+            {
+                "index": index + 1,
+                "proc_path": proc_path,
+                "device": device_path,
+                "values": values,
+            }
+        )
+    return result
+
+
+def diagnose_satellite_connection(_settings=None, progress=None):
+    """Sprawdza obecność frontendów DVB i blokadę sygnału satelitarnego."""
+
+    lines = []
+
+    def add(message):
+        lines.append(message)
+        _progress(progress, message)
+
+    add("Diagnostyka połączenia satelitarnego Foorys")
+    frontends = _satellite_frontends()
+    if not frontends:
+        add("Tunery DVB: NIE WYKRYTO")
+        add("Sprawdź sterownik tunera, przewód antenowy i konfigurację NIM.")
+        return {
+            "kind": "satellite",
+            "ok": False,
+            "summary": "\n".join(lines),
+            "tuners": 0,
+            "locked": 0,
+        }
+
+    locked = 0
+    for frontend in frontends:
+        values = frontend["values"]
+        lock = _frontend_lock(values.get("lock"))
+        if lock:
+            locked += 1
+        if lock is True:
+            lock_text = "BLOKADA: TAK"
+        elif lock is False:
+            lock_text = "BLOKADA: NIE"
+        else:
+            lock_text = "BLOKADA: brak danych"
+        device = frontend.get("device") or ("frontend %d" % frontend["index"])
+        signal = _frontend_signal_percent(values.get("snr") or values.get("agc"))
+        ber = values.get("ber") or "n/d"
+        add("Tuner %d (%s): %s, SNR/AGC: %s, BER: %s" % (frontend["index"], device, lock_text, signal, ber))
+        if values.get("frequency"):
+            add("  częstotliwość: %s" % values["frequency"])
+
+    if locked:
+        add("Wynik: sygnał satelitarny z blokadą na %d tunerze(ach)." % locked)
+    else:
+        add("Wynik: tunery wykryte, ale brak potwierdzonej blokady sygnału.")
+        add("Włącz kanał satelitarny i uruchom test ponownie, aby odczytać SNR/BER.")
+    return {
+        "kind": "satellite",
+        "ok": bool(locked),
+        "summary": "\n".join(lines),
+        "tuners": len(frontends),
+        "locked": locked,
     }
 
 

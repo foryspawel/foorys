@@ -409,10 +409,16 @@ class CatalogScreen(Screen):
         if index is None or index < 0 or index >= len(self.entries):
             return
         item = self.entries[index]
-        question = "Zainstalować '%s' w wersji %s?" % (
-            item.get("name", item.get("id", "element")),
-            item.get("version", "?"),
-        )
+        is_diagnostic = item.get("operation_kind") == "diagnostic"
+        if is_diagnostic:
+            question = "Uruchomić diagnostykę '%s'?" % item.get(
+                "name", item.get("id", "element")
+            )
+        else:
+            question = "Zainstalować '%s' w wersji %s?" % (
+                item.get("name", item.get("id", "element")),
+                item.get("version", "?"),
+            )
         if item.get("description"):
             question += "\n\n%s" % item["description"]
         self.session.openWithCallback(
@@ -462,6 +468,25 @@ class CatalogScreen(Screen):
                 timeout=12,
             )
             return
+        if isinstance(result, dict) and result.get("kind") in ("network", "satellite"):
+            diagnostic_ok = bool(result.get("ok"))
+            if self.console is not None:
+                self.console.finish(
+                    diagnostic_ok,
+                    "test zakończony pomyślnie" if diagnostic_ok else "test wykazał problem",
+                )
+            self["status"].setText(
+                "Diagnostyka zakończona pomyślnie."
+                if diagnostic_ok
+                else "Diagnostyka wykazała problem."
+            )
+            self.session.open(
+                MessageBox,
+                self._result_message(result),
+                MessageBox.TYPE_INFO if diagnostic_ok else MessageBox.TYPE_ERROR,
+                timeout=18,
+            )
+            return
         if self.console is not None:
             self.console.finish(True, "operacja zakończona pomyślnie")
         self["status"].setText("Operacja zakończona pomyślnie.")
@@ -498,6 +523,10 @@ class CatalogScreen(Screen):
             return "Oscam stable został zainstalowany.\n\nZrestartować GUI Enigma2?"
         if kind == "picons":
             return "Picony zostały zaktualizowane inkrementalnie.\n\nLiczba plików: %s\nKatalog: %s\n\nZrestartować GUI Enigma2?" % (result.get("installed_count", 0), result.get("target", ""))
+        if kind == "network":
+            return "Diagnostyka sieci:\n\n%s" % result.get("summary", "Brak szczegółów.")
+        if kind == "satellite":
+            return "Diagnostyka połączenia satelitarnego:\n\n%s" % result.get("summary", "Brak szczegółów.")
         return "Plugin '%s' zainstalowany.\n\nZrestartować GUI Enigma2?" % result.get("name", "plugin")
 
     def _after_success(self, restart=False):

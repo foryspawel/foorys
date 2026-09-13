@@ -19,6 +19,8 @@ from .core import version_is_newer
 from .operations import (
     collect_installed_packages,
     collect_system_status,
+    diagnose_network,
+    diagnose_satellite_connection,
     fetch_manifest,
     install_channel_list,
     install_current_oscam_dvbapi,
@@ -38,7 +40,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.6.5"
+VERSION = "0.6.6"
 
 
 MAIN_SKIN = """
@@ -54,7 +56,8 @@ MAIN_SKIN = """
     <widget name="version" position="862,20" size="350,26" zPosition="2" font="Regular;23" foregroundColor="#28D7F5" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <widget name="clock" position="862,48" size="350,29" zPosition="2" font="Regular;25" foregroundColor="#F1F7FB" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <widget name="top_stats" position="862,80" size="350,24" zPosition="2" font="Regular;19" foregroundColor="#55DFA4" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
-    <widget name="shortcut" position="862,106" size="350,22" zPosition="2" font="Regular;17" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
+    <widget name="shortcut_key" position="862,104" size="98,24" zPosition="2" font="Regular;14" foregroundColor="#FFFFFF" backgroundColor="#2B78E4" transparent="0" horizontalAlignment="center" />
+    <widget name="shortcut" position="966,106" size="246,22" zPosition="2" font="Regular;16" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <eLabel position="26,132" size="1208,2" backgroundColor="#1B4962" />
     <eLabel position="26,143" size="1208,52" backgroundColor="#071A2B" />
     <widget name="focus_title" position="42,153" size="760,34" zPosition="2" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
@@ -94,7 +97,17 @@ MAIN_SKIN = """
     <eLabel position="26,558" size="1208,34" backgroundColor="#071A2B" />
     <widget name="decoder" position="42,562" size="650,27" zPosition="2" font="Regular;18" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
     <widget name="status" position="842,562" size="370,27" zPosition="2" font="Regular;18" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
-    <widget name="hint" position="42,606" size="1160,50" zPosition="2" font="Regular;19" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <widget name="hint" position="42,606" size="220,28" zPosition="2" font="Regular;17" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <widget name="hint_ok_key" position="270,606" size="40,26" zPosition="2" font="Regular;14" foregroundColor="#FFFFFF" backgroundColor="#16415C" transparent="0" horizontalAlignment="center" />
+    <widget name="hint_ok_text" position="316,606" size="55,26" zPosition="2" font="Regular;17" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <widget name="hint_green_key" position="380,606" size="82,26" zPosition="2" font="Regular;13" foregroundColor="#FFFFFF" backgroundColor="#1BA36A" transparent="0" horizontalAlignment="center" />
+    <widget name="hint_green_text" position="468,606" size="70,26" zPosition="2" font="Regular;17" foregroundColor="#55DFA4" backgroundColor="#071727" transparent="0" />
+    <widget name="hint_blue_key" position="545,606" size="90,26" zPosition="2" font="Regular;13" foregroundColor="#FFFFFF" backgroundColor="#2B78E4" transparent="0" horizontalAlignment="center" />
+    <widget name="hint_blue_text" position="641,606" size="185,26" zPosition="2" font="Regular;17" foregroundColor="#75AAFF" backgroundColor="#071727" transparent="0" />
+    <widget name="hint_menu_key" position="836,606" size="48,26" zPosition="2" font="Regular;12" foregroundColor="#FFFFFF" backgroundColor="#16415C" transparent="0" horizontalAlignment="center" />
+    <widget name="hint_menu_text" position="890,606" size="90,26" zPosition="2" font="Regular;17" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <widget name="hint_exit_key" position="990,606" size="42,26" zPosition="2" font="Regular;12" foregroundColor="#FFFFFF" backgroundColor="#16415C" transparent="0" horizontalAlignment="center" />
+    <widget name="hint_exit_text" position="1038,606" size="160,26" zPosition="2" font="Regular;17" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
 </screen>
 """
 
@@ -278,7 +291,8 @@ class E2FoorysMain(Screen):
         self["subtitle"] = Label("Twoje narzędzia do Enigma2")
         self["version"] = Label("Foorys v%s" % VERSION)
         self["clock"] = Label("")
-        self["shortcut"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
+        self["shortcut_key"] = Label("NIEBIESKI")
+        self["shortcut"] = Label("SZYBKA AKTUALIZACJA")
         self["focus_title"] = Label("")
         self["focus_desc"] = Label("")
         self["focus_channels"] = Label("")
@@ -302,7 +316,17 @@ class E2FoorysMain(Screen):
         self["top_stats"] = Label("CPU: --   RAM: --")
         self["decoder"] = Label("Odczytywanie stanu dekodera...")
         self["status"] = Label("Łączenie z centralną bazą GitHub...")
-        self["hint"] = Label("STRZAŁKI: wybierz kafelek   OK: otwórz   ZIELONY: odśwież   NIEBIESKI: szybka aktualizacja   MENU: ustawienia   EXIT: zamknij")
+        self["hint"] = Label("STRZAŁKI: wybierz kafel")
+        self["hint_ok_key"] = Label("OK")
+        self["hint_ok_text"] = Label("otwórz")
+        self["hint_green_key"] = Label("ZIELONY")
+        self["hint_green_text"] = Label("odśwież")
+        self["hint_blue_key"] = Label("NIEBIESKI")
+        self["hint_blue_text"] = Label("szybka aktualizacja")
+        self["hint_menu_key"] = Label("MENU")
+        self["hint_menu_text"] = Label("ustawienia")
+        self["hint_exit_key"] = Label("EXIT")
+        self["hint_exit_text"] = Label("zamknij")
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions", "MenuActions", "ColorActions"],
             {
@@ -505,6 +529,34 @@ class E2FoorysMain(Screen):
                 self._item("Pełna diagnostyka dekodera", "Otwiera szczegółowy raport parametrów systemu.", "health"),
                 self._item("Wolne miejsce / magazyn", "Kontroluje rootfs oraz wskazany dysk HDD/USB.", "free_space"),
                 self._item("Zainstalowane pakiety softcam", "Pokazuje znalezione pakiety Oscam, softcam i E2iPlayer.", "packages"),
+                self._item(
+                    "Diagnostyka sieci",
+                    "Sprawdza interfejs, bramę, DNS i połączenie HTTPS z centralną bazą.",
+                    "diagnostic",
+                    entry={
+                        "id": "network-diagnostic",
+                        "name": "Diagnostyka sieci",
+                        "version": "odczyt bieżący",
+                        "description": "Test interfejsu, DNS i internetu bez zmiany konfiguracji.",
+                        "operation_kind": "diagnostic",
+                    },
+                    operation=diagnose_network,
+                    catalog_title="Diagnostyka sieci",
+                ),
+                self._item(
+                    "Diagnostyka połączenia satelitarnego",
+                    "Sprawdza wykryte tunery DVB, blokadę sygnału, SNR/AGC i BER.",
+                    "diagnostic",
+                    entry={
+                        "id": "satellite-diagnostic",
+                        "name": "Połączenie satelitarne",
+                        "version": "odczyt bieżący",
+                        "description": "Test tunerów i bieżącej blokady sygnału satelitarnego.",
+                        "operation_kind": "diagnostic",
+                    },
+                    operation=diagnose_satellite_connection,
+                    catalog_title="Diagnostyka satelitarna",
+                ),
                 self._item("Odśwież dane diagnostyczne", "Ponownie odczytuje parametry bez zmiany konfiguracji.", "system_refresh"),
             ])
         return result
@@ -895,6 +947,13 @@ class SectionMenuScreen(Screen):
             self.session.open(
                 CatalogScreen,
                 item.get("catalog_title", "E2-Foorys"),
+                [item.get("entry")],
+                item.get("operation"),
+            )
+        elif action == "diagnostic":
+            self.session.open(
+                CatalogScreen,
+                item.get("catalog_title", "Diagnostyka"),
                 [item.get("entry")],
                 item.get("operation"),
             )
