@@ -33,6 +33,7 @@ const ACTIONS = {
   oscam_dvbapi: "Aktualizuj oscam.dvbapi",
   update_plugin: "Aktualizuj E2-Foorys",
   restart_gui: "Restart GUI Enigma2",
+  prepare_e2i_capture: "Przygotuj zdalną CAPTCHA E2iPlayer",
   deliver_e2i_capture: "Przekaż CAPTCHA E2iPlayer",
 };
 const ALLOWED_ACTIONS = new Set(Object.keys(ACTIONS));
@@ -48,10 +49,11 @@ function loadState() {
     value.pairings = value.pairings || {};
     value.jobs = Array.isArray(value.jobs) ? value.jobs : [];
     value.captchaSessions = value.captchaSessions || {};
+    value.browserSessions = value.browserSessions || {};
     value.captures = value.captures || {};
     return value;
   } catch (_error) {
-    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, captures: {} };
+    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, browserSessions: {}, captures: {} };
   }
 }
 let state = loadState();
@@ -112,6 +114,9 @@ function cleanup() {
   const now = Date.now();
   for (const [code, pairing] of Object.entries(state.pairings)) if (pairing.expiresAt < now) delete state.pairings[code];
   for (const [code, session] of Object.entries(state.captchaSessions)) if (session.expiresAt < now) delete state.captchaSessions[code];
+  for (const [token, session] of Object.entries(state.browserSessions)) {
+    if (session.expiresAt < now || (session.usedAt && session.usedAt < now - 120000)) delete state.browserSessions[token];
+  }
   for (const [id, capture] of Object.entries(state.captures)) {
     if (capture.expiresAt < now || (capture.deliveredAt && capture.deliveredAt < now - 120000)) delete state.captures[id];
   }
@@ -155,16 +160,29 @@ function captureCallbackUrl(value) {
 
 function captureBody(body) {
   const captureCode = String(body.captureCode || "").trim();
-  if (!/^\d{6}$/.test(captureCode)) return { error: "Kod przechwycenia musi mieć 6 cyfr." };
-  const key = hash(captureCode);
-  const session = state.captchaSessions[key];
-  if (!session || session.expiresAt < Date.now()) return { error: "Kod przechwycenia wygasł lub jest nieprawidłowy." };
+  const sessionToken = String(body.sessionToken || "").trim();
+  let session;
+  let codeKey = "";
+  let browserKey = "";
+  if (sessionToken) {
+    if (!/^[A-Za-z0-9_-]{32,120}$/.test(sessionToken)) return { error: "Nieprawidłowy token sesji CAPTCHA." };
+    browserKey = hash(sessionToken);
+    session = state.browserSessions[browserKey];
+    if (!session || session.expiresAt < Date.now()) return { error: "Sesja CAPTCHA wygasła lub jest nieprawidłowa." };
+    if (session.usedAt) return { error: "Ta sesja CAPTCHA została już wykorzystana." };
+  } else {
+    if (!/^\d{6}$/.test(captureCode)) return { error: "Kod przechwycenia musi mieć 6 cyfr." };
+    codeKey = hash(captureCode);
+    session = state.captchaSessions[codeKey];
+    if (!session || session.expiresAt < Date.now()) return { error: "Kod przechwycenia wygasł lub jest nieprawidłowy." };
+  }
   const callbackUrl = captureCallbackUrl(body.callbackUrl);
   if (!callbackUrl) return { error: "Adres E2iPlayera musi być lokalnym adresem HTTP dekodera." };
   const captchaId = String(body.captchaId || "").trim();
   const token = String(body.token || "").trim();
   if (!captchaId || captchaId.length > 160 || /[\u0000-\u001f\u007f]/.test(captchaId)) return { error: "Nieprawidłowy identyfikator CAPTCHA." };
   if (!/^[A-Za-z0-9+/=_-]{16,60000}$/.test(token)) return { error: "Nieprawidłowa sesja CAPTCHA." };
+  if (sessionToken && (callbackUrl !== session.callbackUrl || captchaId !== session.captchaId)) return { error: "Sesja CAPTCHA nie pasuje do aktywnego zadania dekodera." };
   const captureId = random(18);
   const now = Date.now();
   state.captures[captureId] = {
@@ -183,9 +201,114 @@ function captureBody(body) {
     createdAt: now,
     status: "pending",
   });
-  delete state.captchaSessions[key];
+  if (codeKey) delete state.captchaSessions[codeKey];
+  if (browserKey) {
+    session.usedAt = now;
+    if (session.captureCodeHash) delete state.captchaSessions[session.captureCodeHash];
+  }
   saveState();
   return { captureId, deviceId: session.deviceId };
+}
+
+function browserSession(token) {
+  const value = String(token || "").trim();
+  if (!/^[A-Za-z0-9_-]{32,120}$/.test(value)) return null;
+  return state.browserSessions[hash(value)] || null;
+}
+
+function queueBrowserPreparation(session) {
+  if (session.jobId) return state.jobs.find(job => job.id === session.jobId) || null;
+  const job = {
+    id: random(12),
+    deviceId: session.deviceId,
+    action: "prepare_e2i_capture",
+    params: {},
+    createdAt: Date.now(),
+    status: "pending",
+    source: "captcha",
+  };
+  state.jobs.push(job);
+  session.jobId = job.id;
+  saveState();
+  return job;
+}
+
+function browserTargetUrl(targetUrl, callbackUrl, captchaId, sessionToken) {
+  let parsed;
+  try { parsed = new URL(String(targetUrl || "")); } catch (_error) { return null; }
+  if (!/^https?:$/.test(parsed.protocol) || !parsed.hostname) return null;
+  const fragment = parsed.hash.replace(/^#/, "");
+  if (!fragment.toLowerCase().startsWith("e2itcf")) return null;
+  const extra = new URLSearchParams({ u: callbackUrl, c: captchaId, r: sessionToken }).toString();
+  parsed.hash = fragment ? fragment + "&" + extra : extra;
+  return parsed.toString();
+}
+
+function captchaBrowserPage(token) {
+  const safeToken = JSON.stringify(String(token || "")).replace(/</g, "\\u003c");
+  return `<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foorys CAPTCHA</title>
+<style>
+  :root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#06111d;color:#edf7ff;font:16px Arial,sans-serif}
+  main{width:min(620px,calc(100% - 36px));padding:30px;border:1px solid #246382;border-radius:16px;background:#0b2236;box-shadow:0 18px 60px #0008}
+  h1{margin:0 0 12px;font-size:30px;color:#28d7f5}p{line-height:1.5;color:#c7dbe7}.state{margin-top:22px;padding:14px 16px;border-left:4px solid #55dfa4;background:#071927;color:#55dfa4;font-weight:bold}
+  .small{font-size:13px;color:#8daabd;margin-top:18px}
+</style></head><body><main><h1>Foorys CAPTCHA</h1>
+<p>Sesja zdalna jest połączona z wybranym dekoderem. Gdy E2iPlayer będzie gotowy, strona weryfikacji otworzy się automatycznie.</p>
+<div id="state" class="state">Łączę z dekoderem…</div><p class="small">Nie zamykaj tej karty. Weryfikację Cloudflare potwierdź ręcznie.</p>
+<script>
+const sessionToken=${safeToken};
+const state=document.getElementById("state");
+async function check(){
+  try{
+    const response=await fetch("/v1/captcha/browser/"+encodeURIComponent(sessionToken)+"/status",{cache:"no-store"});
+    const data=await response.json();
+    if(data.ready&&data.targetUrl){state.textContent="Otwieram stronę weryfikacji…";window.location.replace(data.targetUrl);return;}
+    if(data.error){state.textContent=data.error;return;}
+    state.textContent=data.status==="failed"?"Nie udało się przygotować sesji.":"Czekam na aktywną sesję MyE2i na dekoderze…";
+  }catch(_error){state.textContent="Brak połączenia z Foorys Relay — ponawiam…";}
+  window.setTimeout(check,2000);
+}
+check();
+</script></main></body></html>`;
+}
+
+function captchaBrowserStatus(token) {
+  const session = browserSession(token);
+  if (!session || session.expiresAt < Date.now()) return { status: 404, value: { error: "Sesja CAPTCHA wygasła lub jest nieprawidłowa." } };
+  const job = queueBrowserPreparation(session);
+  if (!job) return { status: 500, value: { error: "Nie udało się utworzyć zadania CAPTCHA." } };
+  if (job.status === "completed") {
+    const data = job.data || {};
+    const callbackUrl = captureCallbackUrl(data.callbackUrl);
+    const captchaId = String(data.captchaId || "").trim();
+    const targetUrl = browserTargetUrl(data.targetUrl, callbackUrl, captchaId, token);
+    if (!callbackUrl || !captchaId || !targetUrl) return { status: 422, value: { error: "Dekoder zwrócił niekompletną sesję MyE2i." } };
+    session.callbackUrl = callbackUrl;
+    session.captchaId = captchaId;
+    session.targetUrl = targetUrl;
+    if (session.captureCodeHash && state.captchaSessions[session.captureCodeHash]) {
+      state.captchaSessions[session.captureCodeHash].callbackUrl = callbackUrl;
+      state.captchaSessions[session.captureCodeHash].captchaId = captchaId;
+    }
+    saveState();
+    return { status: 200, value: { ready: true, targetUrl, expiresInSeconds: Math.max(0, Math.floor((session.expiresAt - Date.now()) / 1000)) } };
+  }
+  if (job.status === "failed") return { status: 200, value: { status: "failed", error: job.result || "Nie udało się przygotować sesji MyE2i." } };
+  return { status: 200, value: { status: job.status, ready: false } };
+}
+
+function jobResultData(action, value) {
+  if (action !== "prepare_e2i_capture") return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const callbackUrl = captureCallbackUrl(value.callbackUrl);
+  const captchaId = String(value.captchaId || "").trim();
+  let targetUrl;
+  try { targetUrl = new URL(String(value.targetUrl || "")); } catch (_error) { return null; }
+  if (!callbackUrl || !captchaId || captchaId.length > 160 || /[\u0000-\u001f\u007f]/.test(captchaId)) return null;
+  if (!/^https?:$/.test(targetUrl.protocol) || !targetUrl.hostname || !targetUrl.hash.toLowerCase().startsWith("#e2itcf")) return null;
+  return { callbackUrl, captchaId, targetUrl: targetUrl.toString() };
 }
 
 const server = http.createServer(async (request, response) => {
@@ -196,6 +319,17 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/app.js") return staticFile(response, "app.js", "application/javascript; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/app.css") return staticFile(response, "app.css", "text/css; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true });
+    const browserPath = url.pathname.match(/^\/e2i\/([A-Za-z0-9_-]{32,120})\/?$/);
+    if (request.method === "GET" && browserPath) {
+      if (!browserSession(browserPath[1])) return json(response, 404, { error: "Sesja CAPTCHA wygasła lub jest nieprawidłowa." });
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return response.end(captchaBrowserPage(browserPath[1]));
+    }
+    const browserStatusPath = url.pathname.match(/^\/v1\/captcha\/browser\/([A-Za-z0-9_-]{32,120})\/status\/?$/);
+    if (request.method === "GET" && browserStatusPath) {
+      const result = captchaBrowserStatus(browserStatusPath[1]);
+      return json(response, result.status, result.value);
+    }
     if (request.method === "OPTIONS" && url.pathname === "/v1/captcha/submit") {
       response.writeHead(204, {
         "access-control-allow-origin": "*",
@@ -234,8 +368,18 @@ const server = http.createServer(async (request, response) => {
           createdAt: Date.now(),
           expiresAt: Date.now() + 10 * 60000,
         };
+        const browserToken = random(32);
+        const browserKey = hash(browserToken);
+        state.captchaSessions[hash(captureCode)].browserSessionHash = browserKey;
+        state.browserSessions[browserKey] = {
+          id: random(12),
+          deviceId,
+          captureCodeHash: hash(captureCode),
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 10 * 60000,
+        };
         saveState();
-        return json(response, 201, { captureCode, expiresInSeconds: 600 });
+        return json(response, 201, { captureCode, browserPath: "/e2i/" + browserToken, expiresInSeconds: 600 });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);
@@ -287,7 +431,13 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "POST" && /^\/v1\/device\/jobs\/[^/]+\/result$/.test(url.pathname)) {
       const job = state.jobs.find(item => item.id === url.pathname.split("/")[4] && item.deviceId === current.id);
       if (!job) return json(response, 404, { error: "Nie znaleziono zadania." });
-      const body = await readJson(request); job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now();
+      const body = await readJson(request);
+      if (body.ok && job.action === "prepare_e2i_capture") {
+        const data = jobResultData(job.action, body.data);
+        if (!data) return json(response, 400, { error: "Nieprawidłowe dane przygotowanej sesji CAPTCHA." });
+        job.data = data;
+      }
+      job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now();
       if (job.action === "deliver_e2i_capture" && job.params && job.params.captureId) delete state.captures[job.params.captureId];
       saveState(); return json(response, 200, { ok: true });
     }

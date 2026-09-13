@@ -23,7 +23,7 @@ const BUTTONS = [
   ["update_plugin", "Aktualizuj Foorys"],
   ["restart_gui", "Restart GUI"],
 ];
-const CAPTCHA_BUTTON = "CAPTCHA E2iPlayer";
+const CAPTCHA_BUTTON = "Otwórz CAPTCHA zdalnie";
 
 function headers() {
   return { Authorization: "Basic " + btoa("foorys:" + password), "Content-Type": "application/json" };
@@ -111,8 +111,10 @@ async function startCaptchaSession(deviceId) {
   try {
     const data = await request("/v1/admin/captcha/sessions", { method: "POST", body: JSON.stringify({ deviceId }) });
     const code = data.captureCode || "";
-    if (navigator.clipboard && code) navigator.clipboard.writeText(code).catch(() => {});
-    $("#notice").textContent = `Kod CAPTCHA: ${code} · ważny 10 min. Wpisz go w Foorys E2i Helper, otwórz adres QR E2iPlayera i potwierdź weryfikację ręcznie.`;
+    const browserUrl = data.browserPath ? new URL(data.browserPath, window.location.origin).toString() : "";
+    if (navigator.clipboard && browserUrl) navigator.clipboard.writeText(browserUrl).catch(() => {});
+    const link = browserUrl ? `<a href="${esc(browserUrl)}" target="_blank" rel="noopener">Otwórz sesję w Chrome</a>` : "";
+    $("#notice").innerHTML = `Sesja CAPTCHA gotowa · ważna 10 min. ${link} · adres został skopiowany. Kod awaryjny: <b>${esc(code)}</b>`;
   } catch (error) { $("#notice").textContent = error.message; }
 }
 

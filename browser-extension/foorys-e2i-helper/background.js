@@ -56,12 +56,18 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message && message.type === "FOORYS_E2I_REGISTER_LOCAL_PAGE") {
+    const callbackUrl = String(message.callbackUrl || "").trim();
+    if (privateCallback(callbackUrl)) {
+      chrome.storage.local.set({ lastE2iCallbackUrl: callbackUrl }).then(() => sendResponse({ ok: true }));
+    } else {
+      sendResponse({ ok: false, error: "Niedozwolony adres lokalnego E2iPlayera." });
+    }
+    return true;
+  }
   if (!message || message.type !== "FOORYS_E2I_GET_CLEARANCE") return;
   const tabUrl = sender.tab && sender.tab.url;
-  if (!tabUrl || !privateCallback(message.callbackUrl)) {
-    sendResponse({ ok: false, error: "Niedozwolony adres zwrotny." });
-    return;
-  }
+  if (!tabUrl) { sendResponse({ ok: false, error: "Nie znaleziono aktywnej karty." }); return; }
   chrome.cookies.getAll({ url: tabUrl }, (cookies) => {
     const clearance = (cookies || []).filter((cookie) => cookie.name === "cf_clearance");
     if (!clearance.length) {
@@ -77,16 +83,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // navigator.userAgent is przekazywany przez content script w message.userAgent.
     payload.user_agent = message.userAgent || payload.user_agent;
     const token = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    chrome.storage.local.get(["relayUrl", "relayCaptureCode"]).then((stored) => {
+    chrome.storage.local.get(["relayUrl", "relayCaptureCode", "lastE2iCallbackUrl"]).then((stored) => {
+      const callbackUrl = String(message.callbackUrl || stored.lastE2iCallbackUrl || "").trim();
+      if (!privateCallback(callbackUrl)) throw new Error("Nie znaleziono lokalnego adresu E2iPlayera.");
+      const relaySessionToken = String(message.relaySessionToken || "").trim();
       const captureCode = String(stored.relayCaptureCode || "").trim();
       const relayUrl = String(stored.relayUrl || DEFAULT_RELAY).trim().replace(/\/$/, "");
-      const endpoint = captureCode && validRelayUrl(relayUrl)
+      const useRelay = validRelayUrl(relayUrl) && (relaySessionToken || captureCode);
+      const endpoint = useRelay
         ? relayEndpoint(relayUrl)
-        : callbackEndpoint(message.callbackUrl, message.captchaId, token);
-      const body = captureCode && validRelayUrl(relayUrl)
+        : callbackEndpoint(callbackUrl, message.captchaId, token);
+      const body = useRelay
         ? JSON.stringify({
-          captureCode: captureCode,
-          callbackUrl: message.callbackUrl,
+          ...(relaySessionToken ? { sessionToken: relaySessionToken } : { captureCode: captureCode }),
+          callbackUrl: callbackUrl,
           captchaId: message.captchaId,
           token: token
         })
@@ -101,7 +111,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return data;
         }))
         .then(() => {
-          if (body) return chrome.storage.local.remove("relayCaptureCode");
+          if (body && captureCode && !relaySessionToken) return chrome.storage.local.remove("relayCaptureCode");
           return null;
         });
     })

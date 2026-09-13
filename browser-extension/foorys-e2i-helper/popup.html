@@ -22,11 +22,11 @@
     <hr>
     <label for="relay">Adres Foorys Relay</label>
     <input id="relay" type="url" placeholder="https://raport.forys.pro:9443">
-    <label for="capture-code">Kod przechwycenia CAPTCHA</label>
+    <label for="capture-code">Awaryjny kod CAPTCHA</label>
     <input id="capture-code" class="capture-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6 cyfr">
-    <button id="activate">Aktywuj przechwycenie przez Relay</button>
+    <button id="activate">Aktywuj kod awaryjny</button>
     <button id="clear" class="secondary">Wyczyść kod</button>
-    <p class="hint">W panelu Relay kliknij przy dekoderze „CAPTCHA E2iPlayer”, wpisz otrzymany kod tutaj, a następnie otwórz adres z QR E2iPlayera. Weryfikację Cloudflare zawsze zatwierdź ręcznie.</p>
+    <p class="hint">Najprościej: w panelu Relay kliknij „Otwórz CAPTCHA zdalnie” i otwórz skopiowany link. Sesja sama połączy Chrome z właściwym dekoderem. Kod awaryjny służy tylko do starszego, ręcznego trybu. Weryfikację Cloudflare zawsze zatwierdź ręcznie.</p>
     <p id="status" role="status"></p>
   </main>
   <script src="popup.js"></script>

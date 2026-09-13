@@ -12,17 +12,30 @@ from __future__ import absolute_import
 import hashlib
 import json
 import os
+import re
+import socket
 import ssl
 import threading
 import time
 
 try:
-    from urllib.parse import urlencode, urlparse, urlunparse
+    from urllib.parse import parse_qs, quote, urlencode, urlparse, urlsplit, urlunparse
     from urllib.request import Request, urlopen
 except ImportError:  # pragma: no cover - stare obrazy E2 z Pythonem 2.7
     from urllib2 import Request, urlopen
-    from urllib import urlencode
-    from urlparse import urlparse, urlunparse
+    from urllib import quote, urlencode
+    from urlparse import parse_qs, urlparse, urlsplit, urlunparse
+
+try:
+    from html import unescape as _html_unescape
+except ImportError:  # pragma: no cover - Python 2.7
+    try:
+        from HTMLParser import HTMLParser
+        _html_parser = HTMLParser()
+        _html_unescape = _html_parser.unescape
+    except Exception:
+        def _html_unescape(value):
+            return value
 
 from .compat import string_types, to_text
 from .config import ensure_config, save_config, settings_dict
@@ -247,11 +260,14 @@ class RelayClient(object):
     def jobs(self):
         return self._request("/v1/device/jobs", timeout=25).get("jobs", [])
 
-    def result(self, job_id, ok, message):
+    def result(self, job_id, ok, message, data=None):
+        payload = {"ok": bool(ok), "message": _redact(message)}
+        if data is not None:
+            payload["data"] = data
         return self._request(
             "/v1/device/jobs/%s/result" % to_text(job_id),
             method="POST",
-            payload={"ok": bool(ok), "message": _redact(message)},
+            payload=payload,
             timeout=25,
         )
 
@@ -351,6 +367,105 @@ def _e2i_callback_url(callback_url, captcha_id, token):
     path += "response"
     query = urlencode({"c": to_text(captcha_id), "token": to_text(token)})
     return urlunparse((parsed.scheme, parsed.netloc, path, "", query, ""))
+
+
+def _local_ipv4_addresses():
+    """Zwraca adresy, na których może nasłuchiwać lokalny serwer MyE2i."""
+
+    addresses = ["127.0.0.1"]
+    try:
+        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            address = item[4][0]
+            if address not in addresses:
+                addresses.append(address)
+    except Exception:
+        pass
+    # get_ip() w E2iPlayerze zwykle wybiera adres z domyślnej trasy. Nie
+    # importujemy tego modułu, więc ustalamy go bez wysyłania danych.
+    probe = None
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe.connect(("1.1.1.1", 80))
+        address = probe.getsockname()[0]
+        if address not in addresses:
+            addresses.append(address)
+    except Exception:
+        pass
+    finally:
+        if probe is not None:
+            try:
+                probe.close()
+            except Exception:
+                pass
+    return addresses
+
+
+def _e2i_target(raw_html):
+    """Wyciąga adres zadania i sitekey z wygenerowanej strony mye2iserver."""
+
+    text = to_text(raw_html)
+    links = re.findall(r"href\s*=\s*[\"']([^\"']+)", text, re.IGNORECASE)
+    for link in links:
+        target = _html_unescape(link).strip()
+        if "#e2itcf" not in target.lower():
+            continue
+        try:
+            parsed = urlsplit(target)
+            if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+                continue
+            fragment = parsed.fragment
+            separator = fragment.find("_sep_")
+            query = fragment[separator + 5:] if separator >= 0 else fragment
+            captcha_id = parse_qs(query).get("c", [""])[0]
+            captcha_id = to_text(captcha_id).strip()
+            if not captcha_id or len(captcha_id) > 160 or re.search(r"[\x00-\x1f\x7f]", captcha_id):
+                continue
+            return parsed.geturl(), captcha_id
+        except Exception:
+            continue
+    return None, None
+
+
+def prepare_e2i_capture(_params, _settings, progress=None):
+    """Odnajduje lokalną stronę MyE2i uruchomioną przez E2iPlayera.
+
+    E2iPlayer otwiera zwykle port 9001, a gdy jest zajęty wybiera kolejny.
+    Agent sprawdza tylko lokalne interfejsy i porty 9001–9010; nie przyjmuje
+    celu z Relay, dzięki czemu ta akcja nie staje się ogólnym proxy sieciowym.
+    """
+
+    _progress(progress, "Szukam aktywnej sesji MyE2i na dekoderze...")
+    errors = []
+    addresses = _local_ipv4_addresses()
+    for port in range(9001, 9011):
+        for address in addresses:
+            base_url = "http://%s:%d/" % (address, port)
+            request = Request(base_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+            response = None
+            try:
+                response = urlopen(request, timeout=1.5)
+                raw_html = response.read(REQUEST_LIMIT)
+                target_url, captcha_id = _e2i_target(raw_html)
+                if target_url and captcha_id:
+                    _progress(progress, "Znaleziono sesję MyE2i na %s." % base_url)
+                    return {
+                        "kind": "e2i-captcha-prepare",
+                        "ok": True,
+                        "callbackUrl": base_url,
+                        "captchaId": captcha_id,
+                        "targetUrl": target_url,
+                        "summary": "Sesja MyE2i jest gotowa do otwarcia w przeglądarce.",
+                    }
+                errors.append("%s: brak aktywnej sesji" % base_url)
+            except Exception:
+                continue
+            finally:
+                if response is not None:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
+    raise RelayError("Nie znaleziono aktywnej sesji MyE2i na dekoderze. Uruchom E2iPlayer i wywołaj host wymagający CAPTCHA.")
 
 
 def deliver_e2i_capture(params, settings, progress=None):
@@ -491,6 +606,8 @@ def execute_remote_action(action, params, settings, progress=None):
         return install_public_softcam({"id": ids[action]}, settings, progress)
     if action == "oscam_dvbapi":
         return install_current_oscam_dvbapi({}, settings, progress)
+    if action == "prepare_e2i_capture":
+        return prepare_e2i_capture({}, settings, progress)
     if action == "deliver_e2i_capture":
         return deliver_e2i_capture(params, settings, progress)
     if action == "update_plugin":
@@ -642,7 +759,8 @@ class RelayAgent(object):
                     params = dict(params) if isinstance(params, dict) else {}
                     params["capture"] = job.get("capture", {})
                 result = execute_remote_action(action, params, settings)
-            client.result(job_id, True, _operation_result(result))
+            data = result if action == "prepare_e2i_capture" else None
+            client.result(job_id, True, _operation_result(result), data=data)
         except Exception as error:
             try:
                 client.result(job_id, False, _redact(error, settings))

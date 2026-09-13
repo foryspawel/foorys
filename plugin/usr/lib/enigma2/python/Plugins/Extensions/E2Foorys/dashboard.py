@@ -43,7 +43,7 @@ from .relay import check_relay, pair_relay
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.8.3"
+VERSION = "0.8.4"
 
 
 MAIN_SKIN = scaled_skin("""

@@ -1,26 +1,41 @@
 (function () {
   "use strict";
 
-  if (!location.hash.startsWith("#e2itcf")) return;
-
-  function value(name) {
-    const separator = location.hash.indexOf("_sep_");
-    const query = separator >= 0 ? location.hash.slice(separator + 5) : location.hash.slice(1);
-    const params = new URLSearchParams(query);
-    const raw = params.get(name);
-    try { return raw ? decodeURIComponent(raw) : ""; } catch (_error) { return raw || ""; }
+  const isLocalE2iPage = /\/e2it\.html\/?$/i.test(location.pathname);
+  if (isLocalE2iPage) {
+    chrome.runtime.sendMessage({
+      type: "FOORYS_E2I_REGISTER_LOCAL_PAGE",
+      callbackUrl: location.origin + "/"
+    });
+    return;
   }
 
-  const callbackUrl = value("u");
-  const captchaId = value("c");
-  if (!callbackUrl || !captchaId) return;
+  if (!location.hash.toLowerCase().startsWith("#e2itcf")) return;
+
+  function hashParams() {
+    const fragment = location.hash.slice(1);
+    const separator = fragment.indexOf("_sep_");
+    const query = separator >= 0 ? fragment.slice(separator + 5) : fragment;
+    return new URLSearchParams(query);
+  }
+
+  const params = hashParams();
+  const callbackUrl = params.get("u") || "";
+  const captchaId = params.get("c") || "";
+  const relaySessionToken = params.get("r") || "";
+  if (!captchaId) return;
 
   let challengeWasVisible = false;
+  let stableWithoutChallenge = 0;
   let delivered = false;
 
   function challengeVisible() {
     const form = document.querySelector("#challenge-form");
-    return Boolean(form && form.getClientRects().length);
+    if (form && form.getClientRects().length) return true;
+    if (document.querySelector("iframe[src*='challenges.cloudflare.com'], [id*='cf-chl'], [class*='cf-chl']")) return true;
+    const links = Array.from(document.querySelectorAll("link[href],script"));
+    if (links.some((element) => String(element.href || element.textContent || "").includes("/challenges"))) return true;
+    return /verify you are human|checking your browser|just a moment|turnstile/i.test(document.body && document.body.innerText || "");
   }
 
   function deliver() {
@@ -30,6 +45,7 @@
       type: "FOORYS_E2I_GET_CLEARANCE",
       callbackUrl: callbackUrl,
       captchaId: captchaId,
+      relaySessionToken: relaySessionToken,
       userAgent: navigator.userAgent
     }, (result) => {
       if (!result || !result.ok) {
@@ -42,10 +58,13 @@
   const timer = window.setInterval(() => {
     if (challengeVisible()) {
       challengeWasVisible = true;
+      stableWithoutChallenge = 0;
       return;
     }
-    // Wysyłamy sesję dopiero po zniknięciu ekranu weryfikacji.
-    if (challengeWasVisible) {
+    stableWithoutChallenge += 1;
+    // Po rozwiązaniu lub po chwili od wejścia na stronę przekazujemy cookie.
+    // Sama weryfikacja nadal wymaga ręcznego działania użytkownika.
+    if (challengeWasVisible || stableWithoutChallenge >= 10) {
       window.clearInterval(timer);
       window.setTimeout(deliver, 500);
     }

@@ -44,7 +44,7 @@ document.querySelector("#activate").addEventListener("click", async () => {
     return;
   }
   await chrome.storage.local.set({ relayUrl, relayCaptureCode: captureCode });
-  status.textContent = "Przechwycenie aktywne. Teraz otwórz adres QR i potwierdź CAPTCHA.";
+  status.textContent = "Kod awaryjny aktywny. W nowym trybie otwórz link z panelu Foorys Relay.";
 });
 
 document.querySelector("#clear").addEventListener("click", async () => {
