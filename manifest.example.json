@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-13T00:00:00Z",
+  "channel_lists": [
+    {
+      "id": "foorys-standard",
+      "name": "Foorys Standard",
+      "description": "Przykładowa lista kanałów",
+      "version": "2026.09.13",
+      "url": "channels/foorys-standard-2026.09.13.tar.gz",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "plugins": [
+    {
+      "id": "example-plugin",
+      "name": "Przykładowy plugin",
+      "description": "Podmień ten wpis na własny pakiet IPK",
+      "version": "1.0.0",
+      "package_type": "ipk",
+      "url": "plugins/example-plugin_1.0.0_all.ipk",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "oscam_dvbapi": {
+    "id": "oscam-dvbapi",
+    "name": "oscam.dvbapi",
+    "description": "Przykładowa konfiguracja",
+    "version": "2026.09.13",
+    "url": "oscam/oscam.dvbapi",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}
+
