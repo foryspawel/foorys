@@ -5,7 +5,7 @@ services:
     environment:
       PORT: "8080"
       DATA_DIR: /data
-      FOORYS_RELAY_ADMIN_TOKEN: ${FOORYS_RELAY_ADMIN_TOKEN}
+      FOORYS_RELAY_ADMIN_PASSWORD: ${FOORYS_RELAY_ADMIN_PASSWORD}
     volumes:
       - relay-data:/data
     ports:
