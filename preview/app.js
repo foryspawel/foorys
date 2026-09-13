@@ -27,7 +27,7 @@
 
   var fallbackManifest = {
     channel_lists: [
-      { id: "foorys-hotbird-13e", name: "Foorys Hotbird 13E", description: "Jeden bukiet Foorys z polskimi kanałami na Hotbirdzie 13E.", satellites: "Hotbird 13E", version: "2026.08.23" },
+      { id: "foorys-hotbird-13e", name: "Foorys Hotbird 13E", description: "Jeden bukiet Foorys z polskimi kanałami na Hotbirdzie 13E.", satellites: "Hotbird 13E", version: "2026.09.13" },
       { id: "bzyk83-hotbird-13e", name: "Bzyk83 Hotbird 13E", description: "Oryginalna lista Bzyk83 dla satelity Hotbird 13E.", satellites: "Hotbird 13E", version: "2026.08.23" },
       { id: "bzyk83-dual", name: "Bzyk83 Dual", description: "Oryginalna lista Bzyk83 dla Hotbird 13E i Astra 19.2E.", satellites: "Hotbird 13E + Astra 19.2E", version: "2026.08.23" }
     ],
@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.4.7" }
+    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.4.8" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };

@@ -54,6 +54,8 @@ def ensure_config():
         )
     if not hasattr(section, "create_backup"):
         section.create_backup = ConfigYesNo(default=True)
+    if not hasattr(section, "show_in_main_menu"):
+        section.show_in_main_menu = ConfigYesNo(default=True)
     if not hasattr(section, "system_action"):
         section.system_action = ConfigSelection(
             default="none",
@@ -78,6 +80,7 @@ def settings_dict():
         "storage_dir": section.storage_dir.value.strip(),
         "picon_dir": section.picon_dir.value.strip(),
         "create_backup": bool(section.create_backup.value),
+        "show_in_main_menu": bool(section.show_in_main_menu.value),
     }
 
 
@@ -89,6 +92,7 @@ def config_entries():
         getConfigListEntry("Katalog danych i kopii", section.storage_dir),
         getConfigListEntry("Katalog piconów", section.picon_dir),
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
+        getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
         getConfigListEntry("Akcja instalacyjna", section.system_action),
     ]
 

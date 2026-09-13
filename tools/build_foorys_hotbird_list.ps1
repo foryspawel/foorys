@@ -1,6 +1,6 @@
 param(
     [string]$SourceArchive = "channel-lists/bzyk83-2026.08.23/bzyk83-hb.zip",
-    [string]$OutputArchive = "channel-lists/foorys-hotbird-2026.08.23/foorys-hotbird-13e.zip"
+    [string]$OutputArchive = "channel-lists/foorys-hotbird-2026.09.13/foorys-hotbird-13e.zip"
 )
 
 $ErrorActionPreference = "Stop"

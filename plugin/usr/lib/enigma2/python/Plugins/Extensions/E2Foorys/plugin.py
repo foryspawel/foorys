@@ -18,7 +18,7 @@ def main(session, **kwargs):
 def menu(menuid, **kwargs):
     """Dodaje skrót do głównego menu Enigma2 obok Ustawień."""
 
-    if menuid == "mainmenu":
+    if menuid == "mainmenu" and bool(ensure_config().show_in_main_menu.value):
         return [("E2-Foorys", main, "e2foorys", 70)]
     return []
 
