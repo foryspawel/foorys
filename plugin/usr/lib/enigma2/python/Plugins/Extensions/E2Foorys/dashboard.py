@@ -23,17 +23,20 @@ from .operations import (
     install_channel_list,
     install_current_oscam_dvbapi,
     install_e2iplayer,
+    change_root_password,
     install_oscam_dvbapi,
     install_oscam_stable,
+    install_public_softcam,
     install_picons,
     install_plugin_package,
     list_backups,
     patch_e2iplayer,
+    validate_root_password,
 )
-from .ui import AsyncJob, CatalogScreen
+from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.4.6"
+VERSION = "0.4.7"
 
 
 MAIN_SKIN = """
@@ -119,7 +122,7 @@ SECTIONS = (
     ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
     ("iptv", "IPTV / Odtwarzacze", "Informacje o odtwarzaczach IPTV."),
     ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
-    ("softcam", "Softcam / OSCam", "Oscam stable, oscam.dvbapi i kontrola softcamów."),
+    ("softcam", "Softcam / OSCam", "Oscam stable, EMU, NCam, CCcam i oscam.dvbapi."),
     ("plugins", "Wtyczki / Feedy", "Instalacja E2iPlayera i pakietów z centralnej bazy."),
     ("backups", "Kopie / Przywracanie", "Kopie bezpieczeństwa konfiguracji."),
     ("system", "System / Konserwacja", "Podstawowe operacje administracyjne GUI."),
@@ -167,7 +170,7 @@ CARD_HINTS = (
     "Plugin i katalog GitHub",
     "Odtwarzacze IPTV",
     "Pobieranie piconów",
-    "Stable i oscam.dvbapi",
+    "Stable • EMU • NCam",
     "E2iPlayer • XStreamity",
     "Dostępne kopie plików",
     "Miejsce • Restart GUI",
@@ -259,6 +262,8 @@ class E2FoorysMain(Screen):
         self.manifest_job = None
         self.system_job = None
         self.action_job = None
+        self.console = None
+        self._pending_root_password = None
         self.closed = False
         self.quick_update_requested = False
         self["logo"] = Pixmap()
@@ -437,6 +442,9 @@ class E2FoorysMain(Screen):
             result.append(self._manifest_refresh_item())
         elif section_id == "softcam":
             result.append(self._install_item("Instaluj Oscam stable", "Feed OEA, opkg update i instalacja Oscam stable.", {"id": "oscam-stable", "name": "Oscam stable", "version": "OEA feed"}, install_oscam_stable, "Instalacja Oscam stable"))
+            result.append(self._install_item("Instaluj OSCam-emu", "Publiczny pakiet OEA. Używaj wyłącznie z legalnymi uprawnieniami do odbioru.", {"id": "oscam-emu", "name": "OSCam-emu", "version": "OEA feed"}, install_public_softcam, "Instalacja OSCam-emu"))
+            result.append(self._install_item("Instaluj NCam", "Publiczny pakiet NCam z feedu OEA. Używaj wyłącznie z legalnymi uprawnieniami do odbioru.", {"id": "ncam", "name": "NCam", "version": "OEA feed"}, install_public_softcam, "Instalacja NCam"))
+            result.append(self._install_item("Instaluj CCcam 2.3.9", "Publiczny pakiet CCcam 2.3.9 z feedu OEA. Używaj wyłącznie z legalnymi uprawnieniami do odbioru.", {"id": "cccam-2.3.9", "name": "CCcam 2.3.9", "version": "OEA feed"}, install_public_softcam, "Instalacja CCcam 2.3.9"))
             result.append(self._install_item("Pobierz aktualny oscam.dvbapi", "Zapisze dokładnie: P:1884, P:0B01, P:1861. Poprzedni plik zostanie zachowany w kopii.", {"id": "oscam-current", "name": "Aktualny oscam.dvbapi", "version": "Foorys current"}, install_current_oscam_dvbapi, "Aktualny oscam.dvbapi"))
             if manifest.get("oscam_dvbapi"):
                 result.append(self._install_item(None, manifest["oscam_dvbapi"].get("description"), manifest["oscam_dvbapi"], install_oscam_dvbapi, "Aktualizacja oscam.dvbapi z manifestu"))
@@ -462,6 +470,7 @@ class E2FoorysMain(Screen):
                 self._item("Sprawdź kondycję dekodera", "Model, obraz, CPU, RAM, flash, temperatura i uptime.", "health"),
                 self._item("Sprawdź wolne miejsce", "Wolne miejsce na rootfs oraz status magazynu danych.", "free_space"),
                 self._item("Restart GUI Enigma2", "Restart interfejsu po dodatkowym potwierdzeniu.", "restart_gui"),
+                self._item("Zmień hasło root", "Dwukrotne wpisanie nowego hasła; hasło nie jest zapisywane przez plugin.", "root_password"),
                 self._item("Ustawienia E2-Foorys", "GitHub, manifest, ścieżki docelowe i kopie bezpieczeństwa.", "settings"),
             ])
         elif section_id == "diagnostics":
@@ -656,6 +665,99 @@ class E2FoorysMain(Screen):
         except Exception:
             self.session.open(MessageBox, "Uruchom ręcznie restart GUI Enigma2.", MessageBox.TYPE_INFO, timeout=8)
 
+    def request_root_password_change(self):
+        """Pobiera dwukrotnie nowe hasło i dopiero potem uruchamia chpasswd."""
+
+        if self.action_job is not None and self.action_job.running:
+            self.session.open(MessageBox, "Inna operacja jest jeszcze uruchomiona.", MessageBox.TYPE_INFO, timeout=5)
+            return
+        self.session.openWithCallback(
+            self._root_password_warning_confirmed,
+            MessageBox,
+            "Zmiana hasła root zakończy bieżące sesje z użyciem starego hasła.\n\nNowe hasło nie zostanie zapisane w ustawieniach pluginu. Kontynuować?",
+            MessageBox.TYPE_YESNO,
+            default=False,
+        )
+
+    def _root_password_warning_confirmed(self, answer):
+        if not answer:
+            return
+        try:
+            from Screens.VirtualKeyBoard import VirtualKeyBoard
+        except ImportError:
+            self.session.open(MessageBox, "Brak klawiatury ekranowej na tym obrazie Enigma2.", MessageBox.TYPE_ERROR, timeout=8)
+            return
+        self.session.openWithCallback(
+            self._root_password_first_entered,
+            VirtualKeyBoard,
+            title="Nowe hasło root (minimum 8 znaków)",
+            text="",
+        )
+
+    def _root_password_first_entered(self, password):
+        if not password:
+            return
+        try:
+            validate_root_password(password)
+        except Exception as exc:
+            self.session.open(MessageBox, str(exc), MessageBox.TYPE_ERROR, timeout=8)
+            return
+        self._pending_root_password = password
+        from Screens.VirtualKeyBoard import VirtualKeyBoard
+        self.session.openWithCallback(
+            self._root_password_confirmation_entered,
+            VirtualKeyBoard,
+            title="Powtórz nowe hasło root",
+            text="",
+        )
+
+    def _root_password_confirmation_entered(self, password):
+        if not password:
+            self._pending_root_password = None
+            return
+        if password != self._pending_root_password:
+            self._pending_root_password = None
+            self.session.open(MessageBox, "Wpisane hasła nie są identyczne. Hasło nie zostało zmienione.", MessageBox.TYPE_ERROR, timeout=8)
+            return
+        self.session.openWithCallback(
+            self._root_password_change_confirmed,
+            MessageBox,
+            "Zmienić hasło konta root teraz?\n\nZapamiętaj nowe hasło — nie będzie można go wyświetlić.",
+            MessageBox.TYPE_YESNO,
+            default=False,
+        )
+
+    def _root_password_change_confirmed(self, answer):
+        password = self._pending_root_password
+        self._pending_root_password = None
+        if not answer or not password:
+            return
+        self.console = self.session.open(ConsoleScreen, "Zmiana hasła root")
+        if self.console is not None:
+            self.console.write("E2-Foorys: rozpoczynam zmianę hasła root.")
+        self.action_job = AsyncJob(self._root_password_finished, self._console_progress)
+        self.action_job.start(change_root_password, password, self.action_job.emit)
+
+    def _console_progress(self, message):
+        if self.console is not None:
+            try:
+                self.console.write(message)
+            except Exception:
+                pass
+
+    def _root_password_finished(self, result, error):
+        self.action_job = None
+        if self.closed:
+            return
+        if error:
+            if self.console is not None:
+                self.console.finish(False, str(error))
+            self.session.open(MessageBox, "Hasło root nie zostało zmienione:\n%s" % error, MessageBox.TYPE_ERROR, timeout=10)
+            return
+        if self.console is not None:
+            self.console.finish(True, "hasło root zostało zmienione")
+        self.session.open(MessageBox, "Hasło root zostało zmienione. Używaj go przy kolejnym logowaniu.", MessageBox.TYPE_INFO, timeout=10)
+
 
 class SectionMenuScreen(Screen):
     """Lista czynności otwierana z kafelka głównego ekranu."""
@@ -782,6 +884,8 @@ class SectionMenuScreen(Screen):
             self["status"].setText("Odświeżam diagnostykę...")
         elif action == "restart_gui":
             self.controller._confirm_restart()
+        elif action == "root_password":
+            self.controller.request_root_password_change()
         elif action == "settings":
             self.controller.open_settings()
         elif action == "info":

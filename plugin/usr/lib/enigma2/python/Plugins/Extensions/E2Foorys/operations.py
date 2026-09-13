@@ -61,6 +61,21 @@ OSCAM_STABLE_COMMAND = (
     '&& opkg update && opkg install enigma2-plugin-softcams-oscam-stable'
 )
 
+PUBLIC_SOFTCAM_PACKAGES = {
+    "oscam-emu": {
+        "name": "OSCam-emu",
+        "package": "enigma2-plugin-softcams-oscam-emu",
+    },
+    "ncam": {
+        "name": "NCam",
+        "package": "enigma2-plugin-softcams-ncam",
+    },
+    "cccam-2.3.9": {
+        "name": "CCcam 2.3.9",
+        "package": "enigma2-plugin-softcams-cccam-2.3.9",
+    },
+}
+
 FOORYS_OSCAM_DVBAPI_LINES = (
     "P:1884",
     "P:0B01",
@@ -929,6 +944,63 @@ def install_oscam_stable(_item, _settings, progress=None):
         "package": "enigma2-plugin-softcams-oscam-stable",
         "output": output,
     }
+
+
+def install_public_softcam(item, _settings, progress=None):
+    """Instaluje tylko publiczne pakiety softcam jawnie dopuszczone przez plugin."""
+
+    softcam_id = str((item or {}).get("id", ""))
+    package_info = PUBLIC_SOFTCAM_PACKAGES.get(softcam_id)
+    if not package_info:
+        raise OperationError("Nieobsługiwany pakiet softcam.")
+    package_name = package_info["package"]
+    output = _run_shell_command("opkg update && opkg install %s" % package_name, progress=progress)
+    return {
+        "kind": "softcam",
+        "name": package_info["name"],
+        "package": package_name,
+        "output": output,
+    }
+
+
+def validate_root_password(password):
+    """Waliduje hasło przekazywane jednorazowo do chpasswd."""
+
+    if not isinstance(password, str):
+        raise OperationError("Nieprawidłowe hasło.")
+    if len(password) < 8:
+        raise OperationError("Hasło roota musi mieć co najmniej 8 znaków.")
+    if len(password) > 128:
+        raise OperationError("Hasło roota może mieć maksymalnie 128 znaków.")
+    if ":" in password or "\n" in password or "\r" in password:
+        raise OperationError("Hasło nie może zawierać dwukropka ani znaku nowej linii.")
+    if any(ord(character) < 32 for character in password):
+        raise OperationError("Hasło nie może zawierać znaków kontrolnych.")
+
+
+def change_root_password(password, progress=None):
+    """Zmienia hasło konta root bez zapisywania go w konfiguracji lub logu."""
+
+    validate_root_password(password)
+    executable = shutil.which("chpasswd") or "/usr/sbin/chpasswd"
+    if not os.path.exists(executable):
+        raise OperationError("Nie znaleziono narzędzia chpasswd na dekoderze.")
+    _progress(progress, "Zmiana hasła root...")
+    try:
+        process = subprocess.Popen(
+            [executable],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+        output, _unused = process.communicate("root:%s\n" % password)
+    except OSError as exc:
+        raise OperationError("Nie można uruchomić chpasswd: %s" % exc)
+    if process.returncode != 0:
+        raise OperationError("Zmiana hasła nie powiodła się:\n%s" % (output or "brak szczegółów"))
+    _progress(progress, "Hasło root zostało zmienione.")
+    return {"kind": "root-password", "name": "Hasło root", "output": "Hasło zostało zmienione."}
 
 
 def install_plugin_package(item, settings, progress=None):
