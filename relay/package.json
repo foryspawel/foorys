@@ -1,0 +1,7 @@
+{
+  "name": "foorys-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bezpieczny relay dla sparowanych dekoderów Enigma2",
+  "scripts": { "start": "node server.js", "test": "node --check server.js" }
+}

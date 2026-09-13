@@ -1,0 +1,14 @@
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      DATA_DIR: /data
+      FOORYS_RELAY_ADMIN_TOKEN: ${FOORYS_RELAY_ADMIN_TOKEN}
+    volumes:
+      - relay-data:/data
+    ports:
+      - "127.0.0.1:9444:8080"
+volumes:
+  relay-data:
