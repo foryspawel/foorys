@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-13T00:00:00Z",
+  "channel_lists": [],
+  "plugins": [],
+  "oscam_dvbapi": null,
+  "plugin_update": {
+    "id": "e2foorys",
+    "name": "E2-Foorys",
+    "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
+    "version": "0.2.0",
+    "package_type": "ipk",
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.2.0_all.ipk",
+    "sha256": "c7b1b3551532103a3b0fab42f2af93769c37a562633039e37371b38c53048609"
+  }
+}

@@ -94,6 +94,11 @@ class CoreTests(unittest.TestCase):
                 ["bouquets.radio"],
             )
 
+    def test_version_is_newer(self):
+        self.assertTrue(core.version_is_newer("0.2.1", "0.2.0"))
+        self.assertFalse(core.version_is_newer("0.2.0", "0.2.0"))
+        self.assertFalse(core.version_is_newer("v0.1.9", "0.2.0"))
+
 
 if __name__ == "__main__":
     unittest.main()

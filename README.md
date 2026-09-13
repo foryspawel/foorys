@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.1.1 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.2.0 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.1.0
+## Co działa w wersji 0.2.0
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -18,6 +18,14 @@ pakietami pluginów oraz plikiem `oscam.dvbapi`.
 - logo Foorys używane jako ikona w menu Enigma2 i znak nagłówka panelu,
 - weryfikacja SHA-256 każdego pobieranego pliku,
 - walidacja ścieżek w archiwach, aby uniknąć zapisu poza katalogiem staging.
+- panel AIO-like z osobnymi zakładkami: listy kanałów, aktualizacje, IPTV,
+  Softcam/OSCam, pluginy, kopie, system i diagnostyka,
+- domyślne połączenie z `foryspawel/foorys` przez `manifest.json` na GitHubie,
+- aktualizacja samego E2-Foorys przez pobranie pakietu IPK z GitHuba,
+- odczyt CPU, RAM, flasha, magazynu, temperatury, uptime i zainstalowanych
+  pakietów bez zmiany systemu,
+- przycisk aktualnego `oscam.dvbapi`, zapisujący wyłącznie `P:1884`, `P:0B01`
+  i `P:1861`.
 
 Plugin nie zawiera żadnych konkretnych list ani pakietów. Są one dostarczane
 przez własny manifest repozytorium. W instalacji produkcyjnej używaj HTTPS:
@@ -33,10 +41,10 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-python tools/build_ipk.py --version 0.1.0
+  python tools/build_ipk.py --version 0.2.0
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.1.0_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.2.0_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
@@ -63,10 +71,15 @@ Minimalny wpis listy kanałów wygląda tak:
 
 Manifest może używać URL-i względnych. Archiwum listy powinno zawierać pliki
 bezpośrednio lub w podkatalogu; plugin znajdzie tylko dozwolone nazwy plików.
-`oscam_dvbapi` jest pojedynczym obiektem w głównym JSON-ie, a `plugins` jest
-tablicą pakietów instalowanych przez `opkg`.
+`oscam_dvbapi` i `plugin_update` są pojedynczymi obiektami w głównym JSON-ie,
+a `plugins` jest tablicą pakietów instalowanych przez `opkg`. Pole
+`plugin_update` wskazuje pakiet IPK następnej wersji pluginu. W zakładce
+`E2-Foorys / Aktualizacje` pojawi się przycisk tylko wtedy, gdy wersja z
+GitHuba jest wyższa od aktualnie uruchomionej.
 
-W dekoderze otwórz `E2-Foorys -> Ustawienia` i ustaw URL manifestu. Domyślne
+W dekoderze otwórz `E2-Foorys -> Ustawienia`. Domyślnie plugin łączy się z
+`https://raw.githubusercontent.com/foryspawel/foorys/main/manifest.json`.
+Własny URL manifestu jest opcjonalny. Domyślne
 ścieżki można zmienić, ponieważ obrazy Enigma2 różnią się miejscem instalacji
 Oscama:
 
@@ -74,7 +87,7 @@ Oscama:
 - `oscam.dvbapi`: `/etc/tuxbox/config/oscam-emu/oscam.dvbapi`,
 - dane i kopie: `/media/hdd/e2foorys`.
 
-W **Opcjach/Ustawieniach pluginu** dostępne jest pole `Akcja instalacyjna` z
+W **Opcjach/Ustawieniach pluginu** pozostaje także pole `Akcja instalacyjna` z
 akcjami E2iPlayer i Oscam stable. Wymagają one dodatkowego potwierdzenia,
 działają jako `root` i korzystają z zewnętrznych
 instalatorów/feedów. Patch E2iPlayer wymaga wcześniejszej instalacji wersji

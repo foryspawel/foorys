@@ -46,6 +46,19 @@ CHANNEL_FILE_NAMES = frozenset(
 )
 
 
+def version_is_newer(remote, current):
+    """Porównuje wersje numerycznie, tolerując prefiksy typu v1.2.3."""
+
+    def key(value):
+        numbers = re.findall(r"\d+", str(value or ""))
+        return tuple(int(number) for number in numbers) or (0,)
+
+    remote_key = key(remote)
+    current_key = key(current)
+    length = max(len(remote_key), len(current_key))
+    return remote_key + (0,) * (length - len(remote_key)) > current_key + (0,) * (length - len(current_key))
+
+
 def _text(value, field_name):
     if not isinstance(value, str) or not value.strip():
         raise ManifestError("Pole '%s' musi być niepustym tekstem." % field_name)
@@ -124,6 +137,14 @@ def normalize_manifest(data):
         )
     else:
         result["oscam_dvbapi"] = None
+
+    plugin_update = data.get("plugin_update")
+    if plugin_update is not None:
+        result["plugin_update"] = _validate_download_item(
+            plugin_update, "plugin_update", 0
+        )
+    else:
+        result["plugin_update"] = None
     return result
 
 
@@ -274,4 +295,3 @@ def atomic_copy(source, destination):
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
-

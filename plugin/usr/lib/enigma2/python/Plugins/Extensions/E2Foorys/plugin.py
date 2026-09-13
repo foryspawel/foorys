@@ -10,7 +10,7 @@ from .config import ensure_config
 
 
 def main(session, **kwargs):
-    from .ui import E2FoorysMain
+    from .dashboard import E2FoorysMain
 
     session.open(E2FoorysMain)
 
@@ -20,7 +20,7 @@ def Plugins(**kwargs):
     descriptors = [
         PluginDescriptor(
             name="E2-Foorys",
-            description="Listy kanałów, pluginy i oscam.dvbapi",
+            description="Panel AIO: listy, aktualizacje, softcam i diagnostyka",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="foorys.png",
             fnc=main,
@@ -30,7 +30,7 @@ def Plugins(**kwargs):
         descriptors.append(
             PluginDescriptor(
                 name="E2-Foorys",
-                description="Listy kanałów, pluginy i oscam.dvbapi",
+                description="Panel AIO: listy, aktualizacje, softcam i diagnostyka",
                 where=PluginDescriptor.WHERE_EXTENSIONSMENU,
                 icon="foorys.png",
                 fnc=main,

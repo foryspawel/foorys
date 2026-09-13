@@ -61,6 +61,26 @@ class OperationTests(unittest.TestCase):
             )
             self.assertTrue((backup / "backup.json").is_file())
 
+    def test_current_oscam_dvbapi_contains_only_foorys_rules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "oscam.dvbapi"
+            target.write_text("P:9999\n# old rule\n", encoding="utf-8")
+            result = operations.install_current_oscam_dvbapi(
+                {},
+                {
+                    "storage_dir": str(root / "storage"),
+                    "oscam_dvbapi_path": str(target),
+                    "create_backup": True,
+                },
+            )
+            self.assertEqual(
+                target.read_text(encoding="utf-8"),
+                "P:1884\nP:0B01\nP:1861\n",
+            )
+            self.assertEqual(result["lines"], ["P:1884", "P:0B01", "P:1861"])
+            self.assertTrue(result["backup"])
+
 
 if __name__ == "__main__":
     unittest.main()

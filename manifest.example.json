@@ -29,6 +29,14 @@
     "version": "2026.09.13",
     "url": "oscam/oscam.dvbapi",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "plugin_update": {
+    "id": "e2foorys",
+    "name": "E2-Foorys",
+    "description": "Nowszy pakiet pluginu z repozytorium GitHub",
+    "version": "0.2.0",
+    "package_type": "ipk",
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.2.0_all.ipk",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }
 }
-

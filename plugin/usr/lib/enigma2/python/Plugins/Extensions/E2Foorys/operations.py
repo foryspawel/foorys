@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -56,6 +57,12 @@ OSCAM_STABLE_COMMAND = (
     '&& opkg update && opkg install enigma2-plugin-softcams-oscam-stable'
 )
 
+FOORYS_OSCAM_DVBAPI_LINES = (
+    "P:1884",
+    "P:0B01",
+    "P:1861",
+)
+
 
 def _setting(settings, key, default=""):
     value = settings.get(key, default) if settings else default
@@ -63,6 +70,189 @@ def _setting(settings, key, default=""):
         value = value.strip()
         return value or default
     return value
+
+
+def _read_text_file(path):
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            return handle.read().strip()
+    except (OSError, IOError):
+        return ""
+
+
+def _parse_key_value_file(path):
+    values = {}
+    content = _read_text_file(path)
+    for line in content.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"')
+    return values
+
+
+def _filesystem_usage(path):
+    """Zwraca użycie systemu plików bez uruchamiania zewnętrznych komend."""
+
+    requested = os.path.abspath(str(path or "/"))
+    candidate = requested
+    while not os.path.exists(candidate) and candidate != os.path.dirname(candidate):
+        candidate = os.path.dirname(candidate)
+    try:
+        stats = os.statvfs(candidate)
+        block_size = int(stats.f_frsize or stats.f_bsize or 4096)
+        total = int(stats.f_blocks) * block_size
+        free = int(stats.f_bavail) * block_size
+        used = max(total - free, 0)
+        percent = int(round((used * 100.0) / total)) if total else 0
+        return {
+            "path": requested,
+            "mount": candidate,
+            "total": total,
+            "free": free,
+            "used": used,
+            "percent": min(max(percent, 0), 100),
+        }
+    except (OSError, IOError, AttributeError):
+        return {
+            "path": requested,
+            "mount": candidate,
+            "total": 0,
+            "free": 0,
+            "used": 0,
+            "percent": 0,
+            "error": "brak danych",
+        }
+
+
+def _memory_usage():
+    values = {}
+    for line in _read_text_file("/proc/meminfo").splitlines():
+        parts = line.split()
+        if len(parts) >= 2:
+            try:
+                values[parts[0].rstrip(":")] = int(parts[1]) * 1024
+            except ValueError:
+                continue
+    total = values.get("MemTotal", 0)
+    available = values.get("MemAvailable")
+    if available is None:
+        available = sum(values.get(key, 0) for key in ("MemFree", "Buffers", "Cached"))
+    used = max(total - available, 0)
+    percent = int(round((used * 100.0) / total)) if total else 0
+    return {
+        "total": total,
+        "free": max(available, 0),
+        "used": used,
+        "percent": min(max(percent, 0), 100),
+    }
+
+
+def _uptime_seconds():
+    content = _read_text_file("/proc/uptime").split()
+    try:
+        return int(float(content[0])) if content else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def _temperature():
+    for path in (
+        "/proc/stb/sensors/temp0/value",
+        "/proc/stb/fp/temp_sensor",
+        "/sys/class/thermal/thermal_zone0/temp",
+    ):
+        value = _read_text_file(path)
+        if not value:
+            continue
+        try:
+            number = int(value, 0)
+            if number > 1000:
+                number = int(round(number / 1000.0))
+            return "%d C" % number
+        except ValueError:
+            return value
+    return "n/d"
+
+
+def _process_running(name):
+    executable = shutil.which("pidof") or "/bin/pidof"
+    if not os.path.exists(executable):
+        return None
+    try:
+        process = subprocess.Popen(
+            [executable, name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        output, _unused = process.communicate(timeout=5)
+        return process.returncode == 0 and bool(output.strip())
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def collect_system_status(settings=None):
+    """Zbiera informacje diagnostyczne dekodera tylko w trybie odczytu."""
+
+    settings = settings or {}
+    image = _parse_key_value_file("/etc/image-version")
+    issue = _read_text_file("/etc/issue").splitlines()
+    load_content = _read_text_file("/proc/loadavg").split()
+    try:
+        load = float(load_content[0]) if load_content else 0.0
+    except ValueError:
+        load = 0.0
+    cpu_count_function = getattr(os, "cpu_count", None)
+    cpu_count = cpu_count_function() if cpu_count_function else 1
+    cpu_count = max(int(cpu_count or 1), 1)
+    cpu_percent = min(max(int(round(load * 100.0 / cpu_count)), 0), 100)
+    memory = _memory_usage()
+    flash = _filesystem_usage("/")
+    storage = _filesystem_usage(_setting(settings, "storage_dir", "/media/hdd"))
+    return {
+        "model": image.get("machine_name", image.get("box_type", "n/d")),
+        "image": image.get("distro", "") or (issue[0] if issue else "n/d"),
+        "version": image.get("version", "n/d"),
+        "build": image.get("build", "n/d"),
+        "architecture": image.get("arch", platform.machine() or "n/d"),
+        "python": platform.python_version(),
+        "uptime": _uptime_seconds(),
+        "load": load,
+        "cpu_percent": cpu_percent,
+        "cpu_count": cpu_count,
+        "memory": memory,
+        "flash": flash,
+        "storage": storage,
+        "temperature": _temperature(),
+        "enigma2_running": _process_running("enigma2"),
+        "opkg_available": bool(shutil.which("opkg") or os.path.exists("/usr/bin/opkg")),
+    }
+
+
+def collect_installed_packages(_settings=None):
+    """Zwraca pakiety związane z E2iPlayerem i softcamami (tylko odczyt)."""
+
+    executable = shutil.which("opkg") or "/usr/bin/opkg"
+    if not os.path.exists(executable):
+        return {"available": False, "packages": []}
+    try:
+        process = subprocess.Popen(
+            [executable, "list-installed"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+        output, _unused = process.communicate(timeout=30)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise OperationError("Nie można odczytać listy pakietów: %s" % exc)
+    if process.returncode != 0:
+        raise OperationError("opkg list-installed zakończył się kodem %s." % process.returncode)
+    packages = []
+    for line in output.splitlines():
+        lowered = line.lower()
+        if any(token in lowered for token in ("e2iplayer", "oscam", "softcam", "camd")):
+            packages.append(line.strip())
+    return {"available": True, "packages": packages}
 
 
 def _ensure_absolute_directory(path, label):
@@ -109,11 +299,12 @@ def fetch_manifest(manifest_url):
         for item in manifest[collection_name]:
             item["url"] = urljoin(manifest_url, item["url"])
             _validate_download_url(item["url"])
-    if manifest.get("oscam_dvbapi"):
-        manifest["oscam_dvbapi"]["url"] = urljoin(
-            manifest_url, manifest["oscam_dvbapi"]["url"]
-        )
-        _validate_download_url(manifest["oscam_dvbapi"]["url"])
+    for single_item_name in ("oscam_dvbapi", "plugin_update"):
+        if manifest.get(single_item_name):
+            manifest[single_item_name]["url"] = urljoin(
+                manifest_url, manifest[single_item_name]["url"]
+            )
+            _validate_download_url(manifest[single_item_name]["url"])
     return normalize_manifest(manifest)
 
 
@@ -288,6 +479,75 @@ def install_oscam_dvbapi(item, settings):
         "version": item.get("version", ""),
         "backup": backup_root if backup_metadata else None,
     }
+
+
+def install_current_oscam_dvbapi(_item, settings):
+    """Zapisuje aktualny profil Foorys z dokładnie trzema regułami P:."""
+
+    storage = _ensure_absolute_directory(
+        _setting(settings, "storage_dir", "/media/hdd/e2foorys"),
+        "katalog danych",
+    )
+    target = os.path.abspath(
+        _setting(
+            settings,
+            "oscam_dvbapi_path",
+            "/etc/tuxbox/config/oscam-emu/oscam.dvbapi",
+        )
+    )
+    backup_metadata = []
+    backup_root = os.path.join(storage, "backups", "oscam-%s" % _timestamp())
+    if bool(_setting(settings, "create_backup", True)):
+        _backup_existing(target, backup_root, backup_metadata)
+
+    temporary = os.path.join(storage, ".foorys-oscam.dvbapi.part")
+    try:
+        with open(temporary, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(FOORYS_OSCAM_DVBAPI_LINES) + "\n")
+        atomic_copy(temporary, target)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+    if backup_metadata:
+        _write_json(
+            os.path.join(backup_root, "backup.json"),
+            {"type": "oscam.dvbapi", "created_at": _timestamp(), "files": backup_metadata},
+        )
+    return {
+        "kind": "oscam.dvbapi",
+        "target": target,
+        "version": "foorys-current",
+        "lines": list(FOORYS_OSCAM_DVBAPI_LINES),
+        "backup": backup_root if backup_metadata else None,
+    }
+
+
+def list_backups(settings=None):
+    """Zwraca krótką listę kopii zapisanych przez plugin."""
+
+    root = os.path.join(
+        os.path.abspath(_setting(settings or {}, "storage_dir", "/media/hdd/e2foorys")),
+        "backups",
+    )
+    result = []
+    if not os.path.isdir(root):
+        return {"root": root, "backups": result}
+    for name in sorted(os.listdir(root), reverse=True):
+        path = os.path.join(root, name)
+        if not os.path.isdir(path):
+            continue
+        metadata = _parse_key_value_file(os.path.join(path, "backup.ini"))
+        backup_json = os.path.join(path, "backup.json")
+        backup_type = "backup"
+        if os.path.isfile(backup_json):
+            try:
+                with open(backup_json, "r", encoding="utf-8") as handle:
+                    backup_type = json.load(handle).get("type", backup_type)
+            except (OSError, IOError, TypeError, ValueError):
+                pass
+        result.append({"name": name, "path": path, "type": metadata.get("type", backup_type)})
+    return {"root": root, "backups": result}
 
 
 def _run_opkg(package_path, timeout=600):
