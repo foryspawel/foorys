@@ -32,21 +32,19 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen
 
 
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 
 
 MAIN_SKIN = """
 <screen name="E2FoorysMain" position="center,center" size="1180,680" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
     <eLabel position="0,0" size="1180,3" backgroundColor="#1683BB" />
     <eLabel position="20,102" size="1140,1" backgroundColor="#173049" />
-    <eLabel position="20,122" size="250,465" backgroundColor="#0C1B2B" />
-    <eLabel position="290,122" size="510,465" backgroundColor="#0C1B2B" />
-    <eLabel position="815,122" size="340,465" backgroundColor="#0C1B2B" />
     <widget name="logo" position="28,18" size="72,72" alphatest="blend" scale="1" />
     <widget name="title" position="122,20" size="650,38" font="Regular;30" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
     <widget name="subtitle" position="122,61" size="650,27" font="Regular;18" foregroundColor="#8FA7BE" backgroundColor="#0E1C2C" transparent="0" />
-    <widget name="version" position="850,24" size="290,28" font="Regular;18" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
-    <widget name="clock" position="850,55" size="290,24" font="Regular;18" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="version" position="850,14" size="290,22" font="Regular;17" foregroundColor="#28C8F5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="clock" position="850,38" size="290,22" font="Regular;17" foregroundColor="#9DB2C5" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
+    <widget name="top_stats" position="850,62" size="290,18" font="Regular;14" foregroundColor="#55D6A0" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
     <widget name="quick_update" position="850,82" size="290,18" font="Regular;14" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" horizontalAlignment="right" />
     <widget name="section_title" position="35,135" size="470,34" font="Regular;24" foregroundColor="#18C7F5" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="section_count" position="690,138" size="90,28" font="Regular;17" foregroundColor="#7D93A8" backgroundColor="#0C1B2B" transparent="0" horizontalAlignment="right" />
@@ -157,17 +155,18 @@ class E2FoorysMain(Screen):
         self["subtitle"] = Label("Panel zarządzania Enigma2")
         self["version"] = Label("Foorys v%s" % VERSION)
         self["clock"] = Label("")
-        self["section_title"] = Label("")
-        self["section_count"] = Label("")
+        self["section_title"] = Label("Listy kanałów")
+        self["section_count"] = Label("1/%d" % len(SECTIONS))
         self["quick_update"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
         self["sections"] = MenuList([(section[1], section[0]) for section in SECTIONS])
         self["items"] = MenuList([])
-        self["info_title"] = Label("")
-        self["info"] = Label("")
+        self["info_title"] = Label("Listy kanałów")
+        self["info"] = Label("Pobieranie i bezpieczna instalacja list kanałów.")
         self["stats_title"] = Label("Stan dekodera")
-        self["stats"] = Label("Odczytywanie danych...")
-        self["decoder"] = Label("")
-        self["status"] = Label("")
+        self["stats"] = Label("CPU: --   RAM: --\nFlash: --   Dysk: --\nTemperatura: --\nUptime: --")
+        self["top_stats"] = Label("CPU: --   RAM: --")
+        self["decoder"] = Label("Odczytywanie stanu dekodera...")
+        self["status"] = Label("Łączenie z centralną bazą GitHub...")
         self["hint"] = Label("LEWO/PRAWO: zakładka   OK: wybierz   ZIELONY: odśwież   MENU: ustawienia   EXIT: zamknij")
         self["actions"] = ActionMap(
             ["OkCancelActions", "DirectionActions", "MenuActions", "ColorActions"],
@@ -305,7 +304,7 @@ class E2FoorysMain(Screen):
             for entry in manifest.get("channel_lists", []):
                 result.append(self._install_item(None, entry.get("description"), entry, install_channel_list, "Listy kanałów"))
             if not result:
-                result.append(self._item("Brak list — ustaw manifest", "W MENU → Ustawienia ustaw własny URL lub użyj domyślnego repozytorium GitHub.", "info"))
+                result.append(self._item("Brak list w centralnej bazie", "Centralne listy kanałów są publikowane w repozytorium Foorys. Aktualny adres bazy: %s" % central_manifest_url(), "info"))
             result.append(self._manifest_refresh_item())
         elif section_id == "updates":
             result.append(self._manifest_refresh_item())
@@ -316,7 +315,7 @@ class E2FoorysMain(Screen):
                 result.append(self._item("E2-Foorys jest aktualny  [%s]" % VERSION, "GitHub nie udostępnia nowszej wersji pluginu.", "info"))
             else:
                 result.append(self._item("Brak pakietu aktualizacji", "Manifest GitHub nie ma jeszcze obiektu plugin_update.", "info"))
-            result.append(self._item("Centralna baza: %s" % settings_dict().get("github_repo", "foryspawel/foorys"), "Źródło jest stałe i zarządzane w centralnym repozytorium GitHub.", "info"))
+            result.append(self._item("Centralna baza GitHub", central_manifest_url(), "info"))
         elif section_id == "iptv":
             result.extend([
                 self._install_item("Instaluj E2iPlayer (Python 3)", "Oficjalny instalator E2iPlayer dla Python 3.", {"id": "e2iplayer", "name": "E2iPlayer", "version": "Python 3 / OE-Mirrors"}, install_e2iplayer, "Instalacja E2iPlayer"),
@@ -456,6 +455,7 @@ class E2FoorysMain(Screen):
         flash = data.get("flash", {})
         storage = data.get("storage", {})
         self["stats"].setText("CPU: %d%%   RAM: %d%%\nFlash: %d%%  wolne %s\nDysk: %d%%  wolne %s\nTemperatura: %s\nUptime: %s" % (data.get("cpu_percent", 0), memory.get("percent", 0), flash.get("percent", 0), _format_size(flash.get("free", 0)), storage.get("percent", 0), _format_size(storage.get("free", 0)), data.get("temperature", "n/d"), _format_uptime(data.get("uptime", 0))))
+        self["top_stats"].setText("CPU: %d%%   RAM: %d%%" % (data.get("cpu_percent", 0), memory.get("percent", 0)))
         self["decoder"].setText("%s | %s | %s" % (data.get("model", "n/d"), data.get("version", "n/d"), "Enigma2 OK" if data.get("enigma2_running") else "Enigma2?"))
 
     def refresh_all(self):

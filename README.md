@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.2.1 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.2.2 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.2.1
+## Co działa w wersji 0.2.2
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
