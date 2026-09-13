@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import io
 import os
+import re
 import shutil
 import tarfile
 
@@ -126,6 +127,11 @@ def _render(entries):
     return ("\n\n".join(blocks) + "\n") if blocks else ""
 
 
+def _version_key(value):
+    parts = re.split(r"([0-9]+)", str(value or ""))
+    return tuple((0, int(part)) if part.isdigit() else (1, part.lower()) for part in parts if part)
+
+
 def build_feed(feed_dir, package_paths):
     os.makedirs(feed_dir, exist_ok=True)
     for source in package_paths:
@@ -133,11 +139,18 @@ def build_feed(feed_dir, package_paths):
         if os.path.abspath(source) != os.path.abspath(destination):
             shutil.copy2(source, destination)
 
-    packages = []
+    all_packages = []
     for filename in sorted(os.listdir(feed_dir)):
         if not filename.lower().endswith(".ipk"):
             continue
-        packages.append(_entry(os.path.join(feed_dir, filename)))
+        all_packages.append(_entry(os.path.join(feed_dir, filename)))
+    latest = {}
+    for entry in all_packages:
+        package_name = entry["Package"]
+        previous = latest.get(package_name)
+        if previous is None or _version_key(entry["Version"]) > _version_key(previous["Version"]):
+            latest[package_name] = entry
+    packages = sorted(latest.values(), key=lambda item: (item["Package"], _version_key(item["Version"])))
     content = _render(packages).encode("utf-8")
     with open(os.path.join(feed_dir, "Packages"), "wb") as handle:
         handle.write(content)
