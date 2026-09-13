@@ -88,6 +88,8 @@ IPTV_FORYS_DNS = "iptv.forys.pro"
 IPTV_FORYS_PORT = 8880
 IPTV_BOUQUET_NAME = "Foorys IPTV"
 IPTV_BOUQUET_FILENAME = "userbouquet.foorys-iptv.tv"
+IPTV_TEST_BOUQUET_NAME = "Foorys IPTV TEST"
+IPTV_TEST_BOUQUET_FILENAME = "userbouquet.foorys-iptv-test.tv"
 IPTV_MAX_CHANNELS = 10000
 IPTV_MAX_PICONS = 1500
 IPTV_MAX_PICON_BYTES = 2 * 1024 * 1024
@@ -564,17 +566,27 @@ def parse_iptv_m3u(text):
     return entries
 
 
-def _iptv_service_reference(entry, index):
+def _iptv_service_reference(entry, index, namespace="iptv"):
     """Buduje stabilny service reference i nazwę piconu dla kanału IPTV."""
 
-    seed = "%s|%s|%s" % (entry.get("url", ""), entry.get("tvg_id", ""), index)
+    seed = "%s|%s|%s|%s" % (
+        namespace,
+        entry.get("url", ""),
+        entry.get("tvg_id", ""),
+        index,
+    )
     digest = hashlib.sha1(seed.encode("utf-8", "replace")).hexdigest()
     service_id = int(digest[:10], 16) % 0x7FFFFFFF
     if service_id == 0:
         service_id = index + 1
     bouquet_id1 = service_id // 65535
     bouquet_id2 = service_id % 65535
-    unique_ref = int(hashlib.sha1(b"e2foorys-iptv").hexdigest()[:8], 16) % 0x7FFFFFFF
+    unique_ref = int(
+        hashlib.sha1(
+            ("e2foorys-%s" % namespace).encode("utf-8", "replace")
+        ).hexdigest()[:8],
+        16,
+    ) % 0x7FFFFFFF
     encoded_url = quote(
         entry["url"],
         safe="/?=&%@+;,.-_~[]",
@@ -602,12 +614,12 @@ def _write_text_atomic(path, content):
             os.unlink(temporary)
 
 
-def _bouquets_tv_with_foorys_iptv(path):
-    """Dodaje bukiet Foorys IPTV do bouquets.tv, usuwając jego duplikaty."""
+def _bouquets_tv_with_bouquet(path, bouquet_filename):
+    """Dodaje wskazany bukiet do bouquets.tv, usuwając jego duplikaty."""
 
     registration = (
         '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "%s" ORDER BY bouquet'
-        % IPTV_BOUQUET_FILENAME
+        % bouquet_filename
     )
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as handle:
@@ -616,7 +628,7 @@ def _bouquets_tv_with_foorys_iptv(path):
         lines = []
     if not lines:
         lines = ["#NAME TV"]
-    marker = 'FROM BOUQUET "%s"' % IPTV_BOUQUET_FILENAME
+    marker = 'FROM BOUQUET "%s"' % bouquet_filename
     lines = [line for line in lines if marker not in line]
     lines.append(registration)
     return "\n".join(lines).rstrip() + "\n"
@@ -862,21 +874,14 @@ def install_channel_list(item, settings, progress=None):
         shutil.rmtree(staging, ignore_errors=True)
 
 
-def _iptv_playlist_url(settings):
-    """Zwraca prywatny link M3U z ustawień, bez zapisywania go w repozytorium."""
-
-    direct_url = _setting(settings, "iptv_m3u_url", "")
-    if direct_url:
-        _validate_download_url(direct_url)
-        return direct_url
+def _iptv_credentials_playlist_url(settings, username_key, password_key, error_message):
+    """Buduje link M3U z lokalnych danych dostępowych."""
 
     dns = _setting(settings, "iptv_dns", IPTV_FORYS_DNS)
-    username = _setting(settings, "iptv_username", "")
-    password = _setting(settings, "iptv_password", "")
+    username = _setting(settings, username_key, "")
+    password = _setting(settings, password_key, "")
     if not username or not password:
-        raise OperationError(
-            "W MENU → Ustawienia wpisz link M3U albo DNS, login i hasło Foorys IPTV."
-        )
+        raise OperationError(error_message)
     if "://" not in dns:
         dns = "http://%s:%d" % (dns.rstrip("/"), IPTV_FORYS_PORT)
     parsed = urlparse(dns)
@@ -892,6 +897,36 @@ def _iptv_playlist_url(settings):
         }
     )
     return "%s/get.php?%s" % (base, query)
+
+
+def _iptv_playlist_url(settings):
+    """Zwraca prywatny link M3U z ustawień, bez zapisywania go w repozytorium."""
+
+    direct_url = _setting(settings, "iptv_m3u_url", "")
+    if direct_url:
+        _validate_download_url(direct_url)
+        return direct_url
+    return _iptv_credentials_playlist_url(
+        settings,
+        "iptv_username",
+        "iptv_password",
+        "W MENU → Ustawienia wpisz link M3U albo DNS, login i hasło Foorys IPTV.",
+    )
+
+
+def _iptv_test_playlist_url(settings):
+    """Zwraca link do wcześniej wygenerowanego testu IPTV."""
+
+    direct_url = _setting(settings, "iptv_test_m3u_url", "")
+    if direct_url:
+        _validate_download_url(direct_url)
+        return direct_url
+    return _iptv_credentials_playlist_url(
+        settings,
+        "iptv_test_username",
+        "iptv_test_password",
+        "Najpierw wygeneruj test w panelu IPTV, a potem wpisz jego login i hasło w MENU → Ustawienia.",
+    )
 
 
 def _install_iptv_picons(entries, target, progress=None):
@@ -942,40 +977,44 @@ def _install_iptv_picons(entries, target, progress=None):
         shutil.rmtree(temporary_root, ignore_errors=True)
 
 
-def install_iptv_playlist(_item, settings, progress=None):
-    """Tworzy osobny bukiet Foorys IPTV i pobiera jego picony z playlisty."""
+def _install_iptv_bouquet(entries, settings, bouquet_name, bouquet_filename,
+                          result_kind, namespace, progress=None):
+    """Zapisuje playlistę jako bukiet i opcjonalnie pobiera do niej picony."""
 
-    _progress(progress, "Przygotowuję bukiet Foorys IPTV...")
     destination = _ensure_absolute_directory(
         _setting(settings, "enigma2_dir", "/etc/enigma2"),
         "katalog Enigma2",
     )
     storage = _storage_directory(settings)
-    playlist_url = _iptv_playlist_url(settings)
-    playlist = _download_iptv_text(playlist_url, progress=progress)
-    entries = parse_iptv_m3u(playlist)
     if len(entries) >= IPTV_MAX_CHANNELS:
         _progress(progress, "Playlista jest większa — używam pierwszych %d kanałów." % IPTV_MAX_CHANNELS)
 
-    bouquet_lines = ["#NAME %s" % IPTV_BOUQUET_NAME]
+    bouquet_lines = ["#NAME %s" % bouquet_name]
     for index, entry in enumerate(entries, 1):
-        service_ref, picon_name = _iptv_service_reference(entry, index)
+        service_ref, picon_name = _iptv_service_reference(entry, index, namespace)
         entry["picon_name"] = picon_name
         bouquet_lines.append("#SERVICE %s" % service_ref)
         bouquet_lines.append("#DESCRIPTION %s" % entry["name"])
     bouquet_content = "\n".join(bouquet_lines) + "\n"
 
-    bouquet_path = os.path.join(destination, IPTV_BOUQUET_FILENAME)
+    bouquet_path = os.path.join(destination, bouquet_filename)
     bouquets_path = os.path.join(destination, "bouquets.tv")
     backup_metadata = []
-    backup_root = os.path.join(storage, "backups", "iptv-%s" % _timestamp())
+    backup_root = os.path.join(
+        storage,
+        "backups",
+        "iptv-%s-%s" % (namespace, _timestamp()),
+    )
     if bool(_setting(settings, "create_backup", True)):
         _backup_existing(bouquet_path, backup_root, backup_metadata)
         _backup_existing(bouquets_path, backup_root, backup_metadata)
 
-    _progress(progress, "Zapisuję %d kanałów do bukietu %s..." % (len(entries), IPTV_BOUQUET_NAME))
+    _progress(progress, "Zapisuję %d kanałów do bukietu %s..." % (len(entries), bouquet_name))
     _write_text_atomic(bouquet_path, bouquet_content)
-    _write_text_atomic(bouquets_path, _bouquets_tv_with_foorys_iptv(bouquets_path))
+    _write_text_atomic(
+        bouquets_path,
+        _bouquets_tv_with_bouquet(bouquets_path, bouquet_filename),
+    )
 
     picon_result = {"installed": 0, "failed": 0, "available": 0}
     if bool(_setting(settings, "iptv_install_picons", True)):
@@ -996,12 +1035,12 @@ def install_iptv_playlist(_item, settings, progress=None):
     if backup_metadata:
         _write_json(
             os.path.join(backup_root, "backup.json"),
-            {"type": "iptv", "created_at": _timestamp(), "files": backup_metadata},
+            {"type": result_kind, "created_at": _timestamp(), "files": backup_metadata},
         )
-    _progress(progress, "Foorys IPTV: bukiet i picony są gotowe.")
+    _progress(progress, "%s: bukiet i picony są gotowe." % bouquet_name)
     return {
-        "kind": "iptv",
-        "name": IPTV_BOUQUET_NAME,
+        "kind": result_kind,
+        "name": bouquet_name,
         "bouquet": bouquet_path,
         "bouquets_file": bouquets_path,
         "channels": len(entries),
@@ -1009,6 +1048,40 @@ def install_iptv_playlist(_item, settings, progress=None):
         "picon_failures": picon_result.get("failed", 0),
         "backup": backup_root if backup_metadata else None,
     }
+
+
+def install_iptv_playlist(_item, settings, progress=None):
+    """Tworzy osobny bukiet Foorys IPTV i pobiera jego picony z playlisty."""
+
+    _progress(progress, "Przygotowuję bukiet Foorys IPTV...")
+    playlist = _download_iptv_text(_iptv_playlist_url(settings), progress=progress)
+    entries = parse_iptv_m3u(playlist)
+    return _install_iptv_bouquet(
+        entries,
+        settings,
+        IPTV_BOUQUET_NAME,
+        IPTV_BOUQUET_FILENAME,
+        "iptv",
+        "iptv",
+        progress=progress,
+    )
+
+
+def install_iptv_test(_item, settings, progress=None):
+    """Pobiera wcześniej wygenerowany test i tworzy osobny bukiet testowy."""
+
+    _progress(progress, "Przygotowuję bukiet Foorys IPTV TEST...")
+    playlist = _download_iptv_text(_iptv_test_playlist_url(settings), progress=progress)
+    entries = parse_iptv_m3u(playlist)
+    return _install_iptv_bouquet(
+        entries,
+        settings,
+        IPTV_TEST_BOUQUET_NAME,
+        IPTV_TEST_BOUQUET_FILENAME,
+        "iptv-test",
+        "iptv-test",
+        progress=progress,
+    )
 
 
 def install_oscam_dvbapi(item, settings, progress=None):

@@ -71,6 +71,74 @@ file:///tmp/local.ts
             self.assertEqual(picon_name.read_bytes(), logo.read_bytes())
             self.assertTrue(any("Foorys IPTV: bukiet i picony" in line for line in progress))
 
+    def test_install_iptv_test_creates_separate_bouquet_and_uses_test_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            enigma2 = root / "enigma2"
+            enigma2.mkdir()
+            storage = root / "storage"
+            picon_dir = root / "picon"
+            logo = root / "test.png"
+            logo.write_bytes(b"\x89PNG\r\n\x1a\nfoorys-test")
+            playlist = root / "test.m3u"
+            playlist.write_text(
+                "#EXTM3U\n"
+                '#EXTINF:-1 tvg-id="test.pl" tvg-logo="%s",Test TV\n'
+                "https://stream.example/test\n" % logo.as_uri(),
+                encoding="utf-8",
+            )
+            progress = []
+            settings = {
+                "storage_dir": str(storage),
+                "enigma2_dir": str(enigma2),
+                "picon_dir": str(picon_dir),
+                "iptv_test_m3u_url": playlist.as_uri(),
+                "iptv_username": "regular-user",
+                "iptv_password": "regular-pass",
+                "iptv_test_username": "test-user",
+                "iptv_test_password": "test-pass",
+                "iptv_install_picons": True,
+                "create_backup": True,
+            }
+            with mock.patch.object(operations, "_storage_directory", return_value=str(storage)):
+                result = operations.install_iptv_test({}, settings, progress.append)
+
+            bouquet = enigma2 / "userbouquet.foorys-iptv-test.tv"
+            bouquets_tv = enigma2 / "bouquets.tv"
+            self.assertEqual(result["kind"], "iptv-test")
+            self.assertEqual(result["name"], "Foorys IPTV TEST")
+            self.assertEqual(result["channels"], 1)
+            self.assertEqual(result["picons"], 1)
+            content = bouquet.read_text(encoding="utf-8")
+            self.assertIn("#NAME Foorys IPTV TEST", content)
+            self.assertIn("#DESCRIPTION Test TV", content)
+            self.assertIn(
+                'FROM BOUQUET "userbouquet.foorys-iptv-test.tv"',
+                bouquets_tv.read_text(encoding="utf-8"),
+            )
+            self.assertNotIn(
+                'FROM BOUQUET "userbouquet.foorys-iptv.tv"',
+                bouquets_tv.read_text(encoding="utf-8"),
+            )
+            picon_name = next(picon_dir.glob("*.png"))
+            self.assertEqual(picon_name.read_bytes(), logo.read_bytes())
+            self.assertTrue(any("Foorys IPTV TEST: bukiet i picony" in line for line in progress))
+
+    def test_iptv_test_playlist_url_uses_test_credentials_not_regular_credentials(self):
+        url = operations._iptv_test_playlist_url(
+            {
+                "iptv_dns": "iptv.example.test",
+                "iptv_username": "regular-user",
+                "iptv_password": "regular-pass",
+                "iptv_test_username": "test-user",
+                "iptv_test_password": "test-pass",
+            }
+        )
+        self.assertIn("username=test-user", url)
+        self.assertIn("password=test-pass", url)
+        self.assertNotIn("regular-user", url)
+        self.assertNotIn("regular-pass", url)
+
     def test_install_channel_list_from_local_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

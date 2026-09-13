@@ -24,6 +24,7 @@ from .operations import (
     install_current_oscam_dvbapi,
     install_e2iplayer,
     install_iptv_playlist,
+    install_iptv_test,
     change_root_password,
     install_oscam_dvbapi,
     install_oscam_stable,
@@ -37,7 +38,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.5.1"
+VERSION = "0.6.0"
 
 
 MAIN_SKIN = """
@@ -174,7 +175,7 @@ CARD_TITLES = (
 CARD_HINTS = (
     "Foorys • Bzyk83 • 13E",
     "Plugin i katalog GitHub",
-    "Europe • Polskie IPTV • Picony",
+    "Kanały i test IPTV",
     "Pobieranie piconów",
     "Stable • EMU • NCam",
     "E2iPlayer • XStreamity",
@@ -440,6 +441,13 @@ class E2FoorysMain(Screen):
         elif section_id == "iptv":
             result.extend([
                 self._install_item(
+                    "Pobierz wygenerowany test IPTV",
+                    "Pobiera test wygenerowany wcześniej w panelu z loginu i hasła lub linku M3U. Tworzy osobny bukiet Foorys IPTV TEST z piconami.",
+                    {"id": "foorys-iptv-test", "name": "Foorys IPTV TEST", "version": "1 dzień / Polskie IPTV"},
+                    install_iptv_test,
+                    "Test Foorys IPTV",
+                ),
+                self._install_item(
                     "Instaluj listę Foorys IPTV",
                     "Pobiera playlistę M3U z DNS Foorys IPTV, tworzy osobny bukiet i pobiera picony z tvg-logo.",
                     {"id": "foorys-iptv", "name": "Foorys IPTV", "version": "Europe / Polskie IPTV"},
@@ -448,7 +456,7 @@ class E2FoorysMain(Screen):
                 ),
                 self._item(
                     "Konfiguracja Foorys IPTV",
-                    "W ustawieniach wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie na dekoderze.",
+                    "W ustawieniach wpisz dane zwykłej listy oraz osobno dane wygenerowanego testu. Dane zostają wyłącznie na dekoderze.",
                     "settings",
                 ),
                 self._item(
