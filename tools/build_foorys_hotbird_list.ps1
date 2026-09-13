@@ -1,4 +1,5 @@
 param(
+    [string]$SourceDirectory = "",
     [string]$SourceArchive = "channel-lists/bzyk83-2026.08.23/bzyk83-hb.zip",
     [string]$OutputArchive = "channel-lists/foorys-hotbird-2026.09.13/foorys-hotbird-13e.zip"
 )
@@ -32,11 +33,11 @@ function Copy-Bouquet {
     Write-Utf8File -Path (Join-Path $DestinationRoot $DestinationName) -Content $content
 }
 
-$sourcePath = [IO.Path]::GetFullPath($SourceArchive)
+$sourcePath = if ($SourceDirectory) { [IO.Path]::GetFullPath($SourceDirectory) } else { [IO.Path]::GetFullPath($SourceArchive) }
 $outputPath = [IO.Path]::GetFullPath($OutputArchive)
 $outputDirectory = Split-Path -Parent $outputPath
 if (-not (Test-Path -LiteralPath $sourcePath)) {
-    throw "Nie znaleziono archiwum źródłowego: $sourcePath"
+    throw "Nie znaleziono źródła listy: $sourcePath"
 }
 
 $workRoot = Join-Path ([IO.Path]::GetTempPath()) ("foorys-hotbird-" + [guid]::NewGuid().ToString("N"))
@@ -45,9 +46,13 @@ $listRoot = Join-Path $workRoot "list"
 
 try {
     New-Item -ItemType Directory -Force -Path $sourceRoot, $listRoot, $outputDirectory | Out-Null
-    Expand-Archive -LiteralPath $sourcePath -DestinationPath $sourceRoot -Force
+    if ($SourceDirectory) {
+        Copy-Item -Path (Join-Path $sourcePath "*") -Destination $sourceRoot -Recurse -Force
+    } else {
+        Expand-Archive -LiteralPath $sourcePath -DestinationPath $sourceRoot -Force
+    }
 
-    foreach ($name in @("lamedb", "satellites.xml")) {
+    foreach ($name in @("satellites.xml")) {
         $source = Join-Path $sourceRoot $name
         if (-not (Test-Path -LiteralPath $source)) {
             throw "Archiwum źródłowe nie zawiera wymaganego pliku: $name"
@@ -55,17 +60,31 @@ try {
         Copy-Item -LiteralPath $source -Destination (Join-Path $listRoot $name) -Force
     }
 
+    $lamedbSource = Join-Path $sourceRoot "lamedb"
+    if (Test-Path -LiteralPath $lamedbSource) {
+        Copy-Item -LiteralPath $lamedbSource -Destination (Join-Path $listRoot "lamedb") -Force
+    }
+
     $lamedbPath = Join-Path $listRoot "lamedb"
-    $lamedb = [IO.File]::ReadAllText($lamedbPath)
-    $lamedb = [regex]::Replace($lamedb, '(?im)^p:bzyk83\s*$', 'p:Foorys')
-    Write-Utf8File -Path $lamedbPath -Content $lamedb
+    if (Test-Path -LiteralPath $lamedbPath) {
+        $lamedb = [IO.File]::ReadAllText($lamedbPath)
+        $lamedb = [regex]::Replace($lamedb, '(?im)^p:bzyk83\s*$', 'p:Foorys')
+        Write-Utf8File -Path $lamedbPath -Content $lamedb
+    }
 
     Copy-Bouquet -SourceRoot $sourceRoot -DestinationRoot $listRoot -SourceName "userbouquet.polskie.tv" -DestinationName "userbouquet.foorys.tv" -DisplayName "Foorys"
 
-    $bouquets = @(
-        "#NAME Foorys"
-        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.foorys.tv" ORDER BY bouquet'
-    ) -join "`n"
+    $bouquetsSourcePath = Join-Path $sourceRoot "bouquets.tv"
+    if (-not (Test-Path -LiteralPath $bouquetsSourcePath)) {
+        throw "Źródło listy nie zawiera pliku: bouquets.tv"
+    }
+    $bouquetsSource = [IO.File]::ReadAllText($bouquetsSourcePath)
+    $serviceMatch = [regex]::Match($bouquetsSource, '(?im)^#SERVICE[^\r\n]*FROM BOUQUET "userbouquet\.polskie\.tv"[^\r\n]*')
+    if (-not $serviceMatch.Success) {
+        throw "bouquets.tv nie zawiera odwołania do userbouquet.polskie.tv"
+    }
+    $serviceLine = $serviceMatch.Value.Trim() -replace 'userbouquet\.polskie\.tv', 'userbouquet.foorys.tv'
+    $bouquets = "#NAME Foorys`n" + $serviceLine
     Write-Utf8File -Path (Join-Path $listRoot "bouquets.tv") -Content ($bouquets + "`n")
 
     if (Test-Path -LiteralPath $outputPath) {
