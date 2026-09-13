@@ -15,7 +15,9 @@ from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 
 from .config import central_manifest_url, ensure_config, settings_dict
+from .compat import to_text
 from .core import version_is_newer
+from .layout import scaled_skin
 from .operations import (
     collect_installed_packages,
     collect_system_status,
@@ -40,10 +42,10 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.6.7"
+VERSION = "0.6.8"
 
 
-MAIN_SKIN = """
+MAIN_SKIN = scaled_skin("""
 <screen name="E2FoorysMain" position="center,center" size="1260,700" title="E2-Foorys" backgroundColor="#040A12" borderWidth="2" borderColor="#1E9BCB">
     <eLabel position="0,0" size="1260,5" backgroundColor="#28D7F5" />
     <eLabel position="0,5" size="1260,117" backgroundColor="#071727" />
@@ -109,20 +111,20 @@ MAIN_SKIN = """
     <widget name="hint_exit_key" position="990,606" size="42,26" zPosition="2" font="Regular;12" foregroundColor="#FFFFFF" backgroundColor="#16415C" transparent="0" horizontalAlignment="center" />
     <widget name="hint_exit_text" position="1038,606" size="160,26" zPosition="2" font="Regular;17" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
 </screen>
-"""
+""")
 
 
-HEALTH_SKIN = """
+HEALTH_SKIN = scaled_skin("""
 <screen name="E2FoorysHealth" position="center,center" size="1120,650" title="E2-Foorys - kondycja dekodera" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
     <widget name="title" position="32,18" size="1055,54" font="Regular;40" foregroundColor="#18C7F5" />
     <widget name="report" position="38,88" size="1045,470" font="Regular;30" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="status" position="38,572" size="1045,34" font="Regular;26" foregroundColor="#FFD24A" />
     <widget name="hint" position="38,612" size="1045,28" font="Regular;23" foregroundColor="#B7C8D8" />
 </screen>
-"""
+""")
 
 
-SECTION_MENU_SKIN = """
+SECTION_MENU_SKIN = scaled_skin("""
 <screen name="E2FoorysSectionMenu" position="center,center" size="1120,650" title="E2-Foorys" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
     <eLabel position="0,0" size="1120,5" backgroundColor="#26C8F5" />
     <widget name="title" position="32,18" size="1045,50" font="Regular;40" foregroundColor="#F2F7FC" backgroundColor="#0B1827" transparent="0" />
@@ -134,7 +136,7 @@ SECTION_MENU_SKIN = """
     <widget name="status" position="32,552" size="1045,34" font="Regular;26" foregroundColor="#FFD24A" backgroundColor="#0B1827" transparent="0" />
     <widget name="hint" position="32,604" size="1045,30" font="Regular;23" foregroundColor="#D5E2EC" backgroundColor="#0B1827" transparent="0" />
 </screen>
-"""
+""")
 
 
 SECTIONS = (
@@ -223,7 +225,7 @@ def _format_uptime(seconds):
 
 
 def _short_description(value, width=39, limit=7):
-    words = str(value or "").replace("\r", "").split()
+    words = to_text(value or "").replace("\r", "").split()
     lines = []
     current = ""
     for word in words:
@@ -243,7 +245,7 @@ def _short_description(value, width=39, limit=7):
 def _friendly_manifest_error(error):
     """Zamienia techniczny błąd manifestu na komunikat dla użytkownika."""
 
-    text = str(error or "Nieznany błąd.")
+    text = to_text(error or "Nieznany błąd.")
     lowered = text.lower()
     if "sha256" in lowered or "suma" in lowered:
         return (
@@ -630,6 +632,7 @@ class E2FoorysMain(Screen):
                 "Szybka aktualizacja E2-Foorys",
                 [update],
                 install_plugin_package,
+                True,
             )
             return
         self.session.open(
@@ -784,7 +787,7 @@ class E2FoorysMain(Screen):
         try:
             validate_root_password(password)
         except Exception as exc:
-            self.session.open(MessageBox, str(exc), MessageBox.TYPE_ERROR, timeout=8)
+            self.session.open(MessageBox, to_text(exc), MessageBox.TYPE_ERROR, timeout=8)
             return
         self._pending_root_password = password
         from Screens.VirtualKeyBoard import VirtualKeyBoard
@@ -835,7 +838,7 @@ class E2FoorysMain(Screen):
             return
         if error:
             if self.console is not None:
-                self.console.finish(False, str(error))
+                self.console.finish(False, to_text(error))
             self.session.open(MessageBox, "Hasło root nie zostało zmienione:\n%s" % error, MessageBox.TYPE_ERROR, timeout=10)
             return
         if self.console is not None:
@@ -954,6 +957,7 @@ class SectionMenuScreen(Screen):
                 item.get("catalog_title", "E2-Foorys"),
                 [item.get("entry")],
                 item.get("operation"),
+                True,
             )
         elif action == "diagnostic":
             self.session.open(
@@ -961,6 +965,7 @@ class SectionMenuScreen(Screen):
                 item.get("catalog_title", "Diagnostyka"),
                 [item.get("entry")],
                 item.get("operation"),
+                True,
             )
         elif action == "health":
             self.controller.show_health()

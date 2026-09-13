@@ -39,7 +39,7 @@ https://stream.example/live/extra
         result = operations.parse_iptv_m3u(playlist)
         self.assertEqual([entry["name"] for entry in result], ["TVP Sport HD", "Canal+ Extra 1"])
 
-    def test_install_iptv_playlist_creates_named_bouquet_and_picons(self):
+    def test_install_iptv_playlist_creates_bouquet_without_picons(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             enigma2 = root / "enigma2"
@@ -78,6 +78,22 @@ https://stream.example/live/extra
             self.assertIn('FROM BOUQUET "userbouquet.foorys-iptv.tv"', bouquets_tv.read_text(encoding="utf-8"))
             self.assertFalse(picon_dir.exists() and list(picon_dir.glob("*.png")))
             self.assertTrue(any("Foorys IPTV: bukiet jest gotowy" in line for line in progress))
+
+    def test_plugin_package_rejects_newer_python_requirement_before_download(self):
+        item = {
+            "id": "python3-only",
+            "name": "Python 3 only",
+            "version": "1.0",
+            "min_python_major": 3,
+            "package_type": "ipk",
+            "url": "https://example.invalid/plugin.ipk",
+            "sha256": "0" * 64,
+        }
+        with mock.patch.object(operations.sys, "version_info", (2, 7, 18)):
+            with mock.patch.object(operations, "download_verified") as download:
+                with self.assertRaisesRegex(operations.OperationError, "wymaga Pythona 3"):
+                    operations.install_plugin_package(item, {})
+                download.assert_not_called()
 
     def test_install_channel_list_from_local_archive(self):
         with tempfile.TemporaryDirectory() as directory:

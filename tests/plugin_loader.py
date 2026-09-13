@@ -9,10 +9,7 @@ import types
 def load_core():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     package_name = "E2Foorys_test_package"
-    package = types.ModuleType(package_name)
-    package.__path__ = []
-    sys.modules[package_name] = package
-    path = os.path.join(
+    package_root = os.path.join(
         root,
         "plugin",
         "usr",
@@ -22,8 +19,11 @@ def load_core():
         "Plugins",
         "Extensions",
         "E2Foorys",
-        "core.py",
     )
+    package = types.ModuleType(package_name)
+    package.__path__ = [package_root]
+    sys.modules[package_name] = package
+    path = os.path.join(package_root, "core.py")
     spec = importlib.util.spec_from_file_location(package_name + ".core", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module

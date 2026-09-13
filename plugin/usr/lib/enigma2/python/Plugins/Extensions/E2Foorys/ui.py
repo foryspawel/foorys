@@ -29,6 +29,8 @@ from .config import (
     save_config,
     settings_dict,
 )
+from .compat import to_text
+from .layout import scaled_skin
 from .operations import (
     fetch_manifest,
     install_channel_list,
@@ -37,7 +39,7 @@ from .operations import (
 )
 
 
-MAIN_SKIN = """
+MAIN_SKIN = scaled_skin("""
 <screen name="E2FoorysMain" position="center,center" size="1180,680" title="E2-Foorys" backgroundColor="#07111D" borderWidth="2" borderColor="#1E789E">
     <widget name="logo" position="25,18" size="76,76" alphatest="blend" scale="1" />
     <widget name="title" position="125,22" size="650,42" font="Regular;32" foregroundColor="#F2F7FC" backgroundColor="#0E1C2C" transparent="0" />
@@ -46,16 +48,16 @@ MAIN_SKIN = """
     <widget name="status" position="35,610" size="1110,28" font="Regular;18" foregroundColor="#FFD24A" backgroundColor="#0E1C2C" transparent="0" />
     <widget name="hint" position="35,645" size="1110,25" font="Regular;16" foregroundColor="#70879D" backgroundColor="#0E1C2C" transparent="0" />
 </screen>
-"""
+""")
 
-CATALOG_SKIN = """
+CATALOG_SKIN = scaled_skin("""
 <screen name="E2FoorysCatalog" position="center,center" size="1180,680" title="E2-Foorys">
     <widget name="title" position="35,18" size="1110,58" font="Regular;42" />
     <widget name="list" position="35,94" size="1110,452" itemHeight="68" font="Regular;32" scrollbarMode="showOnDemand" />
     <widget name="status" position="35,566" size="1110,40" font="Regular;29" />
     <widget name="hint" position="35,618" size="1110,34" font="Regular;25" />
 </screen>
-"""
+""")
 
 
 class AsyncJob(object):
@@ -105,7 +107,7 @@ class AsyncJob(object):
         if message is None:
             return
         with self._progress_lock:
-            self._progress_messages.append(str(message))
+            self._progress_messages.append(to_text(message))
 
     def _poll(self):
         with self._progress_lock:
@@ -124,14 +126,14 @@ class AsyncJob(object):
             self.timer.stop()
 
 
-CONSOLE_SKIN = """
+CONSOLE_SKIN = scaled_skin("""
 <screen name="E2FoorysConsole" position="center,center" size="1200,700" title="E2-Foorys - konsola" backgroundColor="#06101B" borderWidth="2" borderColor="#1683BB">
     <widget name="title" position="35,18" size="1130,58" font="Regular;40" foregroundColor="#18C7F5" />
     <widget name="log" position="35,94" size="1130,494" font="Regular;28" foregroundColor="#F2F7FC" backgroundColor="#0C1B2B" transparent="0" />
     <widget name="status" position="35,606" size="1130,42" font="Regular;30" foregroundColor="#FFD24A" />
     <widget name="hint" position="35,658" size="1130,32" font="Regular;25" foregroundColor="#D5E2EC" />
 </screen>
-"""
+""")
 
 
 class ConsoleScreen(Screen):
@@ -154,7 +156,7 @@ class ConsoleScreen(Screen):
         )
 
     def write(self, message):
-        text = str(message or "")
+        text = to_text(message or "")
         if not text:
             return
         new_lines = text.replace("\r", "").splitlines() or [text]
@@ -333,7 +335,7 @@ class E2FoorysMain(Screen):
 class CatalogScreen(Screen):
     skin = CATALOG_SKIN
 
-    def __init__(self, session, title, entries, operation):
+    def __init__(self, session, title, entries, operation, auto_start=False):
         Screen.__init__(self, session)
         self.session = session
         self.title_text = title
@@ -342,6 +344,7 @@ class CatalogScreen(Screen):
         self.job = None
         self.console = None
         self.closed = False
+        self.auto_start = bool(auto_start)
         self["title"] = Label(title)
         self["list"] = MenuList([(_versioned_label(entry), entry.get("id", "")) for entry in self.entries])
         self["status"] = Label("Wybierz pozycję i naciśnij OK, aby rozpocząć.")
@@ -352,8 +355,15 @@ class CatalogScreen(Screen):
             -1,
         )
         self.onClose.append(self._on_close)
+        if self.auto_start:
+            self.onLayoutFinish.append(self._auto_start)
         if not self.entries:
             self["status"].setText("Brak elementów w tej sekcji manifestu.")
+
+    def _auto_start(self):
+        self.auto_start = False
+        if self.entries and (self.job is None or not self.job.running):
+            self._confirmed(True, self.entries[0])
 
     def _on_close(self):
         self.closed = True
@@ -373,25 +383,7 @@ class CatalogScreen(Screen):
         if index is None or index < 0 or index >= len(self.entries):
             return
         item = self.entries[index]
-        is_diagnostic = item.get("operation_kind") == "diagnostic"
-        if is_diagnostic:
-            question = "Uruchomić diagnostykę '%s'?" % item.get(
-                "name", item.get("id", "element")
-            )
-        else:
-            question = "Zainstalować '%s' w wersji %s?" % (
-                item.get("name", item.get("id", "element")),
-                item.get("version", "?"),
-            )
-        if item.get("description"):
-            question += "\n\n%s" % item["description"]
-        self.session.openWithCallback(
-            lambda answer: self._confirmed(answer, item),
-            MessageBox,
-            question,
-            MessageBox.TYPE_YESNO,
-            default=True,
-        )
+        self._confirmed(True, item)
 
     def _confirmed(self, answer, item):
         if not answer:
@@ -423,7 +415,7 @@ class CatalogScreen(Screen):
             return
         if error:
             if self.console is not None:
-                self.console.finish(False, str(error))
+                self.console.finish(False, to_text(error))
             self["status"].setText("Operacja nieudana.")
             self.session.open(
                 MessageBox,
@@ -451,6 +443,22 @@ class CatalogScreen(Screen):
                 timeout=18,
             )
             return
+        if isinstance(result, dict) and result.get("kind") in ("channels", "iptv"):
+            reloaded = self._reload_service_lists()
+            if self.console is not None:
+                self.console.finish(True, "lista i bukiety zostały odświeżone")
+            self["status"].setText(
+                "Lista kanałów została odświeżona bez restartu GUI."
+                if reloaded
+                else "Lista została zainstalowana; może być potrzebny ręczny restart GUI."
+            )
+            self.session.open(
+                MessageBox,
+                self._result_message(result, reloaded=reloaded),
+                MessageBox.TYPE_INFO,
+                timeout=15,
+            )
+            return
         if self.console is not None:
             self.console.finish(True, "operacja zakończona pomyślnie")
         self["status"].setText("Operacja zakończona pomyślnie.")
@@ -464,18 +472,37 @@ class CatalogScreen(Screen):
             default=False,
         )
 
-    def _result_message(self, result):
+    @staticmethod
+    def _reload_service_lists():
+        """Przeładowuje lamedb i bukiety bez restartowania Enigma2."""
+
+        try:
+            from enigma import eDVBDB
+
+            database = eDVBDB.getInstance()
+            if hasattr(database, "reloadServicelist"):
+                database.reloadServicelist()
+            if hasattr(database, "reloadBouquets"):
+                database.reloadBouquets()
+            return True
+        except Exception:
+            return False
+
+    def _result_message(self, result, reloaded=False):
         kind = result.get("kind")
         if kind == "channels":
             files = ", ".join(result.get("installed", []))
-            return "Lista kanałów zainstalowana.\n\nPliki: %s\n\nZrestartować GUI Enigma2?" % files
+            tail = "Lista usług i bukiety zostały przeładowane automatycznie." if reloaded else "Jeśli lista nie pojawi się od razu, wykonaj ręczny restart GUI."
+            return "Lista kanałów zainstalowana.\n\nPliki: %s\n\n%s" % (files, tail)
         if kind == "iptv":
             warning = "\nNie udało się pobrać części piconów: %d." % result.get("picon_failures", 0) if result.get("picon_failures") else ""
-            return "Bukiet Foorys IPTV zainstalowany.\n\nKanały: %d\nPicony: %d%s\nBukiet: %s\n\nZrestartować GUI Enigma2?" % (
+            tail = "Bukiety zostały przeładowane automatycznie." if reloaded else "Jeśli bukiet nie pojawi się od razu, wykonaj ręczny restart GUI."
+            return "Bukiet Foorys IPTV zainstalowany.\n\nKanały: %d\nPicony: %d%s\nBukiet: %s\n\n%s" % (
                 result.get("channels", 0),
                 result.get("picons", 0),
                 warning,
                 result.get("bouquet", ""),
+                tail,
             )
         if kind == "oscam.dvbapi":
             return "oscam.dvbapi zaktualizowany:\n%s\n\nZrestartować GUI Enigma2?" % result.get("target", "")
@@ -510,12 +537,12 @@ class CatalogScreen(Screen):
 
 
 class E2FoorysConfig(Screen, ConfigListScreen):
-    skin = """
+    skin = scaled_skin("""
     <screen name="E2FoorysConfig" position="center,center" size="1100,640" title="E2-Foorys - ustawienia">
         <widget name="config" position="35,38" size="1030,500" itemHeight="44" font="Regular;27" scrollbarMode="showOnDemand" />
         <widget name="hint" position="35,570" size="1030,38" font="Regular;24" />
     </screen>
-    """
+    """)
 
     def __init__(self, session):
         Screen.__init__(self, session)
@@ -547,13 +574,13 @@ class E2FoorysConfig(Screen, ConfigListScreen):
 class E2FoorysIptvConfig(Screen, ConfigListScreen):
     """Osobny ekran danych dostępowych do prywatnej playlisty IPTV."""
 
-    skin = """
+    skin = scaled_skin("""
     <screen name="E2FoorysIptvConfig" position="center,center" size="1100,520" title="E2-Foorys - ustawienia IPTV">
         <widget name="title" position="35,18" size="1030,42" font="Regular;32" foregroundColor="#28D7F5" />
         <widget name="config" position="35,72" size="1030,310" itemHeight="52" font="Regular;27" scrollbarMode="showOnDemand" />
         <widget name="hint" position="35,432" size="1030,38" font="Regular;24" />
     </screen>
-    """
+    """)
 
     def __init__(self, session):
         Screen.__init__(self, session)

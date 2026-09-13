@@ -36,6 +36,13 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result["schema_version"], 1)
         self.assertEqual(result["channel_lists"][0]["sha256"], "a" * 64)
 
+    def test_manifest_accepts_unicode_text(self):
+        manifest = self.valid_manifest()
+        manifest["channel_lists"][0]["name"] = "Foorys – Polska"
+        raw = json.dumps(manifest, ensure_ascii=False).encode("utf-8")
+        result = core.parse_manifest(raw)
+        self.assertEqual(result["channel_lists"][0]["name"], "Foorys – Polska")
+
     def test_manifest_rejects_bad_checksum(self):
         manifest = self.valid_manifest()
         manifest["channel_lists"][0]["sha256"] = "nope"

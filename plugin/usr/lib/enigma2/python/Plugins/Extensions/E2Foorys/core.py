@@ -20,6 +20,15 @@ import tarfile
 import tempfile
 import zipfile
 
+from .compat import (
+    binary_type,
+    ensure_dir,
+    is_path_within,
+    replace_file,
+    string_types,
+    to_text,
+)
+
 
 class ManifestError(ValueError):
     """Manifest ma nieprawidłowy format albo zawiera niedozwolone dane."""
@@ -50,7 +59,7 @@ def version_is_newer(remote, current):
     """Porównuje wersje numerycznie, tolerując prefiksy typu v1.2.3."""
 
     def key(value):
-        numbers = re.findall(r"\d+", str(value or ""))
+        numbers = re.findall(r"\d+", to_text(value or ""))
         return tuple(int(number) for number in numbers) or (0,)
 
     remote_key = key(remote)
@@ -60,7 +69,7 @@ def version_is_newer(remote, current):
 
 
 def _text(value, field_name):
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, string_types) or not value.strip():
         raise ManifestError("Pole '%s' musi być niepustym tekstem." % field_name)
     return value.strip()
 
@@ -94,7 +103,7 @@ def _validate_download_item(item, collection_name, index):
     checksum = validate_sha256(
         item.get("sha256"), "%s[%d].sha256" % (collection_name, index)
     )
-    version = str(item.get("version", "")).strip()
+    version = to_text(item.get("version", "")).strip()
     if not version:
         raise ManifestError("%s[%d].version nie może być puste." % (collection_name, index))
     result = dict(item)
@@ -159,7 +168,7 @@ def parse_manifest(raw):
     """Parsuje tekst lub bajty JSON i waliduje manifest."""
 
     try:
-        if isinstance(raw, bytes):
+        if isinstance(raw, binary_type):
             raw = raw.decode("utf-8")
         data = json.loads(raw)
     except (UnicodeDecodeError, TypeError, ValueError) as exc:
@@ -186,7 +195,7 @@ def verify_sha256(path, expected):
 def _safe_archive_name(name):
     """Zwraca znormalizowaną nazwę względną albo zgłasza ArchiveError."""
 
-    if not isinstance(name, str) or not name:
+    if not isinstance(name, string_types) or not name:
         raise ArchiveError("Archiwum zawiera pustą nazwę pliku.")
     # Archiwa pochodzą z zewnętrznego repozytorium. Nie pozwalamy na ścieżki
     # absolutne, traversal ani backslashe mogące zmienić znaczenie na Windows.
@@ -202,11 +211,7 @@ def _safe_target(root, relative_name):
     relative_name = _safe_archive_name(relative_name)
     root = os.path.realpath(root)
     target = os.path.realpath(os.path.join(root, *relative_name.split("/")))
-    try:
-        inside = os.path.commonpath((root, target)) == root
-    except ValueError:
-        inside = False
-    if not inside:
+    if not is_path_within(root, target):
         raise ArchiveError("Archiwum wychodzi poza katalog docelowy: %s" % relative_name)
     return target
 
@@ -218,14 +223,14 @@ def _extract_tar(archive_path, destination, max_total_bytes):
         for member in members:
             target = _safe_target(destination, member.name)
             if member.isdir():
-                os.makedirs(target, exist_ok=True)
+                ensure_dir(target)
                 continue
             if not member.isreg():
                 raise ArchiveError("Niedozwolony typ wpisu w archiwum: %s" % member.name)
             extracted_bytes += member.size
             if extracted_bytes > max_total_bytes:
                 raise ArchiveError("Archiwum przekracza limit rozpakowania.")
-            os.makedirs(os.path.dirname(target), exist_ok=True)
+            ensure_dir(os.path.dirname(target))
             source = archive.extractfile(member)
             if source is None:
                 raise ArchiveError("Nie można odczytać pliku z archiwum: %s" % member.name)
@@ -243,15 +248,20 @@ def _extract_zip(archive_path, destination, max_total_bytes):
     with zipfile.ZipFile(archive_path, mode="r") as archive:
         for info in archive.infolist():
             target = _safe_target(destination, info.filename)
-            if info.is_dir():
-                os.makedirs(target, exist_ok=True)
+            is_directory = (
+                info.is_dir()
+                if hasattr(info, "is_dir")
+                else info.filename.endswith("/")
+            )
+            if is_directory:
+                ensure_dir(target)
                 continue
             if _zip_is_symlink(info):
                 raise ArchiveError("Archiwum ZIP zawiera dowiązanie: %s" % info.filename)
             extracted_bytes += info.file_size
             if extracted_bytes > max_total_bytes:
                 raise ArchiveError("Archiwum przekracza limit rozpakowania.")
-            os.makedirs(os.path.dirname(target), exist_ok=True)
+            ensure_dir(os.path.dirname(target))
             with archive.open(info, "r") as source, open(target, "wb") as output:
                 shutil.copyfileobj(source, output, length=1024 * 1024)
 
@@ -259,7 +269,7 @@ def _extract_zip(archive_path, destination, max_total_bytes):
 def extract_archive(archive_path, destination, max_total_bytes=256 * 1024 * 1024):
     """Bezpiecznie rozpakowuje tar(.gz/.bz2/.xz) lub ZIP do destination."""
 
-    os.makedirs(destination, exist_ok=True)
+    ensure_dir(destination)
     lower_name = archive_path.lower()
     if lower_name.endswith((".zip",)):
         _extract_zip(archive_path, destination, max_total_bytes)
@@ -273,7 +283,7 @@ def extract_archive(archive_path, destination, max_total_bytes=256 * 1024 * 1024
 def is_picon_file_name(name):
     """Rozpoznaje wyłącznie grafiki picon w formacie PNG."""
 
-    return os.path.basename(str(name or "")).lower().endswith(".png")
+    return os.path.basename(to_text(name or "")).lower().endswith(".png")
 
 
 def find_picon_files(root):
@@ -310,12 +320,12 @@ def atomic_copy(source, destination):
 
     destination = os.path.abspath(destination)
     parent = os.path.dirname(destination)
-    os.makedirs(parent, exist_ok=True)
+    ensure_dir(parent)
     fd, temporary = tempfile.mkstemp(prefix=".%s." % os.path.basename(destination), dir=parent)
     os.close(fd)
     try:
         shutil.copy2(source, temporary)
-        os.replace(temporary, destination)
+        replace_file(temporary, destination)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

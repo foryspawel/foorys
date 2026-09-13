@@ -17,6 +17,7 @@
       "name": "Przykładowy plugin",
       "description": "Podmień ten wpis na własny pakiet IPK",
       "version": "1.0.0",
+      "min_python_major": 3,
       "package_type": "ipk",
       "url": "plugins/example-plugin_1.0.0_all.ipk",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -47,9 +48,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Nowszy pakiet pluginu z repozytorium GitHub",
-    "version": "0.6.7",
+    "version": "0.6.8",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.6.7_all.ipk",
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.6.8_all.ipk",
     "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   }
 }

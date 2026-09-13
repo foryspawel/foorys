@@ -14,6 +14,7 @@ import select
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -37,13 +38,23 @@ from .core import (
     sha256_file,
     verify_sha256,
 )
+from .compat import (
+    binary_type,
+    ensure_dir,
+    is_path_within,
+    open_text,
+    replace_file,
+    string_types,
+    to_text,
+    which,
+)
 
 
 class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.1 Enigma2"
+USER_AGENT = "E2-Foorys/0.6.8 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -101,7 +112,7 @@ _IPTV_ATTRIBUTE_RE = re.compile(
 
 def _setting(settings, key, default=""):
     value = settings.get(key, default) if settings else default
-    if isinstance(value, str):
+    if isinstance(value, string_types):
         value = value.strip()
         return value or default
     return value
@@ -118,7 +129,7 @@ def _progress(callback, message):
 
 def _read_text_file(path):
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        with open_text(path, "r", errors="replace") as handle:
             return handle.read().strip()
     except (OSError, IOError):
         return ""
@@ -138,7 +149,7 @@ def _parse_key_value_file(path):
 def _mountpoint_for(path):
     """Zwraca najdłuższy punkt montowania obejmujący wskazaną ścieżkę."""
 
-    requested = os.path.abspath(str(path or "/"))
+    requested = os.path.abspath(to_text(path or "/"))
     best = "/"
     mounts = _read_text_file("/proc/mounts")
     for line in mounts.splitlines():
@@ -164,7 +175,7 @@ def _mountpoint_for(path):
 def _expected_media_mount(path, mountpoint):
     """Sprawdza, czy /media/hdd lub /media/usb ma własne montowanie."""
 
-    normalized = os.path.normpath(os.path.abspath(str(path or "/")))
+    normalized = os.path.normpath(os.path.abspath(to_text(path or "/")))
     if not normalized.startswith("/media/"):
         return True
     parts = normalized.split(os.sep)
@@ -177,7 +188,7 @@ def _expected_media_mount(path, mountpoint):
 def _filesystem_usage(path):
     """Zwraca użycie systemu plików bez uruchamiania zewnętrznych komend."""
 
-    requested = os.path.abspath(str(path or "/"))
+    requested = os.path.abspath(to_text(path or "/"))
     candidate = requested
     while not os.path.exists(candidate) and candidate != os.path.dirname(candidate):
         candidate = os.path.dirname(candidate)
@@ -205,7 +216,10 @@ def _filesystem_usage(path):
         # również dla lokalnych testów i podglądu, ale ścieżka dekodera nadal
         # korzysta z dokładnego pomiaru systemu plików Enigma2.
         try:
-            usage = shutil.disk_usage(candidate)
+            disk_usage = getattr(shutil, "disk_usage", None)
+            if disk_usage is None:
+                raise AttributeError("disk_usage")
+            usage = disk_usage(candidate)
             total = int(usage.total)
             free = int(usage.free)
             used = max(total - free, 0)
@@ -326,7 +340,7 @@ def _temperature():
 
 
 def _process_running(name):
-    executable = shutil.which("pidof") or "/bin/pidof"
+    executable = which("pidof") or "/bin/pidof"
     if not os.path.exists(executable):
         return None
     try:
@@ -335,7 +349,7 @@ def _process_running(name):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        output, _unused = process.communicate(timeout=5)
+        output = _communicate_live(process, 5)
         return process.returncode == 0 and bool(output.strip())
     except (OSError, subprocess.SubprocessError):
         return None
@@ -377,7 +391,7 @@ def collect_system_status(settings=None):
         "storage": storage,
         "temperature": _temperature(),
         "enigma2_running": _process_running("enigma2"),
-        "opkg_available": bool(shutil.which("opkg") or os.path.exists("/usr/bin/opkg")),
+        "opkg_available": bool(which("opkg") or os.path.exists("/usr/bin/opkg")),
     }
 
 
@@ -410,7 +424,7 @@ def _interface_state(interface):
 def _interface_ipv4(interface):
     """Odczytuje pierwszy adres IPv4 bez używania powłoki."""
 
-    executable = shutil.which("ip")
+    executable = which("ip")
     if not executable or not interface:
         return "n/d"
     try:
@@ -420,7 +434,7 @@ def _interface_ipv4(interface):
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
-        output, _unused = process.communicate(timeout=5)
+        output = _communicate_live(process, 5)
     except (OSError, subprocess.SubprocessError):
         return "n/d"
     for field in output.split():
@@ -499,7 +513,7 @@ def diagnose_network(_item=None, settings=None, progress=None):
 def _frontend_signal_percent(value):
     """Konwertuje typową wartość SNR/AGC z /proc/stb/frontend na procent."""
 
-    text = str(value or "").strip().lower()
+    text = to_text(value or "").strip().lower()
     if not text:
         return "n/d"
     try:
@@ -512,7 +526,7 @@ def _frontend_signal_percent(value):
 
 
 def _frontend_lock(value):
-    text = str(value or "").strip().lower()
+    text = to_text(value or "").strip().lower()
     if not text:
         return None
     if text in ("yes", "true", "locked", "lock"):
@@ -641,7 +655,7 @@ def diagnose_satellite_connection(_item=None, settings=None, progress=None):
 def collect_installed_packages(_settings=None):
     """Zwraca pakiety związane z E2iPlayerem i softcamami (tylko odczyt)."""
 
-    executable = shutil.which("opkg") or "/usr/bin/opkg"
+    executable = which("opkg") or "/usr/bin/opkg"
     if not os.path.exists(executable):
         return {"available": False, "packages": []}
     try:
@@ -651,7 +665,7 @@ def collect_installed_packages(_settings=None):
             stderr=subprocess.STDOUT,
             universal_newlines=True,
         )
-        output, _unused = process.communicate(timeout=30)
+        output = _communicate_live(process, 30)
     except (OSError, subprocess.SubprocessError) as exc:
         raise OperationError("Nie można odczytać listy pakietów: %s" % exc)
     if process.returncode != 0:
@@ -668,7 +682,7 @@ def _ensure_absolute_directory(path, label):
     path = os.path.abspath(path)
     if not os.path.isdir(path):
         try:
-            os.makedirs(path, exist_ok=True)
+            ensure_dir(path)
         except OSError as exc:
             raise OperationError("Nie można utworzyć %s: %s" % (label, exc))
     return path
@@ -703,15 +717,17 @@ def _validate_download_url(url):
 
 
 def _read_response(response, limit):
-    content = bytearray()
+    chunks = []
+    total = 0
     while True:
         chunk = response.read(1024 * 1024)
         if not chunk:
             break
-        content.extend(chunk)
-        if len(content) > limit:
+        chunks.append(chunk)
+        total += len(chunk)
+        if total > limit:
             raise OperationError("Pobrany plik przekracza limit %d MB." % (limit // (1024 * 1024)))
-    return bytes(content)
+    return b"".join(chunks)
 
 
 def _safe_network_error(exc):
@@ -732,11 +748,18 @@ def _download_iptv_text(url, progress=None):
     _validate_download_url(url)
     _progress(progress, "Pobieram playlistę Foorys IPTV...")
     request = Request(url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+    response = None
     try:
-        with urlopen(request, timeout=60) as response:
-            raw = _read_response(response, 32 * 1024 * 1024)
+        response = urlopen(request, timeout=60)
+        raw = _read_response(response, 32 * 1024 * 1024)
     except Exception as exc:
         raise OperationError("Nie udało się pobrać playlisty Foorys IPTV: %s" % _safe_network_error(exc))
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
 
     if not raw:
         raise OperationError("Serwer zwrócił pustą playlistę Foorys IPTV.")
@@ -751,7 +774,7 @@ def _download_iptv_text(url, progress=None):
 
 
 def _clean_iptv_text(value, fallback=""):
-    value = str(value or "").replace("\r", " ").replace("\n", " ").strip()
+    value = to_text(value or "").replace("\r", " ").replace("\n", " ").strip()
     value = re.sub(r"\s+", " ", value)
     return value[:240] or fallback
 
@@ -767,15 +790,20 @@ def _clean_iptv_name(value, fallback=""):
 def _clean_iptv_url(value):
     """Czyści atrybut URL bez skracania linków z parametrami playlisty."""
 
-    value = str(value or "").replace("\r", "").replace("\n", "").strip()
+    value = to_text(value or "").replace("\r", "").replace("\n", "").strip()
     return value[:4096]
 
 
 def parse_iptv_m3u(text):
     """Zwraca kanały live z playlisty M3U/M3U+ w kolejności źródłowej."""
 
-    if not isinstance(text, str):
+    if not isinstance(text, string_types):
         raise OperationError("Playlista IPTV ma nieprawidłowy format tekstowy.")
+    if isinstance(text, binary_type):
+        try:
+            text = text.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = text.decode("latin-1", "replace")
     entries = []
     current = None
     pending_group = ""
@@ -858,12 +886,12 @@ def _iptv_service_reference(entry, index):
 
 def _write_text_atomic(path, content):
     parent = os.path.dirname(os.path.abspath(path))
-    os.makedirs(parent, exist_ok=True)
+    ensure_dir(parent)
     temporary = path + ".part"
     try:
-        with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(content)
-        os.replace(temporary, path)
+        with open_text(temporary, "w", newline="\n") as handle:
+            handle.write(to_text(content))
+        replace_file(temporary, path)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -877,7 +905,7 @@ def _bouquets_tv_with_bouquet(path, bouquet_filename):
         % bouquet_filename
     )
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        with open_text(path, "r", errors="replace") as handle:
             lines = handle.read().splitlines()
     except (OSError, IOError):
         lines = []
@@ -896,11 +924,18 @@ def _download_iptv_picon(url, progress=None):
     if parsed.scheme.lower() not in ("http", "https", "file"):
         raise OperationError("picon ma nieobsługiwany adres")
     request = Request(url, headers={"User-Agent": USER_AGENT})
+    response = None
     try:
-        with urlopen(request, timeout=25) as response:
-            data = _read_response(response, IPTV_MAX_PICON_BYTES)
+        response = urlopen(request, timeout=25)
+        data = _read_response(response, IPTV_MAX_PICON_BYTES)
     except Exception as exc:
         raise OperationError(_safe_network_error(exc))
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         raise OperationError("odpowiedź nie jest plikiem PNG")
     return data
@@ -915,11 +950,18 @@ def fetch_manifest(manifest_url):
     separator = "&" if "?" in manifest_url else "?"
     download_url = "%s%se2foorys_refresh=%d" % (manifest_url, separator, int(time.time() * 1000))
     request = Request(download_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache", "Pragma": "no-cache"})
+    response = None
     try:
-        with urlopen(request, timeout=25) as response:
-            raw = _read_response(response, MANIFEST_LIMIT)
+        response = urlopen(request, timeout=25)
+        raw = _read_response(response, MANIFEST_LIMIT)
     except Exception as exc:
         raise OperationError("Nie można pobrać manifestu: %s" % exc)
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
 
     manifest = parse_manifest(raw)
     for collection_name in ("channel_lists", "plugins", "picons"):
@@ -936,7 +978,7 @@ def fetch_manifest(manifest_url):
 
 
 def _safe_filename(value, fallback="package"):
-    value = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or ""))
+    value = re.sub(r"[^A-Za-z0-9._-]+", "_", to_text(value or ""))
     value = value.strip("._")
     return value or fallback
 
@@ -959,17 +1001,19 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
 
     _validate_download_url(url)
     _progress(progress, "Pobieranie: %s" % url)
-    expected_sha256 = str(expected_sha256).lower()
+    expected_sha256 = to_text(expected_sha256).lower()
     parent = os.path.dirname(os.path.abspath(destination))
-    os.makedirs(parent, exist_ok=True)
+    ensure_dir(parent)
     temporary = destination + ".part"
     if os.path.exists(temporary):
         os.unlink(temporary)
     request = Request(url, headers={"User-Agent": USER_AGENT})
     received = 0
     last_report = 0
+    response = None
     try:
-        with urlopen(request, timeout=60) as response, open(temporary, "wb") as output:
+        response = urlopen(request, timeout=60)
+        with open(temporary, "wb") as output:
             while True:
                 chunk = response.read(1024 * 1024)
                 if not chunk:
@@ -988,7 +1032,7 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
                 "Nieprawidłowa suma SHA-256. Oczekiwano %s, otrzymano %s."
                 % (expected_sha256, actual)
             )
-        os.replace(temporary, destination)
+        replace_file(temporary, destination)
         _progress(progress, "SHA-256 OK — plik gotowy do instalacji.")
     except OperationError:
         if os.path.exists(temporary):
@@ -998,6 +1042,12 @@ def download_verified(url, destination, expected_sha256, max_bytes=DOWNLOAD_LIMI
         if os.path.exists(temporary):
             os.unlink(temporary)
         raise OperationError("Pobieranie nie powiodło się: %s" % exc)
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
     return destination
 
 
@@ -1047,7 +1097,7 @@ def _timestamp():
 def _backup_existing(source, backup_root, metadata):
     if not os.path.isfile(source):
         return None
-    os.makedirs(backup_root, exist_ok=True)
+    ensure_dir(backup_root)
     target = os.path.join(backup_root, os.path.basename(source))
     shutil.copy2(source, target)
     metadata.append({"source": source, "backup": target, "name": os.path.basename(source)})
@@ -1055,11 +1105,12 @@ def _backup_existing(source, backup_root, metadata):
 
 
 def _write_json(path, data):
+    ensure_dir(os.path.dirname(os.path.abspath(path)))
     temporary = path + ".part"
-    with open(temporary, "w", encoding="utf-8") as handle:
+    with open_text(temporary, "w") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2, sort_keys=True)
         handle.write("\n")
-    os.replace(temporary, path)
+    replace_file(temporary, path)
 
 
 def install_channel_list(item, settings, progress=None):
@@ -1165,7 +1216,7 @@ def _iptv_playlist_url(settings):
         settings,
         "iptv_username",
         "iptv_password",
-        "W MENU → Ustawienia wpisz link M3U albo DNS, login i hasło Foorys IPTV.",
+        "W Foorys IPTV → Ustawienia IPTV wpisz link M3U albo DNS, login i hasło.",
     )
 
 
@@ -1374,7 +1425,7 @@ def install_current_oscam_dvbapi(_item, settings, progress=None):
 
     temporary = os.path.join(storage, ".foorys-oscam.dvbapi.part")
     try:
-        with open(temporary, "w", encoding="utf-8") as handle:
+        with open_text(temporary, "w") as handle:
             handle.write("\n".join(FOORYS_OSCAM_DVBAPI_LINES) + "\n")
         _progress(progress, "Zapisuję dokładnie: P:1884, P:0B01, P:1861...")
         atomic_copy(temporary, target)
@@ -1399,7 +1450,7 @@ def install_current_oscam_dvbapi(_item, settings, progress=None):
 
 def _find_7zip():
     for name in ("7za", "7z", "7zz"):
-        executable = shutil.which(name)
+        executable = which(name)
         if executable:
             return executable
     for executable in ("/usr/bin/7za", "/usr/bin/7z", "/usr/bin/7zz"):
@@ -1466,7 +1517,7 @@ def install_picons(item, settings, progress=None):
     staging = os.path.join(temporary_root, "staging")
     try:
         download_verified(item["url"], archive_path, item["sha256"], progress=progress)
-        os.makedirs(staging, exist_ok=True)
+        ensure_dir(staging)
         _extract_picons(archive_path, staging, progress=progress)
         source_files = find_picon_files(staging)
         if not source_files:
@@ -1478,11 +1529,7 @@ def install_picons(item, settings, progress=None):
         for source in source_files:
             if os.path.islink(source) or not os.path.isfile(source):
                 raise OperationError("Archiwum piconów zawiera niedozwolony plik.")
-            try:
-                inside = os.path.commonpath((staging_root, os.path.realpath(source))) == staging_root
-            except ValueError:
-                inside = False
-            if not inside:
+            if not is_path_within(staging_root, source):
                 raise OperationError("Picon wychodzi poza katalog tymczasowy.")
             filename = os.path.basename(source)
             key = filename.lower()
@@ -1538,7 +1585,7 @@ def list_backups(settings=None):
         backup_type = "backup"
         if os.path.isfile(backup_json):
             try:
-                with open(backup_json, "r", encoding="utf-8") as handle:
+                with open_text(backup_json, "r", errors="replace") as handle:
                     backup_type = json.load(handle).get("type", backup_type)
             except (OSError, IOError, TypeError, ValueError):
                 pass
@@ -1547,7 +1594,7 @@ def list_backups(settings=None):
 
 
 def _run_opkg(package_path, timeout=600, progress=None):
-    executable = shutil.which("opkg") or "/usr/bin/opkg"
+    executable = which("opkg") or "/usr/bin/opkg"
     if not os.path.exists(executable):
         raise OperationError("Nie znaleziono programu opkg na dekoderze.")
     _progress(progress, "Uruchamiam opkg install %s..." % package_path)
@@ -1571,7 +1618,7 @@ def _run_opkg(package_path, timeout=600, progress=None):
 def _run_shell_command(command, timeout=900, progress=None):
     """Uruchamia wyłącznie stałą akcję pluginu przez powłokę dekodera."""
 
-    if not isinstance(command, str) or not command.strip():
+    if not isinstance(command, string_types) or not command.strip():
         raise OperationError("Pusta komenda instalacyjna.")
     if not os.path.exists("/bin/sh"):
         raise OperationError("Na dekoderze brakuje /bin/sh.")
@@ -1597,6 +1644,11 @@ def _run_shell_command(command, timeout=900, progress=None):
 def install_e2iplayer(_item, _settings, progress=None):
     """Instaluje bieżącą gałąź Python 3 E2iPlayer z OE-Mirrors."""
 
+    if sys.version_info[0] < 3:
+        raise OperationError(
+            "Ten instalator E2iPlayer wymaga obrazu Enigma2 z Pythonem 3. "
+            "Pozostałe funkcje E2-Foorys nadal działają na Pythonie 2.7."
+        )
     output = _run_shell_command(E2IPLAYER_INSTALL_COMMAND, progress=progress)
     return {"kind": "e2iplayer", "name": "E2iPlayer", "output": output}
 
@@ -1604,6 +1656,8 @@ def install_e2iplayer(_item, _settings, progress=None):
 def patch_e2iplayer(_item, _settings, progress=None):
     """Nakłada patch hosttorrentyts na zainstalowany E2iPlayer."""
 
+    if sys.version_info[0] < 3:
+        raise OperationError("Patch E2iPlayer jest przeznaczony dla wersji Python 3.")
     output = _run_shell_command(E2IPLAYER_PATCH_COMMAND, progress=progress)
     return {"kind": "e2iplayer-patch", "name": "E2iPlayer patch", "output": output}
 
@@ -1623,7 +1677,7 @@ def install_oscam_stable(_item, _settings, progress=None):
 def install_public_softcam(item, _settings, progress=None):
     """Instaluje tylko publiczne pakiety softcam jawnie dopuszczone przez plugin."""
 
-    softcam_id = str((item or {}).get("id", ""))
+    softcam_id = to_text((item or {}).get("id", ""))
     package_info = PUBLIC_SOFTCAM_PACKAGES.get(softcam_id)
     if not package_info:
         raise OperationError("Nieobsługiwany pakiet softcam.")
@@ -1640,7 +1694,7 @@ def install_public_softcam(item, _settings, progress=None):
 def validate_root_password(password):
     """Waliduje hasło przekazywane jednorazowo do chpasswd."""
 
-    if not isinstance(password, str):
+    if not isinstance(password, string_types):
         raise OperationError("Nieprawidłowe hasło.")
     if len(password) < 8:
         raise OperationError("Hasło roota musi mieć co najmniej 8 znaków.")
@@ -1656,7 +1710,7 @@ def change_root_password(password, progress=None):
     """Zmienia hasło konta root bez zapisywania go w konfiguracji lub logu."""
 
     validate_root_password(password)
-    executable = shutil.which("chpasswd") or "/usr/sbin/chpasswd"
+    executable = which("chpasswd") or "/usr/sbin/chpasswd"
     if not os.path.exists(executable):
         raise OperationError("Nie znaleziono narzędzia chpasswd na dekoderze.")
     _progress(progress, "Zmiana hasła root...")
@@ -1666,9 +1720,10 @@ def change_root_password(password, progress=None):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            universal_newlines=True,
         )
-        output, _unused = process.communicate("root:%s\n" % password)
+        payload = ("root:%s\n" % to_text(password)).encode("utf-8")
+        output, _unused = process.communicate(payload)
+        output = to_text(output)
     except OSError as exc:
         raise OperationError("Nie można uruchomić chpasswd: %s" % exc)
     if process.returncode != 0:
@@ -1680,7 +1735,13 @@ def change_root_password(password, progress=None):
 def install_plugin_package(item, settings, progress=None):
     """Pobiera i instaluje pakiet .ipk przez opkg."""
 
-    package_type = str(item.get("package_type", "ipk")).lower()
+    required_python = int(item.get("min_python_major", 0) or 0)
+    if required_python and sys.version_info[0] < required_python:
+        raise OperationError(
+            "Pakiet '%s' wymaga Pythona %d lub nowszego. Ten obraz używa Pythona %d."
+            % (item.get("name", item.get("id", "plugin")), required_python, sys.version_info[0])
+        )
+    package_type = to_text(item.get("package_type", "ipk")).lower()
     if package_type not in ("ipk", "deb"):
         raise OperationError("Nieobsługiwany typ pakietu: %s" % package_type)
     storage = _storage_directory(settings)

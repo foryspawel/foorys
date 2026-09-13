@@ -4,7 +4,7 @@
   var sections = [
     { id: "channels", title: "Listy kanałów", description: "Wybierz i zainstaluj listę kanałów z centralnej bazy." },
     { id: "updates", title: "Aktualizacja pluginu", description: "Sprawdź GitHuba i zaktualizuj E2-Foorys." },
-    { id: "iptv", title: "Foorys IPTV", description: "Europe Package, Polskie IPTV i automatyczne picony z playlisty." },
+    { id: "iptv", title: "Foorys IPTV", description: "Kanały IPTV i opcjonalne, osobno pobierane picony." },
     { id: "picons", title: "Picony", description: "Aktualizacja piconów z centralnej bazy." },
     { id: "softcam", title: "Softcam / OSCam", description: "Oscam stable, EMU, NCam, CCcam i oscam.dvbapi." },
     { id: "plugins", title: "Wtyczki / Feedy", description: "Instalacja E2iPlayera i pakietów z centralnej bazy." },
@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.7" }
+      plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.6.8" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -87,7 +87,7 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.7]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.6.8]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
     if (sectionId === "iptv") return [
       item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U i tworzy osobny bukiet. Picony są opcjonalne i pobierane osobno.", "Bukiet główny", "foorys-iptv", "install"),

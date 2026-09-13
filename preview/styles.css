@@ -224,6 +224,28 @@ h2 { margin-top: 5px; font-size: clamp(25px, 3vw, 37px); }
 .form-actions { display: flex; justify-content: end; gap: 10px; }
 .form-actions .primary-action, .form-actions .secondary-action { margin-top: 0; }
 
+@media (min-width: 1600px) and (min-height: 900px) {
+  .app-shell { width: min(1840px, calc(100vw - 52px)); margin-top: 26px; }
+  .topbar { min-height: 174px; padding: 30px 42px; }
+  .brand-logo { width: 104px; height: 104px; }
+  .brand-title { font-size: 55px; }
+  .brand-subtitle { font-size: 22px; }
+  .top-info { min-width: 540px; }
+  .top-version { font-size: 20px; }
+  .clock { font-size: 31px; }
+  .metrics { font-size: 16px; }
+  .dashboard { padding: 34px 42px 25px; }
+  .dashboard-heading { min-height: 92px; }
+  .eyebrow { font-size: 15px; }
+  h1 { font-size: 43px; }
+  .card-grid { gap: 22px; padding: 28px 0 31px; }
+  .tile { min-height: 158px; }
+  .tile-icon { width: 54px; height: 54px; flex-basis: 54px; font-size: 29px; }
+  .tile-title { font-size: 31px; }
+  .tile-hint { font-size: 17px; }
+  .dashboard-footer, .key-hint { font-size: 16px; }
+}
+
 @media (max-width: 1060px) {
   body { min-width: 0; }
   .app-shell { width: calc(100vw - 22px); margin-top: 11px; }
