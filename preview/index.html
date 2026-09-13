@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E2-Foorys — podgląd lokalny</title>
+  <link rel="stylesheet" href="/preview/styles.css">
+</head>
+<body>
+  <div class="preview-banner">PODGLĄD LOKALNY <span>Operacje są symulowane — dekoder nie jest używany.</span></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="/plugin/usr/lib/enigma2/python/Plugins/Extensions/E2Foorys/foorys.png" alt="Foorys">
+        <div>
+          <div class="brand-title">E2-Foorys</div>
+          <div class="brand-subtitle">Twoje narzędzia do Enigma2</div>
+        </div>
+      </div>
+      <div class="top-info">
+        <div class="top-version">Foorys v0.4.7</div>
+        <div id="clock" class="clock">--.--.----  --:--:--</div>
+        <div class="metrics" aria-label="Stan dekodera (dane demonstracyjne)">
+          <span>CPU <b id="cpu-value">11%</b></span>
+          <span>RAM <b id="ram-value">52%</b></span>
+          <span>RootFS <b id="rootfs-value">3.4 GB wolne</b></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="side-rail" aria-label="Kategorie">
+        <div class="rail-label">KATEGORIE</div>
+        <nav id="section-nav"></nav>
+        <div class="rail-footer">
+          <span class="dot online"></span> lokalny podgląd
+        </div>
+      </aside>
+
+      <section class="dashboard" aria-label="Panel E2-Foorys">
+        <div class="dashboard-heading">
+          <div>
+            <div class="eyebrow">CENTRUM NARZĘDZI</div>
+            <h1 id="focus-title">WYBRANO 01 LISTY KANAŁÓW</h1>
+          </div>
+          <div class="heading-hint"><kbd>OK</kbd> otwórz kategorię</div>
+        </div>
+
+        <div id="card-grid" class="card-grid" role="listbox" aria-label="Kafelki funkcji"></div>
+
+        <div class="dashboard-footer">
+          <div id="decoder-status" class="decoder-status"><span class="dot online"></span> H9 TWIN • OpenATV 8 beta • Enigma2 OK</div>
+          <div id="status" class="status">Ładowanie lokalnego katalogu...</div>
+        </div>
+        <div class="key-hint">
+          <span><kbd>↑↓←→</kbd> wybierz kafel</span>
+          <span><kbd>ENTER</kbd> otwórz</span>
+          <button id="refresh-button" class="footer-action green"><kbd>G</kbd> odśwież katalog</button>
+          <button id="quick-update-button" class="footer-action blue"><kbd>B</kbd> szybka aktualizacja</button>
+          <button id="settings-button" class="footer-action"><kbd>M</kbd> ustawienia</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="catalog-modal" class="modal-backdrop" aria-hidden="true">
+    <section class="modal catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-title">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">KATEGORIA</div>
+          <h2 id="catalog-title">Lista czynności</h2>
+        </div>
+        <button class="icon-button" data-close="catalog-modal" aria-label="Zamknij">×</button>
+      </div>
+      <div class="catalog-layout">
+        <div id="catalog-list" class="catalog-list" role="listbox" aria-label="Czynności"></div>
+        <div class="catalog-detail">
+          <div class="detail-label">WYBRANA POZYCJA</div>
+          <h3 id="detail-title">—</h3>
+          <p id="detail-description">—</p>
+          <div id="detail-meta" class="detail-meta">—</div>
+          <button id="run-action" class="primary-action">OK — uruchom podgląd</button>
+        </div>
+      </div>
+      <div class="modal-hint"><kbd>↑↓</kbd> wybierz <kbd>ENTER</kbd> uruchom <kbd>ESC</kbd> wróć</div>
+    </section>
+  </div>
+
+  <div id="console-modal" class="modal-backdrop" aria-hidden="true">
+    <section class="modal console-modal" role="dialog" aria-modal="true" aria-labelledby="console-title">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">PODGLĄD OPERACJI</div>
+          <h2 id="console-title">Konsola</h2>
+        </div>
+        <button id="console-close" class="icon-button" aria-label="Zamknij">×</button>
+      </div>
+      <div id="console-log" class="console-log" aria-live="polite"></div>
+      <div id="console-result" class="console-result">OPERACJA W TOKU...</div>
+      <div class="modal-hint">W podglądzie nic nie jest instalowane na dekoderze. <kbd>ESC</kbd> zamknij</div>
+    </section>
+  </div>
+
+  <div id="password-modal" class="modal-backdrop" aria-hidden="true">
+    <section class="modal password-modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">TRYB DEMONSTRACYJNY</div>
+          <h2 id="password-title">Zmień hasło root</h2>
+        </div>
+        <button class="icon-button" data-close="password-modal" aria-label="Zamknij">×</button>
+      </div>
+      <p class="warning-text">W prawdziwej wtyczce hasło zostanie przekazane jednorazowo do systemu i nie będzie zapisywane.</p>
+      <form id="password-form" autocomplete="off">
+        <label>Nowe hasło <input id="password-one" type="password" minlength="8" required></label>
+        <label>Powtórz hasło <input id="password-two" type="password" minlength="8" required></label>
+        <div id="password-error" class="form-error" role="alert"></div>
+        <div class="form-actions">
+          <button type="button" class="secondary-action" data-close="password-modal">Anuluj</button>
+          <button type="submit" class="primary-action">Potwierdź zmianę</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="/preview/app.js"></script>
+</body>
+</html>
