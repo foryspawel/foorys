@@ -54,7 +54,10 @@ try {
 
     Get-ChildItem -LiteralPath $dataRoot -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue |
         Remove-Item -Recurse -Force
-    Get-ChildItem -LiteralPath $dataRoot -Recurse -File -Include "*.pyc", "*.pyo" -ErrorAction SilentlyContinue |
+    # Przy użyciu -LiteralPath PowerShell potrafi zignorować -Include i zwrócić
+    # wszystkie pliki. Filtruj po rozszerzeniu jawnie, żeby nie usunąć źródeł.
+    Get-ChildItem -LiteralPath $dataRoot -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -in @(".pyc", ".pyo") } |
         Remove-Item -Force
 
     $controlText = @(
