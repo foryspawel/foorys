@@ -37,7 +37,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 
 
 MAIN_SKIN = """

@@ -614,6 +614,8 @@ def _bouquets_tv_with_foorys_iptv(path):
             lines = handle.read().splitlines()
     except (OSError, IOError):
         lines = []
+    if not lines:
+        lines = ["#NAME TV"]
     marker = 'FROM BOUQUET "%s"' % IPTV_BOUQUET_FILENAME
     lines = [line for line in lines if marker not in line]
     lines.append(registration)
