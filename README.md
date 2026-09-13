@@ -72,6 +72,22 @@ ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.3_all.
 
 Po instalacji plugin znajduje się w menu wtyczek jako `E2-Foorys`.
 
+## Feed opkg
+
+Repozytorium udostępnia również klasyczny feed `opkg`. Skopiuj plik
+`feed/foorys-feed.conf` do `/etc/opkg/`, a następnie wykonaj:
+
+```text
+opkg update
+opkg install enigma2-plugin-extensions-e2foorys
+```
+
+Indeks feeda jest generowany poleceniem:
+
+```text
+python tools/build_opkg_feed.py releases/enigma2-plugin-extensions-e2foorys_0.6.3_all.ipk
+```
+
 ## Manifest repozytorium
 
 Przykładowy format znajduje się w [manifest.example.json](manifest.example.json).
