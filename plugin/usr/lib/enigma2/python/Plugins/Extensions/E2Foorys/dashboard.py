@@ -37,7 +37,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 
 
 MAIN_SKIN = """
@@ -55,45 +55,49 @@ MAIN_SKIN = """
     <widget name="top_stats" position="862,80" size="350,24" font="Regular;19" foregroundColor="#55DFA4" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <widget name="shortcut" position="862,106" size="350,22" font="Regular;17" foregroundColor="#FFD35B" backgroundColor="#0B2236" transparent="0" horizontalAlignment="right" />
     <eLabel position="26,132" size="1208,2" backgroundColor="#1B4962" />
-    <eLabel position="26,143" size="1208,52" backgroundColor="#071A2B" />
-    <widget name="focus_title" position="42,153" size="720,34" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
-    <widget name="focus_desc" position="780,158" size="434,28" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
+    <eLabel position="26,143" size="220,398" backgroundColor="#071A2B" />
+    <eLabel position="26,143" size="220,2" backgroundColor="#28D7F5" />
+    <widget name="side_title" position="42,151" size="188,25" font="Regular;18" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
+    <widget name="side_menu" position="38,180" size="196,350" itemHeight="38" font="Regular;19" scrollbarMode="showOnDemand" foregroundColor="#B8CBD9" foregroundColorSelected="#FFFFFF" backgroundColor="#0B1E30" backgroundColorSelected="#174D68" transparent="0" />
+    <eLabel position="258,143" size="976,52" backgroundColor="#071A2B" />
+    <widget name="focus_title" position="274,153" size="650,34" font="Regular;29" foregroundColor="#28D7F5" backgroundColor="#071A2B" transparent="0" />
+    <widget name="focus_desc" position="934,158" size="280,28" font="Regular;21" foregroundColor="#D6E4EE" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
 
-    <eLabel position="32,182" size="5,106" backgroundColor="#28D7F5" />
-    <eLabel position="427,182" size="5,106" backgroundColor="#B77CFF" />
-    <eLabel position="822,182" size="5,106" backgroundColor="#55DFA4" />
-    <eLabel position="32,302" size="5,106" backgroundColor="#FFB347" />
-    <eLabel position="427,302" size="5,106" backgroundColor="#F06BCB" />
-    <eLabel position="822,302" size="5,106" backgroundColor="#4EA7FF" />
-    <eLabel position="32,422" size="5,106" backgroundColor="#9A8CFF" />
-    <eLabel position="427,422" size="5,106" backgroundColor="#FFC857" />
-    <eLabel position="822,422" size="5,106" backgroundColor="#FF6B6B" />
+    <eLabel position="258,182" size="5,106" backgroundColor="#28D7F5" />
+    <eLabel position="582,182" size="5,106" backgroundColor="#B77CFF" />
+    <eLabel position="906,182" size="5,106" backgroundColor="#55DFA4" />
+    <eLabel position="258,302" size="5,106" backgroundColor="#FFB347" />
+    <eLabel position="582,302" size="5,106" backgroundColor="#F06BCB" />
+    <eLabel position="906,302" size="5,106" backgroundColor="#4EA7FF" />
+    <eLabel position="258,422" size="5,106" backgroundColor="#9A8CFF" />
+    <eLabel position="582,422" size="5,106" backgroundColor="#FFC857" />
+    <eLabel position="906,422" size="5,106" backgroundColor="#FF6B6B" />
 
-    <widget name="focus_channels" position="42,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_updates" position="437,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_iptv" position="832,185" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_picons" position="42,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_softcam" position="437,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_plugins" position="832,305" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_backups" position="42,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_system" position="437,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
-    <widget name="focus_diagnostics" position="832,425" size="386,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_channels" position="268,185" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_updates" position="592,185" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_iptv" position="916,185" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_picons" position="268,305" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_softcam" position="592,305" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_plugins" position="916,305" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_backups" position="268,425" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_system" position="592,425" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
+    <widget name="focus_diagnostics" position="916,425" size="310,100" zPosition="1" backgroundColor="#28D7F5" transparent="0" />
 
-    <widget name="card_channels" position="50,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_updates" position="445,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_iptv" position="840,193" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_picons" position="50,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_softcam" position="445,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_plugins" position="840,313" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_backups" position="50,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_system" position="445,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
-    <widget name="card_diagnostics" position="840,433" size="370,84" zPosition="3" font="Regular;27" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_channels" position="276,193" size="294,84" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_updates" position="600,193" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_iptv" position="924,193" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_picons" position="276,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_softcam" position="600,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_plugins" position="924,313" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_backups" position="276,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_system" position="600,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
+    <widget name="card_diagnostics" position="924,433" size="294" zPosition="3" font="Regular;25" foregroundColor="#F7FBFF" backgroundColor="#0E2A40" transparent="0" />
 
     <eLabel position="26,548" size="1208,2" backgroundColor="#1B4962" />
-    <eLabel position="26,558" size="1208,34" backgroundColor="#071A2B" />
-    <widget name="decoder" position="42,562" size="600,27" font="Regular;20" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
-    <widget name="status" position="658,562" size="556,27" font="Regular;20" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
-    <widget name="hint" position="42,606" size="1172,50" font="Regular;21" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
+    <eLabel position="258,558" size="976,34" backgroundColor="#071A2B" />
+    <widget name="decoder" position="274,562" size="500,27" font="Regular;18" foregroundColor="#55DFA4" backgroundColor="#071A2B" transparent="0" />
+    <widget name="status" position="790,562" size="424,27" font="Regular;18" foregroundColor="#FFD35B" backgroundColor="#071A2B" transparent="0" horizontalAlignment="right" />
+    <widget name="hint" position="274,606" size="940,50" font="Regular;19" foregroundColor="#C5D8E6" backgroundColor="#071727" transparent="0" />
 </screen>
 """
 
@@ -275,6 +279,11 @@ class E2FoorysMain(Screen):
         self["logo"] = Pixmap()
         self["title"] = Label("E2-Foorys")
         self["subtitle"] = Label("Twoje narzędzia do Enigma2")
+        self["side_title"] = Label("KATEGORIE")
+        self["side_menu"] = MenuList(
+            [("%02d  %s" % (index + 1, title), section_id)
+             for index, (section_id, title, _description) in enumerate(SECTIONS)]
+        )
         self["version"] = Label("Foorys v%s" % VERSION)
         self["clock"] = Label("")
         self["shortcut"] = Label("NIEBIESKI: SZYBKA AKTUALIZACJA")
@@ -369,6 +378,10 @@ class E2FoorysMain(Screen):
         section_id, title, description = SECTIONS[self.card_index]
         self["focus_title"].setText("WYBRANO  %02d  %s" % (self.card_index + 1, title.upper()))
         self["focus_desc"].setText("OK: otwórz kategorię")
+        try:
+            self["side_menu"].setIndex(self.card_index)
+        except (AttributeError, TypeError, ValueError):
+            pass
 
     def _move_card(self, delta):
         new_index = self.card_index + delta

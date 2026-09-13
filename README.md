@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.6.1 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.6.2 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.6.1
+## Co działa w wersji 0.6.2
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -20,6 +20,7 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 - walidacja ścieżek w archiwach, aby uniknąć zapisu poza katalogiem staging.
 - główny ekran E2-Foorys w formie siatki kafelków oraz osobne ekrany czynności:
   listy kanałów, aktualizacje, IPTV, Softcam/OSCam, pluginy, kopie, system i diagnostyka,
+- boczne menu kategorii widoczne również w skinie Enigma2 na ekranie TV,
 - domyślne połączenie z `foryspawel/foorys` przez `manifest.json` na GitHubie,
 - aktualizacja samego E2-Foorys przez pobranie pakietu IPK z GitHuba,
 - odczyt CPU, RAM, flasha, magazynu, temperatury, uptime i zainstalowanych
@@ -58,15 +59,15 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.6.1
+  python tools/build_ipk.py --version 0.6.2
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.1_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
-scp dist/enigma2-plugin-extensions-e2foorys_0.6.1_all.ipk root@DEKODER:/tmp/
-ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.1_all.ipk
+scp dist/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk root@DEKODER:/tmp/
+ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.6.2_all.ipk
 ```
 
 Po instalacji plugin znajduje się w menu wtyczek jako `E2-Foorys`.
