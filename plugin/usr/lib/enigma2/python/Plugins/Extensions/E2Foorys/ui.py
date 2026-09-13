@@ -356,7 +356,11 @@ class CatalogScreen(Screen):
         )
         self.onClose.append(self._on_close)
         if self.auto_start:
-            self.onLayoutFinish.append(self._auto_start)
+            # onLayoutFinish jest wywoływane jeszcze podczas tworzenia dialogu.
+            # Otwieranie wtedy konsoli powoduje crash na OpenATV, bo katalog nie
+            # jest jeszcze ekranem modalnym. onFirstExecBegin działa po
+            # aktywowaniu tego ekranu i nadal uruchamia akcję bez potwierdzenia.
+            self.onFirstExecBegin.append(self._auto_start)
         if not self.entries:
             self["status"].setText("Brak elementów w tej sekcji manifestu.")
 

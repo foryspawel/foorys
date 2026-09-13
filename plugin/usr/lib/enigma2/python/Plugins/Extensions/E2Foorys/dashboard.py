@@ -42,7 +42,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen, E2FoorysConfig, E2FoorysIptvConfig
 
 
-VERSION = "0.6.8"
+VERSION = "0.6.9"
 
 
 MAIN_SKIN = scaled_skin("""
