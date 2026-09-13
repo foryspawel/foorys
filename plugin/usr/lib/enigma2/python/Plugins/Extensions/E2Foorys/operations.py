@@ -5,6 +5,7 @@
 from __future__ import absolute_import
 
 import json
+import hashlib
 import os
 import platform
 import re
@@ -15,9 +16,10 @@ import tempfile
 import time
 
 try:
-    from urllib.parse import urljoin, urlparse
+    from urllib.parse import quote, urlencode, urljoin, urlparse
     from urllib.request import Request, urlopen
 except ImportError:  # pragma: no cover - ścieżka dla bardzo starych obrazów E2
+    from urllib import quote, urlencode
     from urllib2 import Request, urlopen
     from urlparse import urljoin, urlparse
 
@@ -80,6 +82,18 @@ FOORYS_OSCAM_DVBAPI_LINES = (
     "P:1884",
     "P:0B01",
     "P:1861",
+)
+
+IPTV_FORYS_DNS = "iptv.forys.pro"
+IPTV_FORYS_PORT = 8880
+IPTV_BOUQUET_NAME = "Foorys IPTV"
+IPTV_BOUQUET_FILENAME = "userbouquet.foorys-iptv.tv"
+IPTV_MAX_CHANNELS = 10000
+IPTV_MAX_PICONS = 1500
+IPTV_MAX_PICON_BYTES = 2 * 1024 * 1024
+
+_IPTV_ATTRIBUTE_RE = re.compile(
+    r'''([A-Za-z0-9_-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s,]+))'''
 )
 
 
@@ -184,20 +198,42 @@ def _filesystem_usage(path):
             "used": used,
             "percent": min(max(percent, 0), 100),
         }
-    except (OSError, IOError, AttributeError):
-        return {
-            "path": requested,
-            "mount": candidate,
-            "mountpoint": _mountpoint_for(candidate),
-            "mounted": False,
-            "fallback": candidate != requested,
-            "path_exists": os.path.exists(requested),
-            "total": 0,
-            "free": 0,
-            "used": 0,
-            "percent": 0,
-            "error": "brak danych",
-        }
+    except (OSError, IOError, AttributeError, NotImplementedError):
+        # Python na Windows nie udostępnia statvfs. Fallback jest potrzebny
+        # również dla lokalnych testów i podglądu, ale ścieżka dekodera nadal
+        # korzysta z dokładnego pomiaru systemu plików Enigma2.
+        try:
+            usage = shutil.disk_usage(candidate)
+            total = int(usage.total)
+            free = int(usage.free)
+            used = max(total - free, 0)
+            percent = int(round((used * 100.0) / total)) if total else 0
+            return {
+                "path": requested,
+                "mount": candidate,
+                "mountpoint": _mountpoint_for(candidate),
+                "mounted": _expected_media_mount(requested, _mountpoint_for(candidate)),
+                "fallback": candidate != requested,
+                "path_exists": os.path.exists(requested),
+                "total": total,
+                "free": free,
+                "used": used,
+                "percent": min(max(percent, 0), 100),
+            }
+        except (OSError, IOError, AttributeError):
+            return {
+                "path": requested,
+                "mount": candidate,
+                "mountpoint": _mountpoint_for(candidate),
+                "mounted": False,
+                "fallback": candidate != requested,
+                "path_exists": os.path.exists(requested),
+                "total": 0,
+                "free": 0,
+                "used": 0,
+                "percent": 0,
+                "error": "brak danych",
+            }
 
 
 def _memory_usage():
@@ -417,6 +453,188 @@ def _read_response(response, limit):
         if len(content) > limit:
             raise OperationError("Pobrany plik przekracza limit %d MB." % (limit // (1024 * 1024)))
     return bytes(content)
+
+
+def _safe_network_error(exc):
+    """Zwraca komunikat błędu bez wypisywania prywatnego URL-a M3U."""
+
+    code = getattr(exc, "code", None)
+    if code:
+        return "serwer zwrócił HTTP %s" % code
+    reason = getattr(exc, "reason", None)
+    if reason:
+        return "brak połączenia (%s)" % reason
+    return "brak połączenia lub odrzucona odpowiedź"
+
+
+def _download_iptv_text(url, progress=None):
+    """Pobiera playlistę M3U bez logowania URL-a zawierającego dane konta."""
+
+    _validate_download_url(url)
+    _progress(progress, "Pobieram playlistę Foorys IPTV...")
+    request = Request(url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+    try:
+        with urlopen(request, timeout=60) as response:
+            raw = _read_response(response, 32 * 1024 * 1024)
+    except Exception as exc:
+        raise OperationError("Nie udało się pobrać playlisty Foorys IPTV: %s" % _safe_network_error(exc))
+
+    if not raw:
+        raise OperationError("Serwer zwrócił pustą playlistę Foorys IPTV.")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1", "replace")
+    if "#EXTINF" not in text.upper():
+        raise OperationError("Pobrany plik nie jest poprawną playlistą M3U.")
+    _progress(progress, "Playlista M3U pobrana — analizuję kanały...")
+    return text
+
+
+def _clean_iptv_text(value, fallback=""):
+    value = str(value or "").replace("\r", " ").replace("\n", " ").strip()
+    value = re.sub(r"\s+", " ", value)
+    return value[:240] or fallback
+
+
+def _clean_iptv_url(value):
+    """Czyści atrybut URL bez skracania linków z parametrami playlisty."""
+
+    value = str(value or "").replace("\r", "").replace("\n", "").strip()
+    return value[:4096]
+
+
+def parse_iptv_m3u(text):
+    """Zwraca kanały live z playlisty M3U/M3U+ w kolejności źródłowej."""
+
+    if not isinstance(text, str):
+        raise OperationError("Playlista IPTV ma nieprawidłowy format tekstowy.")
+    entries = []
+    current = None
+    pending_group = ""
+    for raw_line in text.splitlines():
+        line = raw_line.strip().lstrip("\ufeff")
+        if not line:
+            continue
+        upper = line.upper()
+        if upper.startswith("#EXTINF:"):
+            payload = line.split(",", 1)
+            header = payload[0]
+            title = payload[1] if len(payload) > 1 else ""
+            attributes = {}
+            for match in _IPTV_ATTRIBUTE_RE.finditer(header):
+                value = match.group(2) or match.group(3) or match.group(4) or ""
+                key = match.group(1).lower()
+                attributes[key] = _clean_iptv_url(value) if key == "tvg-logo" else _clean_iptv_text(value)
+            name = _clean_iptv_text(
+                attributes.get("tvg-name") or title,
+                "Kanał %d" % (len(entries) + 1),
+            )
+            current = {
+                "name": name,
+                "tvg_id": _clean_iptv_text(attributes.get("tvg-id")),
+                "tvg_logo": _clean_iptv_url(attributes.get("tvg-logo")),
+                "group": _clean_iptv_text(attributes.get("group-title") or pending_group),
+            }
+            continue
+        if upper.startswith("#EXTGRP:"):
+            pending_group = _clean_iptv_text(line.split(":", 1)[1] if ":" in line else "")
+            if current is not None and not current.get("group"):
+                current["group"] = pending_group
+            continue
+        if line.startswith("#"):
+            continue
+        if current is None:
+            continue
+        stream_url = line.strip()
+        scheme = urlparse(stream_url).scheme.lower()
+        if scheme not in ("http", "https", "rtmp", "rtsp", "udp"):
+            current = None
+            continue
+        if "\r" in stream_url or "\n" in stream_url:
+            current = None
+            continue
+        current["url"] = stream_url
+        entries.append(current)
+        current = None
+        if len(entries) >= IPTV_MAX_CHANNELS:
+            break
+    if not entries:
+        raise OperationError("Playlista nie zawiera kanałów live z obsługiwanym adresem strumienia.")
+    return entries
+
+
+def _iptv_service_reference(entry, index):
+    """Buduje stabilny service reference i nazwę piconu dla kanału IPTV."""
+
+    seed = "%s|%s|%s" % (entry.get("url", ""), entry.get("tvg_id", ""), index)
+    digest = hashlib.sha1(seed.encode("utf-8", "replace")).hexdigest()
+    service_id = int(digest[:10], 16) % 0x7FFFFFFF
+    if service_id == 0:
+        service_id = index + 1
+    bouquet_id1 = service_id // 65535
+    bouquet_id2 = service_id % 65535
+    unique_ref = int(hashlib.sha1(b"e2foorys-iptv").hexdigest()[:8], 16) % 0x7FFFFFFF
+    encoded_url = quote(
+        entry["url"],
+        safe="/?=&%@+;,.-_~[]",
+    )
+    service_ref = "4097:0:1:%x:%x:%x:0:0:0:0:%s" % (
+        bouquet_id1,
+        bouquet_id2,
+        unique_ref,
+        encoded_url,
+    )
+    picon_name = "%s.png" % "_".join(service_ref.split(":")[:10])
+    return service_ref, picon_name
+
+
+def _write_text_atomic(path, content):
+    parent = os.path.dirname(os.path.abspath(path))
+    os.makedirs(parent, exist_ok=True)
+    temporary = path + ".part"
+    try:
+        with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _bouquets_tv_with_foorys_iptv(path):
+    """Dodaje bukiet Foorys IPTV do bouquets.tv, usuwając jego duplikaty."""
+
+    registration = (
+        '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "%s" ORDER BY bouquet'
+        % IPTV_BOUQUET_FILENAME
+    )
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            lines = handle.read().splitlines()
+    except (OSError, IOError):
+        lines = []
+    marker = 'FROM BOUQUET "%s"' % IPTV_BOUQUET_FILENAME
+    lines = [line for line in lines if marker not in line]
+    lines.append(registration)
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _download_iptv_picon(url, progress=None):
+    """Pobiera pojedynczy PNG piconu bez ujawniania URL-a z playlisty."""
+
+    parsed = urlparse(url)
+    if parsed.scheme.lower() not in ("http", "https", "file"):
+        raise OperationError("picon ma nieobsługiwany adres")
+    request = Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urlopen(request, timeout=25) as response:
+            data = _read_response(response, IPTV_MAX_PICON_BYTES)
+    except Exception as exc:
+        raise OperationError(_safe_network_error(exc))
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise OperationError("odpowiedź nie jest plikiem PNG")
+    return data
 
 
 def fetch_manifest(manifest_url):
@@ -640,6 +858,155 @@ def install_channel_list(item, settings, progress=None):
     finally:
         _progress(progress, "Lista kanałów: operacja plikowa zakończona.")
         shutil.rmtree(staging, ignore_errors=True)
+
+
+def _iptv_playlist_url(settings):
+    """Zwraca prywatny link M3U z ustawień, bez zapisywania go w repozytorium."""
+
+    direct_url = _setting(settings, "iptv_m3u_url", "")
+    if direct_url:
+        _validate_download_url(direct_url)
+        return direct_url
+
+    dns = _setting(settings, "iptv_dns", IPTV_FORYS_DNS)
+    username = _setting(settings, "iptv_username", "")
+    password = _setting(settings, "iptv_password", "")
+    if not username or not password:
+        raise OperationError(
+            "W MENU → Ustawienia wpisz link M3U albo DNS, login i hasło Foorys IPTV."
+        )
+    if "://" not in dns:
+        dns = "http://%s:%d" % (dns.rstrip("/"), IPTV_FORYS_PORT)
+    parsed = urlparse(dns)
+    if parsed.scheme.lower() not in ("http", "https") or not parsed.netloc:
+        raise OperationError("DNS Foorys IPTV ma nieprawidłowy format.")
+    base = dns.rstrip("/")
+    query = urlencode(
+        {
+            "username": username,
+            "password": password,
+            "type": "m3u_plus",
+            "output": "ts",
+        }
+    )
+    return "%s/get.php?%s" % (base, query)
+
+
+def _install_iptv_picons(entries, target, progress=None):
+    """Pobiera picony PNG z atrybutu tvg-logo dla zapisanych usług."""
+
+    target = _ensure_absolute_directory(target, "katalog piconów IPTV")
+    logo_entries = [entry for entry in entries if entry.get("tvg_logo")]
+    if not logo_entries:
+        return {"installed": 0, "failed": 0, "available": 0}
+
+    temporary_root = tempfile.mkdtemp(prefix="e2foorys-iptv-picons-")
+    logo_cache = {}
+    installed = 0
+    failed = 0
+    attempted = 0
+    try:
+        total = min(len(logo_entries), IPTV_MAX_PICONS)
+        for index, entry in enumerate(entries):
+            logo_url = entry.get("tvg_logo", "")
+            if not logo_url:
+                continue
+            if attempted >= IPTV_MAX_PICONS:
+                break
+            attempted += 1
+            if logo_url not in logo_cache:
+                _progress(progress, "Pobieram picon IPTV %d/%d..." % (attempted, total))
+                try:
+                    data = _download_iptv_picon(logo_url, progress=progress)
+                    source = os.path.join(temporary_root, "logo-%d.png" % attempted)
+                    with open(source, "wb") as handle:
+                        handle.write(data)
+                    logo_cache[logo_url] = source
+                except Exception:
+                    logo_cache[logo_url] = None
+                    failed += 1
+                    continue
+            source = logo_cache.get(logo_url)
+            if not source or not os.path.isfile(source):
+                continue
+            try:
+                atomic_copy(source, os.path.join(target, entry["picon_name"]))
+                installed += 1
+            except Exception:
+                failed += 1
+        _progress(progress, "Picony IPTV: zapisano %d, pominięto %d." % (installed, failed))
+        return {"installed": installed, "failed": failed, "available": attempted}
+    finally:
+        shutil.rmtree(temporary_root, ignore_errors=True)
+
+
+def install_iptv_playlist(_item, settings, progress=None):
+    """Tworzy osobny bukiet Foorys IPTV i pobiera jego picony z playlisty."""
+
+    _progress(progress, "Przygotowuję bukiet Foorys IPTV...")
+    destination = _ensure_absolute_directory(
+        _setting(settings, "enigma2_dir", "/etc/enigma2"),
+        "katalog Enigma2",
+    )
+    storage = _storage_directory(settings)
+    playlist_url = _iptv_playlist_url(settings)
+    playlist = _download_iptv_text(playlist_url, progress=progress)
+    entries = parse_iptv_m3u(playlist)
+    if len(entries) >= IPTV_MAX_CHANNELS:
+        _progress(progress, "Playlista jest większa — używam pierwszych %d kanałów." % IPTV_MAX_CHANNELS)
+
+    bouquet_lines = ["#NAME %s" % IPTV_BOUQUET_NAME]
+    for index, entry in enumerate(entries, 1):
+        service_ref, picon_name = _iptv_service_reference(entry, index)
+        entry["picon_name"] = picon_name
+        bouquet_lines.append("#SERVICE %s" % service_ref)
+        bouquet_lines.append("#DESCRIPTION %s" % entry["name"])
+    bouquet_content = "\n".join(bouquet_lines) + "\n"
+
+    bouquet_path = os.path.join(destination, IPTV_BOUQUET_FILENAME)
+    bouquets_path = os.path.join(destination, "bouquets.tv")
+    backup_metadata = []
+    backup_root = os.path.join(storage, "backups", "iptv-%s" % _timestamp())
+    if bool(_setting(settings, "create_backup", True)):
+        _backup_existing(bouquet_path, backup_root, backup_metadata)
+        _backup_existing(bouquets_path, backup_root, backup_metadata)
+
+    _progress(progress, "Zapisuję %d kanałów do bukietu %s..." % (len(entries), IPTV_BOUQUET_NAME))
+    _write_text_atomic(bouquet_path, bouquet_content)
+    _write_text_atomic(bouquets_path, _bouquets_tv_with_foorys_iptv(bouquets_path))
+
+    picon_result = {"installed": 0, "failed": 0, "available": 0}
+    if bool(_setting(settings, "iptv_install_picons", True)):
+        try:
+            picon_result = _install_iptv_picons(
+                entries,
+                _setting(settings, "picon_dir", "/usr/share/enigma2/picon"),
+                progress=progress,
+            )
+        except Exception as exc:
+            # Picony są dodatkiem do bukietu. Brak miejsca lub niedostępny
+            # katalog nie może usuwać poprawnie zapisanej playlisty.
+            _progress(progress, "Picony IPTV pominięte: %s" % exc)
+            picon_result = {"installed": 0, "failed": 1, "available": 0}
+    else:
+        _progress(progress, "Pobieranie piconów IPTV jest wyłączone w ustawieniach.")
+
+    if backup_metadata:
+        _write_json(
+            os.path.join(backup_root, "backup.json"),
+            {"type": "iptv", "created_at": _timestamp(), "files": backup_metadata},
+        )
+    _progress(progress, "Foorys IPTV: bukiet i picony są gotowe.")
+    return {
+        "kind": "iptv",
+        "name": IPTV_BOUQUET_NAME,
+        "bouquet": bouquet_path,
+        "bouquets_file": bouquets_path,
+        "channels": len(entries),
+        "picons": picon_result.get("installed", 0),
+        "picon_failures": picon_result.get("failed", 0),
+        "backup": backup_root if backup_metadata else None,
+    }
 
 
 def install_oscam_dvbapi(item, settings, progress=None):

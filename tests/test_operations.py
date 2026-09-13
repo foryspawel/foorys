@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 from plugin_loader import load_operations
 
@@ -11,6 +12,65 @@ operations = load_operations()
 
 
 class OperationTests(unittest.TestCase):
+    def test_parse_iptv_m3u_reads_names_groups_and_logos(self):
+        playlist = """#EXTM3U
+#EXTINF:-1 tvg-id="tvp1.pl" tvg-name="TVP 1" tvg-logo="https://cdn.example/tvp1.png" group-title="Polskie",TVP 1 HD
+https://stream.example/live/tvp1
+#EXTGRP:Informacja
+#EXTINF:-1,TVP Info
+https://stream.example/live/info
+#EXTINF:-1,nieobsługiwany
+file:///tmp/local.ts
+"""
+        result = operations.parse_iptv_m3u(playlist)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["name"], "TVP 1")
+        self.assertEqual(result[0]["group"], "Polskie")
+        self.assertEqual(result[0]["tvg_logo"], "https://cdn.example/tvp1.png")
+        self.assertEqual(result[1]["group"], "Informacja")
+
+    def test_install_iptv_playlist_creates_named_bouquet_and_picons(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            enigma2 = root / "enigma2"
+            enigma2.mkdir()
+            storage = root / "storage"
+            picon_dir = root / "picon"
+            logo = root / "tvp1.png"
+            logo.write_bytes(b"\x89PNG\r\n\x1a\nfoorys")
+            playlist = root / "foorys.m3u"
+            playlist.write_text(
+                "#EXTM3U\n"
+                '#EXTINF:-1 tvg-id="tvp1.pl" tvg-logo="%s",TVP 1\n'
+                "https://stream.example/live/tvp1\n" % logo.as_uri(),
+                encoding="utf-8",
+            )
+            progress = []
+            settings = {
+                "storage_dir": str(storage),
+                "enigma2_dir": str(enigma2),
+                "picon_dir": str(picon_dir),
+                "iptv_m3u_url": playlist.as_uri(),
+                "iptv_install_picons": True,
+                "create_backup": True,
+            }
+            with mock.patch.object(operations, "_storage_directory", return_value=str(storage)):
+                result = operations.install_iptv_playlist({}, settings, progress.append)
+
+            bouquet = enigma2 / "userbouquet.foorys-iptv.tv"
+            bouquets_tv = enigma2 / "bouquets.tv"
+            self.assertEqual(result["kind"], "iptv")
+            self.assertEqual(result["name"], "Foorys IPTV")
+            self.assertEqual(result["channels"], 1)
+            self.assertEqual(result["picons"], 1)
+            content = bouquet.read_text(encoding="utf-8")
+            self.assertIn("#NAME Foorys IPTV", content)
+            self.assertIn("#DESCRIPTION TVP 1", content)
+            self.assertIn('FROM BOUQUET "userbouquet.foorys-iptv.tv"', bouquets_tv.read_text(encoding="utf-8"))
+            picon_name = next(picon_dir.glob("*.png"))
+            self.assertEqual(picon_name.read_bytes(), logo.read_bytes())
+            self.assertTrue(any("Foorys IPTV: bukiet i picony" in line for line in progress))
+
     def test_install_channel_list_from_local_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

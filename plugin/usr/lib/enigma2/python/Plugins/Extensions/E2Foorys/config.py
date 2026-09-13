@@ -14,11 +14,17 @@ from Components.config import (
     getConfigListEntry,
 )
 
+try:
+    from Components.config import ConfigPassword
+except ImportError:  # pragma: no cover - starsze obrazy Enigma2
+    ConfigPassword = ConfigText
+
 
 # Centralna baza pluginu. Nie jest edytowalna z poziomu dekodera — wpisy,
 # listy kanałów i pakiety są zarządzane wyłącznie w repozytorium właściciela.
 CENTRAL_GITHUB_REPOSITORY = "foryspawel/foorys"
 CENTRAL_GITHUB_BRANCH = "main"
+IPTV_FORYS_DNS = "iptv.forys.pro"
 
 
 def central_manifest_url():
@@ -52,6 +58,16 @@ def ensure_config():
         section.picon_dir = ConfigText(
             default="/usr/share/enigma2/picon", fixed_size=False
         )
+    if not hasattr(section, "iptv_m3u_url"):
+        section.iptv_m3u_url = ConfigText(default="", fixed_size=False)
+    if not hasattr(section, "iptv_dns"):
+        section.iptv_dns = ConfigText(default=IPTV_FORYS_DNS, fixed_size=False)
+    if not hasattr(section, "iptv_username"):
+        section.iptv_username = ConfigText(default="", fixed_size=False)
+    if not hasattr(section, "iptv_password"):
+        section.iptv_password = ConfigPassword(default="", fixed_size=False)
+    if not hasattr(section, "iptv_install_picons"):
+        section.iptv_install_picons = ConfigYesNo(default=True)
     if not hasattr(section, "create_backup"):
         section.create_backup = ConfigYesNo(default=True)
     if not hasattr(section, "show_in_main_menu"):
@@ -79,6 +95,13 @@ def settings_dict():
         "oscam_dvbapi_path": section.oscam_dvbapi_path.value.strip(),
         "storage_dir": section.storage_dir.value.strip(),
         "picon_dir": section.picon_dir.value.strip(),
+        # Dane IPTV są odczytywane tylko lokalnie na dekoderze. Nie są częścią
+        # manifestu GitHub ani żadnego pliku publikowanego w repozytorium.
+        "iptv_m3u_url": section.iptv_m3u_url.value.strip(),
+        "iptv_dns": section.iptv_dns.value.strip() or IPTV_FORYS_DNS,
+        "iptv_username": section.iptv_username.value.strip(),
+        "iptv_password": section.iptv_password.value,
+        "iptv_install_picons": bool(section.iptv_install_picons.value),
         "create_backup": bool(section.create_backup.value),
         "show_in_main_menu": bool(section.show_in_main_menu.value),
     }
@@ -91,6 +114,11 @@ def config_entries():
         getConfigListEntry("Ścieżka oscam.dvbapi", section.oscam_dvbapi_path),
         getConfigListEntry("Katalog danych i kopii", section.storage_dir),
         getConfigListEntry("Katalog piconów", section.picon_dir),
+        getConfigListEntry("Link M3U Foorys IPTV (opcjonalny)", section.iptv_m3u_url),
+        getConfigListEntry("DNS Foorys IPTV", section.iptv_dns),
+        getConfigListEntry("Login Foorys IPTV", section.iptv_username),
+        getConfigListEntry("Hasło Foorys IPTV", section.iptv_password),
+        getConfigListEntry("Pobieraj picony z playlisty IPTV", section.iptv_install_picons),
         getConfigListEntry("Twórz kopie zapasowe", section.create_backup),
         getConfigListEntry("Pokazuj E2-Foorys w menu głównym", section.show_in_main_menu),
         getConfigListEntry("Akcja instalacyjna", section.system_action),

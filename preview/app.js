@@ -4,7 +4,7 @@
   var sections = [
     { id: "channels", title: "Listy kanałów", description: "Wybierz i zainstaluj listę kanałów z centralnej bazy." },
     { id: "updates", title: "Aktualizacja pluginu", description: "Sprawdź GitHuba i zaktualizuj E2-Foorys." },
-    { id: "iptv", title: "IPTV / Odtwarzacze", description: "Informacje o odtwarzaczach IPTV." },
+    { id: "iptv", title: "Foorys IPTV", description: "Europe Package, Polskie IPTV i automatyczne picony z playlisty." },
     { id: "picons", title: "Picony", description: "Aktualizacja piconów z centralnej bazy." },
     { id: "softcam", title: "Softcam / OSCam", description: "Oscam stable, EMU, NCam, CCcam i oscam.dvbapi." },
     { id: "plugins", title: "Wtyczki / Feedy", description: "Instalacja E2iPlayera i pakietów z centralnej bazy." },
@@ -16,7 +16,7 @@
   var tiles = [
     ["channels", "LISTY KANAŁÓW", "Foorys • Bzyk83 • 13E", "◫"],
     ["updates", "AKTUALIZACJE", "Plugin i katalog GitHub", "↻"],
-    ["iptv", "IPTV / PLAYER", "Odtwarzacze IPTV", "▶"],
+    ["iptv", "FOORYS IPTV", "Europe • Polskie IPTV • Picony", "▶"],
     ["picons", "PICONY", "Pobieranie piconów", "✦"],
     ["softcam", "OSCAM / SOFTCAM", "Stable • EMU • NCam", "◎"],
     ["plugins", "PLUGINY", "E2iPlayer • XStreamity", "✣"],
@@ -39,7 +39,7 @@
       { id: "chocholousek-13e", name: "Chocholousek Picons 220x132 13.0E", description: "Transparentne picony dla Hotbirda 13E.", version: "2026.01.07" },
       { id: "chocholousek-19e", name: "Chocholousek Picons 220x132 19.2E", description: "Transparentne picony dla Astry 19.2E.", version: "2026.01.07" }
     ],
-    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.4.9" }
+    plugin_update: { id: "e2foorys", name: "E2-Foorys", description: "Aktualizacja panelu E2-Foorys z GitHuba.", version: "0.5.0" }
   };
 
   var state = { selected: 0, manifest: fallbackManifest, entries: [], entryIndex: 0, activeSection: null, consoleTimer: null };
@@ -100,9 +100,13 @@
       return (manifest.channel_lists || []).map(function (entry) { return item(entry.name, entry.description, entry.satellites + " • wersja " + entry.version, entry.id, "install"); });
     }
     if (sectionId === "updates") {
-      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.4.9]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
+      return [item("SPRAWDŹ I ZAKTUALIZUJ TERAZ", "Pobiera katalog GitHub i sprawdza najnowszą wersję pluginu.", "Skrót: NIEBIESKI", "quick-update", "install"), item("Odśwież katalog z GitHuba", "Pobiera świeży manifest i odświeża wszystkie zakładki.", "Skrót: ZIELONY", "refresh", "refresh"), item("E2-Foorys jest aktualny [0.5.0]", "W podglądzie lokalnym nie instalujemy pakietu.", "Wersja demonstracyjna", "current", "info")];
     }
-    if (sectionId === "iptv") return [item("E2iPlayer jest w zakładce Wtyczki / Feedy", "Instalatory E2iPlayera znajdują się razem z pozostałymi pluginami.", "Informacja", "iptv-info", "info")];
+    if (sectionId === "iptv") return [
+      item("Instaluj listę Foorys IPTV", "Pobiera playlistę M3U z DNS Foorys IPTV, tworzy osobny bukiet i pobiera picony z tvg-logo.", "Europe • Polskie IPTV • picony", "foorys-iptv", "install"),
+      item("Konfiguracja Foorys IPTV", "W dekoderze wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie lokalnie.", "MENU → Ustawienia", "iptv-settings", "settings"),
+      item("Automatyczne picony IPTV", "Po instalacji bukietu picony z playlisty są zapisywane w katalogu piconów.", "tvg-logo", "iptv-picons", "info")
+    ];
     if (sectionId === "picons") {
       return (manifest.picons || []).map(function (entry) { return item(entry.name, entry.description, "Wersja " + entry.version, entry.id, "install"); }).concat([item("Odśwież katalog piconów", "Pobiera aktualne dane z centralnej bazy.", "ZIELONY", "picons-refresh", "refresh")]);
     }

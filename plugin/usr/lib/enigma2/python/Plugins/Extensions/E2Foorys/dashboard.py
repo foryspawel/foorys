@@ -23,6 +23,7 @@ from .operations import (
     install_channel_list,
     install_current_oscam_dvbapi,
     install_e2iplayer,
+    install_iptv_playlist,
     change_root_password,
     install_oscam_dvbapi,
     install_oscam_stable,
@@ -36,7 +37,7 @@ from .operations import (
 from .ui import AsyncJob, CatalogScreen, ConsoleScreen
 
 
-VERSION = "0.4.9"
+VERSION = "0.5.0"
 
 
 MAIN_SKIN = """
@@ -125,7 +126,7 @@ SECTION_MENU_SKIN = """
 SECTIONS = (
     ("channels", "Listy kanałów", "Pobieranie i bezpieczna instalacja list Foorys oraz Bzyk83."),
     ("updates", "Aktualizacja pluginu", "Sprawdzenie GitHuba i aktualizacja E2-Foorys jednym przyciskiem."),
-    ("iptv", "IPTV / Odtwarzacze", "Informacje o odtwarzaczach IPTV."),
+    ("iptv", "Foorys IPTV", "Europe Package, Polskie IPTV i automatyczne picony z playlisty."),
     ("picons", "Picony", "Automatyczna aktualizacja piconów z centralnej bazy."),
     ("softcam", "Softcam / OSCam", "Oscam stable, EMU, NCam, CCcam i oscam.dvbapi."),
     ("plugins", "Wtyczki / Feedy", "Instalacja E2iPlayera i pakietów z centralnej bazy."),
@@ -161,7 +162,7 @@ FOCUS_WIDGETS = (
 CARD_TITLES = (
     "LISTY KANAŁÓW",
     "AKTUALIZACJE",
-    "IPTV / PLAYER",
+    "FOORYS IPTV",
     "PICONY",
     "OSCAM / SOFTCAM",
     "PLUGINY",
@@ -173,7 +174,7 @@ CARD_TITLES = (
 CARD_HINTS = (
     "Foorys • Bzyk83 • 13E",
     "Plugin i katalog GitHub",
-    "Odtwarzacze IPTV",
+    "Europe • Polskie IPTV • Picony",
     "Pobieranie piconów",
     "Stable • EMU • NCam",
     "E2iPlayer • XStreamity",
@@ -437,7 +438,25 @@ class E2FoorysMain(Screen):
                 result.append(self._item("Brak pakietu aktualizacji", "Manifest GitHub nie ma jeszcze obiektu plugin_update.", "info"))
             result.append(self._item("Centralna baza GitHub", central_manifest_url(), "info"))
         elif section_id == "iptv":
-            result.append(self._item("E2iPlayer jest w zakładce Wtyczki / Feedy", "Instalację E2iPlayera i jego patcha znajdziesz teraz razem z pozostałymi pluginami.", "info"))
+            result.extend([
+                self._install_item(
+                    "Instaluj listę Foorys IPTV",
+                    "Pobiera playlistę M3U z DNS Foorys IPTV, tworzy osobny bukiet i pobiera picony z tvg-logo.",
+                    {"id": "foorys-iptv", "name": "Foorys IPTV", "version": "Europe / Polskie IPTV"},
+                    install_iptv_playlist,
+                    "Instalacja Foorys IPTV",
+                ),
+                self._item(
+                    "Konfiguracja Foorys IPTV",
+                    "W ustawieniach wpisz prywatny link M3U albo DNS, login i hasło. Dane zostają wyłącznie na dekoderze.",
+                    "settings",
+                ),
+                self._item(
+                    "Automatyczne picony IPTV",
+                    "Po instalacji bukietu picony z atrybutu tvg-logo są zapisywane w katalogu piconów.",
+                    "info",
+                ),
+            ])
         elif section_id == "picons":
             for entry in manifest.get("picons", []):
                 result.append(self._install_item(None, entry.get("description"), entry, install_picons, "Aktualizacja piconów"))

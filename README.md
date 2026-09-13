@@ -1,9 +1,9 @@
 # E2-Foorys
 
-Wersja 0.4.9 pluginu dla Enigma2 do zarządzania listami kanałów,
+Wersja 0.5.0 pluginu dla Enigma2 do zarządzania listami kanałów,
 pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
 
-## Co działa w wersji 0.4.9
+## Co działa w wersji 0.5.0
 
 - pobieranie katalogu z manifestu JSON przez HTTP(S),
 - lista dostępnych list kanałów i instalacja archiwum `.tar.*` lub `.zip`,
@@ -36,6 +36,12 @@ pakietami pluginów, piconami oraz plikiem `oscam.dvbapi`.
   load average na procent CPU,
 - pokazanie wolnego miejsca na **RootFS**; gdy `/media/hdd` nie jest
   zamontowany, cache i kopie przechodzą do `/etc/enigma2/e2foorys`.
+- osobny bukiet **Foorys IPTV** dla playlisty Europe / Polskie IPTV,
+  z importem M3U przez DNS `iptv.forys.pro` albo prywatny link M3U,
+- automatyczne pobieranie piconów PNG z atrybutu `tvg-logo` playlisty i
+  przypisywanie ich do usług w bukiecie IPTV,
+- prywatne dane playlisty (link, login i hasło) są przechowywane wyłącznie
+  w konfiguracji dekodera i nigdy nie trafiają do manifestu ani repozytorium.
 
 Lista kanałów, pluginy i picony są dostarczane wyłącznie przez centralny
 manifest właściciela repozytorium — użytkownik dekodera nie może dopisywać
@@ -52,15 +58,15 @@ znajduje się w paczce jako `foorys.png`.
 W katalogu projektu:
 
 ```text
-  python tools/build_ipk.py --version 0.4.9
+  python tools/build_ipk.py --version 0.5.0
 ```
 
-Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.4.9_all.ipk`. Pakiet
+Powstanie `dist/enigma2-plugin-extensions-e2foorys_0.5.0_all.ipk`. Pakiet
 można skopiować na dekoder i zainstalować:
 
 ```text
-scp dist/enigma2-plugin-extensions-e2foorys_0.4.9_all.ipk root@DEKODER:/tmp/
-ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.4.9_all.ipk
+scp dist/enigma2-plugin-extensions-e2foorys_0.5.0_all.ipk root@DEKODER:/tmp/
+ssh root@DEKODER opkg install /tmp/enigma2-plugin-extensions-e2foorys_0.5.0_all.ipk
 ```
 
 Po instalacji plugin znajduje się w menu wtyczek jako `E2-Foorys`.
@@ -102,6 +108,20 @@ Oscama:
 - awaryjny cache i kopie: `/etc/enigma2/e2foorys`, gdy magazyn zewnętrzny nie
   jest zamontowany,
 - picony: `/usr/share/enigma2/picon`.
+
+### Foorys IPTV
+
+W sekcji **Foorys IPTV** wybierz **Instaluj listę Foorys IPTV**. Przed pierwszą
+instalacją otwórz `MENU → Ustawienia` i wybierz jedną z metod:
+
+- wklej prywatny link M3U w polu `Link M3U Foorys IPTV`, albo
+- pozostaw DNS `iptv.forys.pro` i wpisz lokalnie login oraz hasło konta IPTV.
+
+Plugin zapisuje playlistę jako `/etc/enigma2/userbouquet.foorys-iptv.tv`, dopisuje
+bukiet do `bouquets.tv`, a następnie pobiera dostępne picony PNG z `tvg-logo`.
+Po zakończeniu wybierz **Restart GUI Enigma2**, aby lista pojawiła się w telewizji.
+Link M3U może zawierać dane dostępowe — nie wklejaj go do `manifest.json`, zgłoszeń
+ani commitów.
 
 Repozytorium zawiera pakiety XStreamity i Chocholousek Picons. Są to mirrory
 publikowane z zachowaniem informacji o źródle w manifeście. Picony 13.0E i
