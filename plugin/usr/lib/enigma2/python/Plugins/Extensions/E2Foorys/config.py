@@ -4,6 +4,9 @@
 
 from __future__ import absolute_import
 
+import json
+import os
+
 from Components.config import (
     ConfigText,
     ConfigYesNo,
@@ -26,6 +29,46 @@ CENTRAL_GITHUB_BRANCH = "main"
 IPTV_FORYS_DNS = "iptv.forys.pro"
 RELAY_DEFAULT_URL = "https://raport.forys.pro:9443"
 RELAY_CERT_SHA256 = "bfc91e3fa75d5628fd908622e76bc7c92c4ad68f380a76c5e58557dc33c8be88"
+RELAY_STATE_FILE = "/etc/enigma2/e2foorys/relay.json"
+
+
+def _load_relay_state():
+    try:
+        with open(RELAY_STATE_FILE, "r") as handle:
+            value = json.load(handle)
+        return value if isinstance(value, dict) else {}
+    except (IOError, OSError, TypeError, ValueError):
+        return {}
+
+
+def _save_relay_state(section):
+    """Zapisuje token Relay także poza settings, aby przetrwał restart GUI."""
+
+    device_id = section.relay_device_id.value.strip()
+    device_token = section.relay_device_token.value
+    if not device_id or not device_token:
+        return
+    directory = os.path.dirname(RELAY_STATE_FILE)
+    try:
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        temporary = RELAY_STATE_FILE + ".tmp"
+        value = {
+            "relay_url": section.relay_url.value.strip(),
+            "relay_device_name": section.relay_device_name.value.strip(),
+            "relay_device_id": device_id,
+            "relay_device_token": device_token,
+            "relay_cert_sha256": section.relay_cert_sha256.value.strip().lower(),
+        }
+        with open(temporary, "w") as handle:
+            handle.write(json.dumps(value, separators=(",", ":")))
+        try:
+            os.chmod(temporary, 0o600)
+        except (OSError, TypeError):
+            pass
+        os.rename(temporary, RELAY_STATE_FILE)
+    except (IOError, OSError, TypeError, ValueError):
+        pass
 
 
 def central_manifest_url():
@@ -90,6 +133,7 @@ def ensure_config():
 
 def settings_dict():
     section = ensure_config()
+    relay_state = _load_relay_state()
     return {
         "manifest_url": central_manifest_url(),
         "github_repo": CENTRAL_GITHUB_REPOSITORY,
@@ -106,13 +150,13 @@ def settings_dict():
         "iptv_password": section.iptv_password.value,
         "create_backup": bool(section.create_backup.value),
         "show_in_main_menu": bool(section.show_in_main_menu.value),
-        "relay_url": section.relay_url.value.strip(),
+        "relay_url": section.relay_url.value.strip() or relay_state.get("relay_url", RELAY_DEFAULT_URL),
         "relay_enabled": bool(section.relay_enabled.value),
-        "relay_device_name": section.relay_device_name.value.strip() or "Foorys dekoder",
+        "relay_device_name": section.relay_device_name.value.strip() or relay_state.get("relay_device_name", "Foorys dekoder"),
         "relay_pairing_code": section.relay_pairing_code.value,
-        "relay_device_id": section.relay_device_id.value.strip(),
-        "relay_device_token": section.relay_device_token.value,
-        "relay_cert_sha256": section.relay_cert_sha256.value.strip().lower(),
+        "relay_device_id": section.relay_device_id.value.strip() or relay_state.get("relay_device_id", ""),
+        "relay_device_token": section.relay_device_token.value or relay_state.get("relay_device_token", ""),
+        "relay_cert_sha256": section.relay_cert_sha256.value.strip().lower() or relay_state.get("relay_cert_sha256", RELAY_CERT_SHA256),
     }
 
 
@@ -145,5 +189,6 @@ def iptv_config_entries():
 
 
 def save_config():
-    ensure_config()
+    section = ensure_config()
     configfile.save()
+    _save_relay_state(section)

@@ -1,4 +1,5 @@
 const DEFAULT_DECODER = "192.168.18.177:9001";
+const DEFAULT_RELAY = "https://raport.forys.pro:9443";
 
 function isPrivateHost(hostname) {
   const host = String(hostname || "").toLowerCase();
@@ -29,11 +30,29 @@ function callbackEndpoint(callbackUrl, captchaId, token) {
   return endpoint.toString();
 }
 
-chrome.runtime.onInstalled.addListener(async () => {
-  const stored = await chrome.storage.local.get("decoderAddress");
-  if (!stored.decoderAddress) {
-    await chrome.storage.local.set({ decoderAddress: DEFAULT_DECODER });
+function relayEndpoint(relayUrl) {
+  const endpoint = new URL(relayUrl);
+  endpoint.pathname = endpoint.pathname.replace(/\/?$/, "/") + "v1/captcha/submit";
+  endpoint.search = "";
+  return endpoint.toString();
+}
+
+function validRelayUrl(relayUrl) {
+  try {
+    const endpoint = new URL(relayUrl);
+    if (endpoint.protocol === "https:") return true;
+    return endpoint.protocol === "http:" && isPrivateHost(endpoint.hostname);
+  } catch (_error) {
+    return false;
   }
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
+  const stored = await chrome.storage.local.get(["decoderAddress", "relayUrl"]);
+  const defaults = {};
+  if (!stored.decoderAddress) defaults.decoderAddress = DEFAULT_DECODER;
+  if (!stored.relayUrl) defaults.relayUrl = DEFAULT_RELAY;
+  if (Object.keys(defaults).length) await chrome.storage.local.set(defaults);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -58,11 +77,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // navigator.userAgent is przekazywany przez content script w message.userAgent.
     payload.user_agent = message.userAgent || payload.user_agent;
     const token = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    fetch(callbackEndpoint(message.callbackUrl, message.captchaId, token))
-      .then((response) => {
-        if (!response.ok) throw new Error("HTTP " + response.status);
-        sendResponse({ ok: true });
-      })
+    chrome.storage.local.get(["relayUrl", "relayCaptureCode"]).then((stored) => {
+      const captureCode = String(stored.relayCaptureCode || "").trim();
+      const relayUrl = String(stored.relayUrl || DEFAULT_RELAY).trim().replace(/\/$/, "");
+      const endpoint = captureCode && validRelayUrl(relayUrl)
+        ? relayEndpoint(relayUrl)
+        : callbackEndpoint(message.callbackUrl, message.captchaId, token);
+      const body = captureCode && validRelayUrl(relayUrl)
+        ? JSON.stringify({
+          captureCode: captureCode,
+          callbackUrl: message.callbackUrl,
+          captchaId: message.captchaId,
+          token: token
+        })
+        : null;
+      return fetch(endpoint, body ? {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body
+      } : {})
+        .then((response) => response.json().catch(() => ({})).then((data) => {
+          if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+          return data;
+        }))
+        .then(() => {
+          if (body) return chrome.storage.local.remove("relayCaptureCode");
+          return null;
+        });
+    })
+      .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: String(error.message || error) }));
   });
   return true;

@@ -33,16 +33,26 @@ const ACTIONS = {
   oscam_dvbapi: "Aktualizuj oscam.dvbapi",
   update_plugin: "Aktualizuj E2-Foorys",
   restart_gui: "Restart GUI Enigma2",
+  deliver_e2i_capture: "Przekaż CAPTCHA E2iPlayer",
 };
 const ALLOWED_ACTIONS = new Set(Object.keys(ACTIONS));
-const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin"]);
+const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin", "deliver_e2i_capture"]);
 
 if (ADMIN_SECRET.length < 8) throw new Error("Hasło administratora Relay musi mieć co najmniej 8 znaków.");
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
 
 function loadState() {
-  try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")); }
-  catch (_error) { return { devices: {}, pairings: {}, jobs: [] }; }
+  try {
+    const value = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    value.devices = value.devices || {};
+    value.pairings = value.pairings || {};
+    value.jobs = Array.isArray(value.jobs) ? value.jobs : [];
+    value.captchaSessions = value.captchaSessions || {};
+    value.captures = value.captures || {};
+    return value;
+  } catch (_error) {
+    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, captures: {} };
+  }
 }
 let state = loadState();
 function saveState() {
@@ -57,8 +67,17 @@ function newPairingCode() {
   do { code = String(crypto.randomInt(1000, 10000)); } while (state.pairings[code]);
   return code;
 }
-function json(response, status, value) {
-  response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+function newCaptureCode() {
+  let code;
+  do { code = String(crypto.randomInt(100000, 1000000)); } while (state.captchaSessions[hash(code)]);
+  return code;
+}
+function json(response, status, value, extraHeaders) {
+  response.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    ...(extraHeaders || {}),
+  });
   response.end(JSON.stringify(value));
 }
 function readJson(request) {
@@ -92,6 +111,10 @@ function device(request) {
 function cleanup() {
   const now = Date.now();
   for (const [code, pairing] of Object.entries(state.pairings)) if (pairing.expiresAt < now) delete state.pairings[code];
+  for (const [code, session] of Object.entries(state.captchaSessions)) if (session.expiresAt < now) delete state.captchaSessions[code];
+  for (const [id, capture] of Object.entries(state.captures)) {
+    if (capture.expiresAt < now || (capture.deliveredAt && capture.deliveredAt < now - 120000)) delete state.captures[id];
+  }
   state.jobs = state.jobs.filter(job => job.createdAt > now - 7 * 86400000);
   for (const item of Object.values(state.devices)) {
     if (item.lastSeenAt && item.lastSeenAt < now - 120000) item.status = "offline";
@@ -100,9 +123,69 @@ function cleanup() {
 function jobParams(action, value) {
   if (!ACTION_PARAMS.has(action)) return {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (action === "deliver_e2i_capture") {
+    const captureId = String(value.captureId || "").trim();
+    return /^[A-Za-z0-9_-]{16,80}$/.test(captureId) ? { captureId } : null;
+  }
   const id = String(value.id || "").trim();
   if (!/^[A-Za-z0-9._+-]{1,160}$/.test(id)) return null;
   return { id };
+}
+
+function privateHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  const parts = host.split(".").map(Number);
+  return parts.length === 4 && parts.every(part => Number.isInteger(part) && part >= 0 && part <= 255) && (
+    parts[0] === 10 ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+  );
+}
+
+function captureCallbackUrl(value) {
+  try {
+    const parsed = new URL(String(value || ""));
+    if (parsed.protocol !== "http:" || !privateHost(parsed.hostname)) return null;
+    return parsed.toString();
+  } catch (_error) {
+    return null;
+  }
+}
+
+function captureBody(body) {
+  const captureCode = String(body.captureCode || "").trim();
+  if (!/^\d{6}$/.test(captureCode)) return { error: "Kod przechwycenia musi mieć 6 cyfr." };
+  const key = hash(captureCode);
+  const session = state.captchaSessions[key];
+  if (!session || session.expiresAt < Date.now()) return { error: "Kod przechwycenia wygasł lub jest nieprawidłowy." };
+  const callbackUrl = captureCallbackUrl(body.callbackUrl);
+  if (!callbackUrl) return { error: "Adres E2iPlayera musi być lokalnym adresem HTTP dekodera." };
+  const captchaId = String(body.captchaId || "").trim();
+  const token = String(body.token || "").trim();
+  if (!captchaId || captchaId.length > 160 || /[\u0000-\u001f\u007f]/.test(captchaId)) return { error: "Nieprawidłowy identyfikator CAPTCHA." };
+  if (!/^[A-Za-z0-9+/=_-]{16,60000}$/.test(token)) return { error: "Nieprawidłowa sesja CAPTCHA." };
+  const captureId = random(18);
+  const now = Date.now();
+  state.captures[captureId] = {
+    deviceId: session.deviceId,
+    callbackUrl,
+    captchaId,
+    token,
+    createdAt: now,
+    expiresAt: Math.min(session.expiresAt, now + 10 * 60000),
+  };
+  state.jobs.push({
+    id: random(12),
+    deviceId: session.deviceId,
+    action: "deliver_e2i_capture",
+    params: { captureId },
+    createdAt: now,
+    status: "pending",
+  });
+  delete state.captchaSessions[key];
+  saveState();
+  return { captureId, deviceId: session.deviceId };
 }
 
 const server = http.createServer(async (request, response) => {
@@ -113,6 +196,21 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/app.js") return staticFile(response, "app.js", "application/javascript; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/app.css") return staticFile(response, "app.css", "text/css; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true });
+    if (request.method === "OPTIONS" && url.pathname === "/v1/captcha/submit") {
+      response.writeHead(204, {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "cache-control": "no-store",
+      });
+      return response.end();
+    }
+    if (request.method === "POST" && url.pathname === "/v1/captcha/submit") {
+      const body = await readJson(request);
+      const result = captureBody(body);
+      if (result.error) return json(response, 401, result, { "access-control-allow-origin": "*" });
+      return json(response, 201, { ok: true }, { "access-control-allow-origin": "*" });
+    }
     if (url.pathname.startsWith("/v1/admin/")) {
       if (!admin(request)) return json(response, 401, { error: "Brak autoryzacji administratora." });
       if (request.method === "GET" && url.pathname === "/v1/admin/devices") return json(response, 200, { devices: Object.values(state.devices).map(({ tokenHash, ...item }) => item) });
@@ -125,6 +223,19 @@ const server = http.createServer(async (request, response) => {
       if (request.method === "POST" && url.pathname === "/v1/admin/pairings") {
         const code = newPairingCode(); state.pairings[code] = { expiresAt: Date.now() + 15 * 60000 }; saveState();
         return json(response, 201, { pairingCode: code, expiresInSeconds: 900 });
+      }
+      if (request.method === "POST" && url.pathname === "/v1/admin/captcha/sessions") {
+        const body = await readJson(request);
+        const deviceId = String(body.deviceId || "");
+        if (!state.devices[deviceId]) return json(response, 400, { error: "Nie znaleziono dekodera." });
+        const captureCode = newCaptureCode();
+        state.captchaSessions[hash(captureCode)] = {
+          deviceId,
+          createdAt: Date.now(),
+          expiresAt: Date.now() + 10 * 60000,
+        };
+        saveState();
+        return json(response, 201, { captureCode, expiresInSeconds: 600 });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);
@@ -150,13 +261,35 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === "GET" && url.pathname === "/v1/device/jobs") {
       const now = Date.now();
-      const jobs = state.jobs.filter(job => job.deviceId === current.id && (job.status === "pending" || (job.status === "delivered" && (job.deliveredAt || 0) < now - 120000))).slice(0, 3);
-      jobs.forEach(job => { job.status = "delivered"; job.deliveredAt = now; }); saveState(); return json(response, 200, { jobs });
+      const candidates = state.jobs.filter(job => job.deviceId === current.id && (job.status === "pending" || (job.status === "delivered" && (job.deliveredAt || 0) < now - 120000))).slice(0, 3);
+      const jobs = [];
+      candidates.forEach(job => {
+        if (job.action === "deliver_e2i_capture") {
+          const capture = state.captures[job.params && job.params.captureId];
+          if (!capture || capture.expiresAt < now) {
+            job.status = "failed";
+            job.result = "Sesja CAPTCHA wygasła przed odebraniem przez dekoder.";
+            job.finishedAt = now;
+            return;
+          }
+          capture.deliveredAt = now;
+          jobs.push({ ...job, capture: { callbackUrl: capture.callbackUrl, captchaId: capture.captchaId, token: capture.token } });
+          job.status = "delivered";
+          job.deliveredAt = now;
+          return;
+        }
+        job.status = "delivered";
+        job.deliveredAt = now;
+        jobs.push(job);
+      });
+      saveState(); return json(response, 200, { jobs });
     }
     if (request.method === "POST" && /^\/v1\/device\/jobs\/[^/]+\/result$/.test(url.pathname)) {
       const job = state.jobs.find(item => item.id === url.pathname.split("/")[4] && item.deviceId === current.id);
       if (!job) return json(response, 404, { error: "Nie znaleziono zadania." });
-      const body = await readJson(request); job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now(); saveState(); return json(response, 200, { ok: true });
+      const body = await readJson(request); job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now();
+      if (job.action === "deliver_e2i_capture" && job.params && job.params.captureId) delete state.captures[job.params.captureId];
+      saveState(); return json(response, 200, { ok: true });
     }
     return json(response, 404, { error: "Nie znaleziono." });
   } catch (error) { return json(response, 500, { error: "Błąd Relay." }); }

@@ -23,6 +23,7 @@ const BUTTONS = [
   ["update_plugin", "Aktualizuj Foorys"],
   ["restart_gui", "Restart GUI"],
 ];
+const CAPTCHA_BUTTON = "CAPTCHA E2iPlayer";
 
 function headers() {
   return { Authorization: "Basic " + btoa("foorys:" + password), "Content-Type": "application/json" };
@@ -72,7 +73,7 @@ function jobHistory(deviceId, jobs) {
 function deviceCard(device, jobs) {
   const online = device.status === "online";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
-  return `<article><header><div><h2>${esc(device.name)}</h2><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions">${buttons}</div>${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div><h2>${esc(device.name)}</h2><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}</div>${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -106,6 +107,15 @@ async function queueAction(deviceId, action) {
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
+async function startCaptchaSession(deviceId) {
+  try {
+    const data = await request("/v1/admin/captcha/sessions", { method: "POST", body: JSON.stringify({ deviceId }) });
+    const code = data.captureCode || "";
+    if (navigator.clipboard && code) navigator.clipboard.writeText(code).catch(() => {});
+    $("#notice").textContent = `Kod CAPTCHA: ${code} · ważny 10 min. Wpisz go w Foorys E2i Helper, otwórz adres QR E2iPlayera i potwierdź weryfikację ręcznie.`;
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
 $("#sign-in").onclick = login;
 $("#password").onkeydown = event => { if (event.key === "Enter") login(); };
 $("#refresh").onclick = load;
@@ -113,6 +123,8 @@ $("#sign-out").onclick = () => { sessionStorage.removeItem("foorysRelayPassword"
 $("#devices").onclick = event => {
   const button = event.target.closest("button[data-action]");
   if (button) queueAction(button.dataset.device, button.dataset.action);
+  const captchaButton = event.target.closest("button[data-captcha]");
+  if (captchaButton) startCaptchaSession(captchaButton.dataset.device);
 };
 $("#pair").onclick = async () => {
   try {

@@ -17,11 +17,12 @@ import threading
 import time
 
 try:
-    from urllib.parse import urlparse
+    from urllib.parse import urlencode, urlparse, urlunparse
     from urllib.request import Request, urlopen
 except ImportError:  # pragma: no cover - stare obrazy E2 z Pythonem 2.7
     from urllib2 import Request, urlopen
-    from urlparse import urlparse
+    from urllib import urlencode
+    from urlparse import urlparse, urlunparse
 
 from .compat import string_types, to_text
 from .config import ensure_config, save_config, settings_dict
@@ -316,6 +317,78 @@ def _human_size(value):
     return "%.1f %s" % (number, units[index])
 
 
+def _private_host(hostname):
+    """Akceptuje wyłącznie lokalny adres dekodera jako cel callbacku E2iPlayer."""
+
+    host = to_text(hostname or "").lower()
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return True
+    parts = host.split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        numbers = [int(part) for part in parts]
+    except (TypeError, ValueError):
+        return False
+    if any(number < 0 or number > 255 for number in numbers):
+        return False
+    return (
+        numbers[0] == 10
+        or (numbers[0] == 192 and numbers[1] == 168)
+        or (numbers[0] == 172 and 16 <= numbers[1] <= 31)
+    )
+
+
+def _e2i_callback_url(callback_url, captcha_id, token):
+    """Buduje ten sam endpoint /response, którego używa lokalny helper."""
+
+    parsed = urlparse(to_text(callback_url or ""))
+    if parsed.scheme.lower() != "http" or not _private_host(parsed.hostname):
+        raise RelayError("Relay może przekazać CAPTCHA wyłącznie do lokalnego dekodera.")
+    path = parsed.path or "/"
+    if not path.endswith("/"):
+        path += "/"
+    path += "response"
+    query = urlencode({"c": to_text(captcha_id), "token": to_text(token)})
+    return urlunparse((parsed.scheme, parsed.netloc, path, "", query, ""))
+
+
+def deliver_e2i_capture(params, settings, progress=None):
+    """Przekazuje ręcznie zatwierdzoną sesję do lokalnego MyE2i/E2iPlayera."""
+
+    capture = params.get("capture", {}) if isinstance(params, dict) else {}
+    callback_url = _setting(capture, "callbackUrl", "")
+    captcha_id = _setting(capture, "captchaId", "")
+    token = _setting(capture, "token", "")
+    if not callback_url or not captcha_id or not token:
+        raise RelayError("Relay nie otrzymał kompletnej sesji CAPTCHA.")
+    target = _e2i_callback_url(callback_url, captcha_id, token)
+    _progress(progress, "Przekazuję ręcznie zatwierdzoną sesję do E2iPlayera...")
+    request = Request(target, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+    response = None
+    try:
+        response = urlopen(request, timeout=25)
+        status = getattr(response, "getcode", lambda: 200)()
+        if status and int(status) >= 400:
+            raise RelayError("Lokalny E2iPlayer zwrócił HTTP %s." % status)
+        response.read(4096)
+    except RelayError:
+        raise
+    except Exception as error:
+        raise RelayError("Nie udało się przekazać sesji do E2iPlayera: %s" % _safe_error(error))
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
+    return {
+        "kind": "e2i-captcha",
+        "ok": True,
+        "summary": "Sesja CAPTCHA została przekazana do lokalnego E2iPlayera.",
+    }
+
+
 def _operation_result(result):
     if not isinstance(result, dict):
         return to_text(result)
@@ -418,6 +491,8 @@ def execute_remote_action(action, params, settings, progress=None):
         return install_public_softcam({"id": ids[action]}, settings, progress)
     if action == "oscam_dvbapi":
         return install_current_oscam_dvbapi({}, settings, progress)
+    if action == "deliver_e2i_capture":
+        return deliver_e2i_capture(params, settings, progress)
     if action == "update_plugin":
         manifest = _manifest(settings, progress)
         item = manifest.get("plugin_update")
@@ -562,7 +637,11 @@ class RelayAgent(object):
                 self.restart_requested = True
                 result = {"kind": "relay", "summary": "Restart GUI został zaplanowany na dekoderze."}
             else:
-                result = execute_remote_action(action, job.get("params", {}), settings)
+                params = job.get("params", {})
+                if action == "deliver_e2i_capture":
+                    params = dict(params) if isinstance(params, dict) else {}
+                    params["capture"] = job.get("capture", {})
+                result = execute_remote_action(action, params, settings)
             client.result(job_id, True, _operation_result(result))
         except Exception as error:
             try:
@@ -591,4 +670,3 @@ def stop_agent():
     global _AGENT
     if _AGENT is not None:
         _AGENT.stop()
-

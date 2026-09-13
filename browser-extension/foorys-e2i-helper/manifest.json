@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Foorys E2i Helper",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Pomaga przekazać ręcznie potwierdzoną sesję Cloudflare z przeglądarki do E2iPlayera na lokalnym dekoderze.",
   "permissions": ["activeTab", "cookies", "storage", "tabs"],
   "host_permissions": ["<all_urls>"],

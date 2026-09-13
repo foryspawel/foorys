@@ -19,7 +19,14 @@
     <input id="decoder" inputmode="url" placeholder="192.168.18.177:9001">
     <button id="save">Zapisz adres</button>
     <button id="open" class="secondary">Otwórz stronę dekodera</button>
-    <p class="hint">Po komunikacie E2iPlayera otwórz adres z QR w tej przeglądarce i przejdź weryfikację ręcznie. Sesja zostanie przekazana do dekodera automatycznie.</p>
+    <hr>
+    <label for="relay">Adres Foorys Relay</label>
+    <input id="relay" type="url" placeholder="https://raport.forys.pro:9443">
+    <label for="capture-code">Kod przechwycenia CAPTCHA</label>
+    <input id="capture-code" class="capture-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6 cyfr">
+    <button id="activate">Aktywuj przechwycenie przez Relay</button>
+    <button id="clear" class="secondary">Wyczyść kod</button>
+    <p class="hint">W panelu Relay kliknij przy dekoderze „CAPTCHA E2iPlayer”, wpisz otrzymany kod tutaj, a następnie otwórz adres z QR E2iPlayera. Weryfikację Cloudflare zawsze zatwierdź ręcznie.</p>
     <p id="status" role="status"></p>
   </main>
   <script src="popup.js"></script>
