@@ -99,7 +99,7 @@ function deviceCard(device, jobs) {
   const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
   const removeButton = online ? "" : `<button type="button" class="action-button danger delete-button" data-device="${esc(device.id)}" data-delete="1">Usuń nieaktywny</button>`;
-  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button mye2i-button" data-device="${esc(device.id)}" data-mye2i="1">MyE2iV3 przez tunel</button><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -151,6 +151,16 @@ async function startCaptchaSession(deviceId) {
     if (navigator.clipboard && browserUrl) navigator.clipboard.writeText(browserUrl).catch(() => {});
     const link = browserUrl ? `<a href="${esc(browserUrl)}" target="_blank" rel="noopener">Otwórz sesję w Chrome</a>` : "";
     $("#notice").innerHTML = `Sesja CAPTCHA gotowa · ważna 10 min. ${link} · adres został skopiowany. Kod awaryjny: <b>${esc(code)}</b>`;
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
+async function startMyE2iTunnel(deviceId) {
+  try {
+    const data = await request("/v1/admin/e2i/tunnels", { method: "POST", body: JSON.stringify({ deviceId }) });
+    const url = data.tunnelPath ? new URL(data.tunnelPath, window.location.origin).toString() : "";
+    if (navigator.clipboard && url) navigator.clipboard.writeText(url).catch(() => {});
+    const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">Otwórz MyE2iV3</a>` : "";
+    $("#notice").innerHTML = `Tunel MyE2iV3 jest gotowy przez 10 min. ${link} · adres został skopiowany. W oficjalnym rozszerzeniu MyE2iV3 ustaw ten adres jako adres dekodera.`;
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
@@ -206,6 +216,8 @@ $("#devices").onclick = event => {
   }
   const button = event.target.closest("button[data-action]");
   if (button) queueAction(button.dataset.device, button.dataset.action);
+  const mye2iButton = event.target.closest("button[data-mye2i]");
+  if (mye2iButton) startMyE2iTunnel(mye2iButton.dataset.device);
   const captchaButton = event.target.closest("button[data-captcha]");
   if (captchaButton) startCaptchaSession(captchaButton.dataset.device);
 };

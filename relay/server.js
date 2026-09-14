@@ -36,6 +36,8 @@ const ACTIONS = {
   restart_gui: "Restart GUI Enigma2",
   prepare_e2i_capture: "Przygotuj zdalną CAPTCHA E2iPlayer",
   deliver_e2i_capture: "Przekaż CAPTCHA E2iPlayer",
+  prepare_e2i_tunnel: "Przygotuj tunel MyE2iV3",
+  deliver_e2i_tunnel: "Przekaż odpowiedź MyE2iV3",
 };
 const CONSOLE_COMMANDS = {
   system: "Stan systemu",
@@ -45,7 +47,7 @@ const CONSOLE_COMMANDS = {
   processes: "Procesy dekodera",
 };
 const ALLOWED_ACTIONS = new Set(Object.keys(ACTIONS));
-const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin", "deliver_e2i_capture", "console"]);
+const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin", "deliver_e2i_capture", "deliver_e2i_tunnel", "console"]);
 
 if (ADMIN_SECRET.length < 8) throw new Error("Hasło administratora Relay musi mieć co najmniej 8 znaków.");
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
@@ -59,9 +61,10 @@ function loadState() {
     value.captchaSessions = value.captchaSessions || {};
     value.browserSessions = value.browserSessions || {};
     value.captures = value.captures || {};
+    value.e2iTunnels = value.e2iTunnels || {};
     return value;
   } catch (_error) {
-    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, browserSessions: {}, captures: {} };
+    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, browserSessions: {}, captures: {}, e2iTunnels: {} };
   }
 }
 let state = loadState();
@@ -133,6 +136,9 @@ function cleanup() {
   for (const [id, capture] of Object.entries(state.captures)) {
     if (capture.expiresAt < now || (capture.deliveredAt && capture.deliveredAt < now - 120000)) delete state.captures[id];
   }
+  for (const [token, tunnel] of Object.entries(state.e2iTunnels)) {
+    if (tunnel.expiresAt < now || (tunnel.deliveredAt && tunnel.deliveredAt < now - 120000)) delete state.e2iTunnels[token];
+  }
   state.jobs = state.jobs.filter(job => job.createdAt > now - 7 * 86400000);
   for (const item of Object.values(state.devices)) {
     if (item.lastSeenAt && item.lastSeenAt < now - 120000) item.status = "offline";
@@ -145,6 +151,7 @@ function jobParams(action, value) {
     const captureId = String(value.captureId || "").trim();
     return /^[A-Za-z0-9_-]{16,80}$/.test(captureId) ? { captureId } : null;
   }
+  if (action === "deliver_e2i_tunnel") return null;
   if (action === "console") {
     const command = String(value.command || "").trim();
     return Object.prototype.hasOwnProperty.call(CONSOLE_COMMANDS, command) ? { command } : null;
@@ -316,8 +323,57 @@ function captchaBrowserStatus(token) {
   return { status: 200, value: { status: job.status, ready: false } };
 }
 
+function e2iTunnel(token) {
+  const value = String(token || "").trim();
+  if (!/^[A-Za-z0-9_-]{32,120}$/.test(value)) return null;
+  const tunnel = state.e2iTunnels[hash(value)];
+  return tunnel && tunnel.expiresAt >= Date.now() ? tunnel : null;
+}
+
+function e2iTunnelPage(token) {
+  const safeToken = JSON.stringify(String(token || "")).replace(/</g, "\\u003c");
+  return `<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Foorys MyE2iV3</title>
+<style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#06111d;color:#edf7ff;font:16px Arial,sans-serif}main{width:min(620px,calc(100% - 36px));padding:30px;border:1px solid #246382;border-radius:16px;background:#0b2236}h1{margin:0 0 12px;color:#28d7f5}.state{margin-top:22px;padding:14px 16px;border-left:4px solid #55dfa4;background:#071927;color:#55dfa4;font-weight:bold}.small{font-size:13px;color:#8daabd}</style></head><body><main><h1>Foorys MyE2iV3</h1><p>Łączę bezpośrednio z aktywną sesją MyE2i na wybranym dekoderze.</p><div id="state" class="state">Czekam na ekran MyE2i na dekoderze…</div><p class="small">Weryfikację zatwierdź ręcznie w oficjalnym rozszerzeniu MyE2iV3.</p><script>const token=${safeToken},state=document.getElementById("state");async function check(){try{const r=await fetch("/v1/e2i/tunnel/"+encodeURIComponent(token)+"/status",{cache:"no-store"}),d=await r.json();if(d.ready&&d.targetUrl){state.textContent="Otwieram weryfikację…";location.replace(d.targetUrl);return}if(d.error){state.textContent=d.error;return}state.textContent=d.status==="failed"?"Nie udało się przygotować MyE2i.":"Czekam na aktywną sesję MyE2i na dekoderze…"}catch(_){state.textContent="Brak połączenia z Relay — ponawiam…"}setTimeout(check,2000)}check()</script></main></body></html>`;
+}
+
+function queueTunnelPreparation(tunnel) {
+  if (tunnel.jobId) return state.jobs.find(job => job.id === tunnel.jobId) || null;
+  const job = { id: random(12), deviceId: tunnel.deviceId, action: "prepare_e2i_tunnel", params: {}, createdAt: Date.now(), status: "pending", source: "mye2i-tunnel" };
+  state.jobs.push(job); tunnel.jobId = job.id; saveState(); return job;
+}
+
+function e2iTunnelStatus(token) {
+  const tunnel = e2iTunnel(token);
+  if (!tunnel) return { status: 404, value: { error: "Tunel MyE2iV3 wygasł lub jest nieprawidłowy." } };
+  const job = queueTunnelPreparation(tunnel);
+  if (!job) return { status: 500, value: { error: "Nie udało się utworzyć zadania MyE2iV3." } };
+  if (job.status === "completed") {
+    const data = job.data || {};
+    const callbackUrl = captureCallbackUrl(data.callbackUrl);
+    const captchaId = String(data.captchaId || "").trim();
+    if (!callbackUrl || !captchaId || !data.targetUrl) return { status: 422, value: { error: "Dekoder zwrócił niekompletną sesję MyE2iV3." } };
+    tunnel.callbackUrl = callbackUrl; tunnel.captchaId = captchaId; tunnel.targetUrl = String(data.targetUrl); saveState();
+    return { status: 200, value: { ready: true, targetUrl: tunnel.targetUrl } };
+  }
+  if (job.status === "failed") return { status: 200, value: { status: "failed", error: job.result || "Nie udało się przygotować MyE2iV3." } };
+  return { status: 200, value: { status: job.status, ready: false } };
+}
+
+function acceptTunnelResponse(token, responseToken) {
+  const tunnel = e2iTunnel(token);
+  const value = String(responseToken || "").trim();
+  if (!tunnel) return { error: "Tunel MyE2iV3 wygasł lub jest nieprawidłowy." };
+  if (!tunnel.callbackUrl || !tunnel.captchaId) return { error: "Tunel nie jest jeszcze gotowy. Otwórz najpierw stronę MyE2iV3." };
+  if (!/^[A-Za-z0-9+/=_-]{16,60000}$/.test(value)) return { error: "Nieprawidłowa odpowiedź MyE2iV3." };
+  if (tunnel.responseToken || tunnel.deliveredAt) return { error: "Odpowiedź MyE2iV3 została już przekazana." };
+  tunnel.responseToken = value;
+  state.jobs.push({ id: random(12), deviceId: tunnel.deviceId, action: "deliver_e2i_tunnel", params: { id: hash(token) }, createdAt: Date.now(), status: "pending", source: "mye2i-tunnel" });
+  saveState();
+  return { ok: true };
+}
+
 function jobResultData(action, value) {
-  if (action !== "prepare_e2i_capture") return null;
+  if (action !== "prepare_e2i_capture" && action !== "prepare_e2i_tunnel") return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const callbackUrl = captureCallbackUrl(value.callbackUrl);
   const captchaId = String(value.captchaId || "").trim();
@@ -346,6 +402,24 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && browserStatusPath) {
       const result = captchaBrowserStatus(browserStatusPath[1]);
       return json(response, result.status, result.value);
+    }
+    const tunnelPagePath = url.pathname.match(/^\/e2i\/tunnel\/([A-Za-z0-9_-]{32,120})\/e2it\.html\/?$/);
+    if (request.method === "GET" && tunnelPagePath) {
+      if (!e2iTunnel(tunnelPagePath[1])) return json(response, 404, { error: "Tunel MyE2iV3 wygasł lub jest nieprawidłowy." });
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      return response.end(e2iTunnelPage(tunnelPagePath[1]));
+    }
+    const tunnelStatusPath = url.pathname.match(/^\/v1\/e2i\/tunnel\/([A-Za-z0-9_-]{32,120})\/status\/?$/);
+    if (request.method === "GET" && tunnelStatusPath) {
+      const result = e2iTunnelStatus(tunnelStatusPath[1]);
+      return json(response, result.status, result.value);
+    }
+    const tunnelResponsePath = url.pathname.match(/^\/e2i\/tunnel\/([A-Za-z0-9_-]{32,120})\/response\/?$/);
+    if (request.method === "GET" && tunnelResponsePath) {
+      const result = acceptTunnelResponse(tunnelResponsePath[1], url.searchParams.get("token"));
+      if (result.error) return json(response, 400, result);
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+      return response.end("<!doctype html><title>MyE2iV3</title><p>Odpowiedź została przekazana do dekodera. Możesz zamknąć tę kartę.</p>");
     }
     if (request.method === "OPTIONS" && url.pathname === "/v1/captcha/submit") {
       response.writeHead(204, {
@@ -376,6 +450,7 @@ const server = http.createServer(async (request, response) => {
         for (const [code, session] of Object.entries(state.captchaSessions)) if (session.deviceId === deviceId) delete state.captchaSessions[code];
         for (const [token, session] of Object.entries(state.browserSessions)) if (session.deviceId === deviceId) delete state.browserSessions[token];
         for (const [id, capture] of Object.entries(state.captures)) if (capture.deviceId === deviceId) delete state.captures[id];
+        for (const [token, tunnel] of Object.entries(state.e2iTunnels)) if (tunnel.deviceId === deviceId) delete state.e2iTunnels[token];
         saveState();
         return json(response, 200, { ok: true, deviceId });
       }
@@ -424,6 +499,17 @@ const server = http.createServer(async (request, response) => {
         saveState();
         return json(response, 201, { captureCode, browserPath: "/e2i/" + browserToken, expiresInSeconds: 600 });
       }
+      if (request.method === "POST" && url.pathname === "/v1/admin/e2i/tunnels") {
+        const body = await readJson(request);
+        const deviceId = String(body.deviceId || "");
+        const current = state.devices[deviceId];
+        if (!current) return json(response, 400, { error: "Nie znaleziono dekodera." });
+        if (current.status !== "online") return json(response, 409, { error: "Dekoder musi być połączony z Relay." });
+        const token = random(32);
+        state.e2iTunnels[hash(token)] = { deviceId, createdAt: Date.now(), expiresAt: Date.now() + 10 * 60000 };
+        saveState();
+        return json(response, 201, { tunnelPath: "/e2i/tunnel/" + token + "/e2it.html", expiresInSeconds: 600 });
+      }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);
         const action = String(body.action || "");
@@ -465,6 +551,14 @@ const server = http.createServer(async (request, response) => {
           job.deliveredAt = now;
           return;
         }
+        if (job.action === "deliver_e2i_tunnel") {
+          const tunnel = state.e2iTunnels[job.params && job.params.id];
+          if (!tunnel || tunnel.expiresAt < now || !tunnel.responseToken) {
+            job.status = "failed"; job.result = "Odpowiedź MyE2iV3 wygasła przed odebraniem przez dekoder."; job.finishedAt = now; return;
+          }
+          jobs.push({ ...job, tunnel: { callbackUrl: tunnel.callbackUrl, captchaId: tunnel.captchaId, token: tunnel.responseToken } });
+          job.status = "delivered"; job.deliveredAt = now; tunnel.deliveredAt = now; return;
+        }
         job.status = "delivered";
         job.deliveredAt = now;
         jobs.push(job);
@@ -475,13 +569,14 @@ const server = http.createServer(async (request, response) => {
       const job = state.jobs.find(item => item.id === url.pathname.split("/")[4] && item.deviceId === current.id);
       if (!job) return json(response, 404, { error: "Nie znaleziono zadania." });
       const body = await readJson(request);
-      if (body.ok && job.action === "prepare_e2i_capture") {
+      if (body.ok && (job.action === "prepare_e2i_capture" || job.action === "prepare_e2i_tunnel")) {
         const data = jobResultData(job.action, body.data);
         if (!data) return json(response, 400, { error: "Nieprawidłowe dane przygotowanej sesji CAPTCHA." });
         job.data = data;
       }
       job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now();
       if (job.action === "deliver_e2i_capture" && job.params && job.params.captureId) delete state.captures[job.params.captureId];
+      if (job.action === "deliver_e2i_tunnel" && job.params && job.params.id) delete state.e2iTunnels[job.params.id];
       saveState(); return json(response, 200, { ok: true });
     }
     return json(response, 404, { error: "Nie znaleziono." });

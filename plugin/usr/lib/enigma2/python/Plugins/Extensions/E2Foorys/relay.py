@@ -617,6 +617,13 @@ def deliver_e2i_capture(params, settings, progress=None):
     }
 
 
+def deliver_e2i_tunnel(params, settings, progress=None):
+    """Dostarcza token zwrócony przez oficjalny MyE2iV3 przez prywatny tunel."""
+
+    tunnel = params.get("tunnel", {}) if isinstance(params, dict) else {}
+    return deliver_e2i_capture({"capture": tunnel}, settings, progress)
+
+
 def _console_processes():
     """Zwraca ograniczoną listę procesów bez uruchamiania powłoki."""
 
@@ -800,8 +807,12 @@ def execute_remote_action(action, params, settings, progress=None):
         return install_current_oscam_dvbapi({}, settings, progress)
     if action == "prepare_e2i_capture":
         return prepare_e2i_capture({}, settings, progress)
+    if action == "prepare_e2i_tunnel":
+        return prepare_e2i_capture({}, settings, progress)
     if action == "deliver_e2i_capture":
         return deliver_e2i_capture(params, settings, progress)
+    if action == "deliver_e2i_tunnel":
+        return deliver_e2i_tunnel(params, settings, progress)
     if action == "update_plugin":
         manifest = _manifest(settings, progress)
         item = manifest.get("plugin_update")
@@ -951,7 +962,7 @@ class RelayAgent(object):
                     params = dict(params) if isinstance(params, dict) else {}
                     params["capture"] = job.get("capture", {})
                 result = execute_remote_action(action, params, settings)
-            data = result if action == "prepare_e2i_capture" else None
+            data = result if action in ("prepare_e2i_capture", "prepare_e2i_tunnel") else None
             client.result(job_id, True, _operation_result(result), data=data)
         except Exception as error:
             try:
