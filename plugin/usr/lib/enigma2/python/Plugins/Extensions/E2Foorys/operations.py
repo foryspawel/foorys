@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.9.1 Enigma2"
+USER_AGENT = "E2-Foorys/0.9.2 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -400,7 +400,13 @@ def _oscam_status():
             if not entry.isdigit():
                 continue
             name = _read_text_file("/proc/%s/comm" % entry).strip().lower()
-            if "oscam" in name:
+            command = _read_text_file("/proc/%s/cmdline" % entry).replace("\x00", " ").strip().lower()
+            if "oscam" in name or "oscam" in command:
+                return {"running": True, "process": (name or "oscam")[:40]}
+            # openATV uruchamia wybrany cam czasem przez proces `softcam`.
+            # Nie zgadujemy stanu dla innych nazw — uznajemy wyłącznie wrapper
+            # wskazujący explicite konfigurację/binarkę OSCam.
+            if name in ("softcam", "softcamstart") and "oscam" in command:
                 return {"running": True, "process": name[:40]}
     except OSError:
         pass
