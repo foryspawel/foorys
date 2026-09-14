@@ -913,8 +913,17 @@ class RelayAgent(object):
         try:
             navigation = getattr(self.session, "nav", None)
             reference = navigation.getCurrentlyPlayingServiceReference() if navigation is not None else None
-            info = navigation.getCurrentService().info() if navigation is not None and navigation.getCurrentService() is not None else None
-            name = info.getName(reference) if info is not None and reference is not None else ""
+            if reference is None and navigation is not None:
+                getter = getattr(navigation, "getCurrentlyPlayingServiceOrGroup", None)
+                reference = getter() if getter is not None else None
+            service = navigation.getCurrentService() if navigation is not None else None
+            info = service.info() if service is not None else None
+            name = ""
+            if info is not None:
+                try:
+                    name = info.getName(reference) if reference is not None else info.getName()
+                except TypeError:
+                    name = info.getName()
             if name:
                 self.current_service = to_text(name).strip()[:120]
         except Exception:
