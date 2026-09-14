@@ -70,7 +70,9 @@ class RelayError(RuntimeError):
 USER_AGENT = "E2-Foorys-Relay/%s" % VERSION
 REQUEST_LIMIT = 512 * 1024
 POLL_SECONDS = 20
-HEARTBEAT_SECONDS = 60
+# Stan kanału ma być użyteczny także przy szybkim przełączaniu. Nie wysyłamy
+# heartbeatów częściej niż pętla pobierania zadań, czyli co około 20 sekund.
+HEARTBEAT_SECONDS = POLL_SECONDS
 E2I_PORTS = tuple(range(9001, 9011))
 E2I_DISCOVERY_SECONDS = 45
 E2I_RETRY_SECONDS = 2
