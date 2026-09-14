@@ -72,8 +72,9 @@ function jobHistory(deviceId, jobs) {
 
 function deviceCard(device, jobs) {
   const online = device.status === "online";
+  const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
-  return `<article><header><div><h2>${esc(device.name)}</h2><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}</div>${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}</div>${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -118,11 +119,30 @@ async function startCaptchaSession(deviceId) {
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
+async function renameDevice(deviceId, currentName) {
+  const value = window.prompt("Podaj nazwę dekodera:", currentName || "Dekoder");
+  if (value === null) return;
+  const name = value.trim();
+  if (!name) { $("#notice").textContent = "Nazwa dekodera nie może być pusta."; return; }
+  if (name.length > 80) { $("#notice").textContent = "Nazwa dekodera może mieć maksymalnie 80 znaków."; return; }
+  try {
+    await request(`/v1/admin/devices/${encodeURIComponent(deviceId)}`, { method: "PATCH", body: JSON.stringify({ name }) });
+    $("#notice").textContent = `Zapisano nazwę „${name}”.`;
+    await load();
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
 $("#sign-in").onclick = login;
 $("#password").onkeydown = event => { if (event.key === "Enter") login(); };
 $("#refresh").onclick = load;
 $("#sign-out").onclick = () => { sessionStorage.removeItem("foorysRelayPassword"); location.reload(); };
 $("#devices").onclick = event => {
+  const renameButton = event.target.closest("button[data-rename]");
+  if (renameButton) {
+    const currentName = renameButton.closest(".device-name")?.querySelector("h2")?.textContent || "Dekoder";
+    renameDevice(renameButton.dataset.device, currentName);
+    return;
+  }
   const button = event.target.closest("button[data-action]");
   if (button) queueAction(button.dataset.device, button.dataset.action);
   const captchaButton = event.target.closest("button[data-captcha]");

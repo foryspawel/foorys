@@ -110,6 +110,11 @@ function device(request) {
   const token = String(request.headers["x-foorys-device-token"] || "");
   return Object.values(state.devices).find(item => item.tokenHash === hash(token));
 }
+function deviceName(value) {
+  const name = String(value == null ? "" : value).trim();
+  if (!name || name.length > 80 || /[\u0000-\u001f\u007f]/.test(name)) return null;
+  return name;
+}
 function cleanup() {
   const now = Date.now();
   for (const [code, pairing] of Object.entries(state.pairings)) if (pairing.expiresAt < now) delete state.pairings[code];
@@ -348,6 +353,19 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname.startsWith("/v1/admin/")) {
       if (!admin(request)) return json(response, 401, { error: "Brak autoryzacji administratora." });
       if (request.method === "GET" && url.pathname === "/v1/admin/devices") return json(response, 200, { devices: Object.values(state.devices).map(({ tokenHash, ...item }) => item) });
+      const devicePath = url.pathname.match(/^\/v1\/admin\/devices\/([A-Za-z0-9_-]{8,80})$/);
+      if (request.method === "PATCH" && devicePath) {
+        const deviceId = devicePath[1];
+        const current = state.devices[deviceId];
+        if (!current) return json(response, 404, { error: "Nie znaleziono dekodera." });
+        const body = await readJson(request);
+        const name = deviceName(body.name);
+        if (!name) return json(response, 400, { error: "Nazwa musi mieć od 1 do 80 znaków i nie może zawierać znaków sterujących." });
+        current.name = name;
+        saveState();
+        const { tokenHash, ...safeDevice } = current;
+        return json(response, 200, { device: safeDevice });
+      }
       if (request.method === "GET" && url.pathname === "/v1/admin/actions") return json(response, 200, { actions: ACTIONS });
       if (request.method === "GET" && url.pathname === "/v1/admin/jobs") {
         const deviceId = String(url.searchParams.get("deviceId") || "");
@@ -395,7 +413,7 @@ const server = http.createServer(async (request, response) => {
       const body = await readJson(request); const pairing = state.pairings[String(body.pairingCode || "")];
       if (!pairing || pairing.expiresAt < Date.now()) return json(response, 401, { error: "Kod parowania wygasł." });
       const id = random(10), token = random(32);
-      state.devices[id] = { id, name: String(body.name || "Dekoder").slice(0, 80), tokenHash: hash(token), pairedAt: Date.now(), lastSeenAt: null, status: "offline" };
+      state.devices[id] = { id, name: deviceName(body.name) || "Dekoder", tokenHash: hash(token), pairedAt: Date.now(), lastSeenAt: null, status: "offline" };
       delete state.pairings[body.pairingCode]; saveState(); return json(response, 201, { deviceId: id, deviceToken: token });
     }
     const current = device(request);

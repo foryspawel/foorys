@@ -6,7 +6,7 @@ Panel administratora używa oddzielnego hasła, a dekodery osobnych tokenów. Re
 
 W produkcji usługa ma być dostępna wyłącznie przez Nginx TLS na porcie 9443 pod domeną `raport.forys.pro`. Rekord DNS `raport.forys.pro` musi wskazywać na adres VPS `169.58.3.89`; nie zmieniaj przy tym rekordu używanego przez aplikację firmową. Certyfikat i klucz prywatny należy trzymać tylko na serwerze, a hasło administratora w pliku `.env` z uprawnieniami `600`.
 
-Po sparowaniu wtyczka E2-Foorys pracuje w tle: wysyła heartbeat co minutę i pobiera zadania co 20 sekund. Nowy kod parowania ma 4 cyfry, jest jednorazowy i ważny 15 minut. Token urządzenia jest przechowywany tylko na dekoderze.
+Po sparowaniu wtyczka E2-Foorys pracuje w tle: wysyła heartbeat co minutę i pobiera zadania co 20 sekund. Nowy kod parowania ma 4 cyfry, jest jednorazowy i ważny 15 minut. Token urządzenia jest przechowywany tylko na dekoderze. Nazwę sparowanego dekodera można zmienić w panelu Relay; nazwa jest zapisywana w stanie serwera, a token nigdy nie jest wyświetlany w panelu.
 
 Panel może również utworzyć jednorazową sesję „Otwórz CAPTCHA zdalnie” dla wybranego dekodera. Link otwarty w Chrome czeka na aktywną stronę MyE2i na porcie 9001 (agent sprawdza wyłącznie lokalne interfejsy dekodera), po czym otwiera właściwy serwis z jednorazowym tokenem sesji. Rozszerzenie Foorys E2i Helper po ręcznym przejściu weryfikacji Cloudflare przekazuje sesję do Relay, a agent dostarcza ją wyłącznie do lokalnego adresu callbacku E2iPlayera. Sesja wygasa po 10 minutach i jest usuwana po wykorzystaniu. Relay nie rozwiązuje CAPTCHA automatycznie.
 
