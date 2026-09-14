@@ -99,7 +99,7 @@ function deviceCard(device, jobs) {
   const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
   const removeButton = online ? "" : `<button type="button" class="action-button danger delete-button" data-device="${esc(device.id)}" data-delete="1">Usuń nieaktywny</button>`;
-  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button mye2i-button" data-device="${esc(device.id)}" data-mye2i="1">MyE2iV3 przez tunel</button><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button mye2i-button" data-device="${esc(device.id)}" data-mye2i-proxy="1">MyE2iV3 przez proxy</button><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -165,6 +165,15 @@ async function startMyE2iTunnel(deviceId) {
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
+async function startMyE2iProxy(deviceId) {
+  try {
+    const data = await request("/v1/admin/e2i/proxies", { method: "POST", body: JSON.stringify({ deviceId }) });
+    const pac = data.pacPath ? new URL(data.pacPath, window.location.origin).toString() : "";
+    if (navigator.clipboard && pac) navigator.clipboard.writeText(pac).catch(() => {});
+    $("#notice").innerHTML = `Proxy MyE2iV3 jest gotowy przez 10 min. Skopiowano PAC: <b>${esc(pac)}</b>. Ustaw ten adres jako skrypt konfiguracji proxy w Windows, a potem otwórz adres z QR w Chrome.`;
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
 async function renameDevice(deviceId, currentName) {
   const value = window.prompt("Podaj nazwę dekodera:", currentName || "Dekoder");
   if (value === null) return;
@@ -219,6 +228,8 @@ $("#devices").onclick = event => {
   if (button) queueAction(button.dataset.device, button.dataset.action);
   const mye2iButton = event.target.closest("button[data-mye2i]");
   if (mye2iButton) startMyE2iTunnel(mye2iButton.dataset.device);
+  const mye2iProxyButton = event.target.closest("button[data-mye2i-proxy]");
+  if (mye2iProxyButton) startMyE2iProxy(mye2iProxyButton.dataset.device);
   const captchaButton = event.target.closest("button[data-captcha]");
   if (captchaButton) startCaptchaSession(captchaButton.dataset.device);
 };

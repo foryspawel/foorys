@@ -62,9 +62,10 @@ function loadState() {
     value.browserSessions = value.browserSessions || {};
     value.captures = value.captures || {};
     value.e2iTunnels = value.e2iTunnels || {};
+    value.e2iProxies = value.e2iProxies || {};
     return value;
   } catch (_error) {
-    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, browserSessions: {}, captures: {}, e2iTunnels: {} };
+    return { devices: {}, pairings: {}, jobs: [], captchaSessions: {}, browserSessions: {}, captures: {}, e2iTunnels: {}, e2iProxies: {} };
   }
 }
 let state = loadState();
@@ -139,6 +140,7 @@ function cleanup() {
   for (const [token, tunnel] of Object.entries(state.e2iTunnels)) {
     if (tunnel.expiresAt < now || (tunnel.deliveredAt && tunnel.deliveredAt < now - 120000)) delete state.e2iTunnels[token];
   }
+  for (const [token, proxy] of Object.entries(state.e2iProxies)) if (proxy.expiresAt < now || (proxy.deliveredAt && proxy.deliveredAt < now - 120000)) delete state.e2iProxies[token];
   state.jobs = state.jobs.filter(job => job.createdAt > now - 7 * 86400000);
   for (const item of Object.values(state.devices)) {
     if (item.lastSeenAt && item.lastSeenAt < now - 120000) item.status = "offline";
@@ -181,6 +183,8 @@ function captureCallbackUrl(value) {
     return null;
   }
 }
+
+function clientIp(request) { return String(request.headers["x-real-ip"] || request.socket.remoteAddress || "").replace(/^::ffff:/, ""); }
 
 function captureBody(body) {
   const captureCode = String(body.captureCode || "").trim();
@@ -372,6 +376,45 @@ function acceptTunnelResponse(token, responseToken) {
   return { ok: true };
 }
 
+function e2iProxy(token) {
+  const value = String(token || "").trim();
+  if (!/^[A-Za-z0-9_-]{32,120}$/.test(value)) return null;
+  const proxy = state.e2iProxies[hash(value)];
+  return proxy && proxy.expiresAt >= Date.now() ? proxy : null;
+}
+
+function e2iProxyStatus(token) {
+  const proxy = e2iProxy(token);
+  if (!proxy) return { status: 404, value: { error: "Tunel proxy wygasł lub jest nieprawidłowy." } };
+  const job = queueTunnelPreparation(proxy);
+  if (job.status === "completed") {
+    const data = job.data || {}, callbackUrl = captureCallbackUrl(data.callbackUrl), captchaId = String(data.captchaId || "").trim();
+    if (!callbackUrl || !captchaId || !data.targetUrl) return { status: 422, value: { error: "Dekoder zwrócił niekompletną sesję MyE2iV3." } };
+    proxy.callbackUrl = callbackUrl; proxy.captchaId = captchaId; proxy.targetUrl = String(data.targetUrl); saveState();
+    return { status: 200, value: { ready: true } };
+  }
+  if (job.status === "failed") return { status: 200, value: { status: "failed", error: job.result || "Nie udało się przygotować MyE2iV3." } };
+  return { status: 200, value: { status: job.status, ready: false } };
+}
+
+function proxyE2iRequest(request, target) {
+  const ip = clientIp(request);
+  const proxy = Object.values(state.e2iProxies).find(item => item.expiresAt >= Date.now() && item.clientIp === ip && item.callbackUrl && (() => { try { const callback = new URL(item.callbackUrl); return callback.hostname === target.hostname && Number(callback.port || 80) === Number(target.port || 80); } catch (_) { return false; } })());
+  if (!proxy) return null;
+  if (target.pathname === "/e2it.html" || target.pathname === "/") {
+    const href = String(proxy.targetUrl).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    return { type: "page", body: `<!doctype html><html><body><a href="${href}">Open MyE2i job</a></body></html>` };
+  }
+  if (target.pathname === "/response") {
+    const responseToken = String(target.searchParams.get("token") || "").trim();
+    if (!/^[A-Za-z0-9+/=_-]{16,60000}$/.test(responseToken) || proxy.responseToken || proxy.deliveredAt) return { type: "error" };
+    proxy.responseToken = responseToken;
+    state.jobs.push({ id: random(12), deviceId: proxy.deviceId, action: "deliver_e2i_tunnel", params: { id: proxy.id }, createdAt: Date.now(), status: "pending", source: "mye2i-proxy" });
+    saveState(); return { type: "page", body: "<!doctype html><p>Odpowiedź MyE2iV3 została przekazana.</p>" };
+  }
+  return { type: "error" };
+}
+
 function jobResultData(action, value) {
   if (action !== "prepare_e2i_capture" && action !== "prepare_e2i_tunnel") return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -388,6 +431,11 @@ const server = http.createServer(async (request, response) => {
   try {
     cleanup();
     const url = new URL(request.url, "http://relay.local");
+    if (request.method === "GET" && /^http:\/\//i.test(request.url)) {
+      const result = proxyE2iRequest(request, new URL(request.url));
+      if (!result || result.type === "error") return json(response, 404, { error: "Tunel MyE2iV3 nie jest aktywny dla tego adresu." });
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }); return response.end(result.body);
+    }
     if (request.method === "GET" && url.pathname === "/") return staticFile(response, "index.html", "text/html; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/app.js") return staticFile(response, "app.js", "application/javascript; charset=utf-8");
     if (request.method === "GET" && url.pathname === "/app.css") return staticFile(response, "app.css", "text/css; charset=utf-8");
@@ -421,6 +469,15 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
       return response.end("<!doctype html><title>MyE2iV3</title><p>Odpowiedź została przekazana do dekodera. Możesz zamknąć tę kartę.</p>");
     }
+    const proxyPacPath = url.pathname.match(/^\/e2i\/proxy\/([A-Za-z0-9_-]{32,120})\.pac$/);
+    if (request.method === "GET" && proxyPacPath) {
+      const proxy = e2iProxy(proxyPacPath[1]);
+      if (!proxy || proxy.clientIp !== clientIp(request)) return json(response, 404, { error: "Tunel proxy wygasł lub jest nieprawidłowy." });
+      response.writeHead(200, { "content-type": "application/x-ns-proxy-autoconfig; charset=utf-8", "cache-control": "no-store" });
+      return response.end('function FindProxyForURL(url, host) { if (/^(192\\.168\\.|10\\.|172\\.(1[6-9]|2[0-9]|3[0-1])\\.)/.test(host)) return "HTTPS raport.forys.pro:9443"; return "DIRECT"; }');
+    }
+    const proxyStatusPath = url.pathname.match(/^\/v1\/e2i\/proxy\/([A-Za-z0-9_-]{32,120})\/status\/?$/);
+    if (request.method === "GET" && proxyStatusPath) { const result = e2iProxyStatus(proxyStatusPath[1]); return json(response, result.status, result.value); }
     if (request.method === "OPTIONS" && url.pathname === "/v1/captcha/submit") {
       response.writeHead(204, {
         "access-control-allow-origin": "*",
@@ -510,6 +567,15 @@ const server = http.createServer(async (request, response) => {
         saveState();
         return json(response, 201, { tunnelPath: "/e2i/tunnel/" + token + "/e2it.html", tunnelBasePath: "/e2i/tunnel/" + token, expiresInSeconds: 600 });
       }
+      if (request.method === "POST" && url.pathname === "/v1/admin/e2i/proxies") {
+        const body = await readJson(request), deviceId = String(body.deviceId || ""), current = state.devices[deviceId];
+        if (!current) return json(response, 400, { error: "Nie znaleziono dekodera." });
+        if (current.status !== "online") return json(response, 409, { error: "Dekoder musi być połączony z Relay." });
+        const token = random(32), key = hash(token);
+        state.e2iProxies[key] = { id: key, deviceId, clientIp: clientIp(request), createdAt: Date.now(), expiresAt: Date.now() + 10 * 60000 };
+        queueTunnelPreparation(state.e2iProxies[key]);
+        saveState(); return json(response, 201, { pacPath: "/e2i/proxy/" + token + ".pac", statusPath: "/v1/e2i/proxy/" + token + "/status", expiresInSeconds: 600 });
+      }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);
         const action = String(body.action || "");
@@ -552,7 +618,7 @@ const server = http.createServer(async (request, response) => {
           return;
         }
         if (job.action === "deliver_e2i_tunnel") {
-          const tunnel = state.e2iTunnels[job.params && job.params.id];
+          const tunnel = state.e2iTunnels[job.params && job.params.id] || state.e2iProxies[job.params && job.params.id];
           if (!tunnel || tunnel.expiresAt < now || !tunnel.responseToken) {
             job.status = "failed"; job.result = "Odpowiedź MyE2iV3 wygasła przed odebraniem przez dekoder."; job.finishedAt = now; return;
           }
@@ -577,6 +643,7 @@ const server = http.createServer(async (request, response) => {
       job.status = body.ok ? "completed" : "failed"; job.result = String(body.message || "").slice(0, 1800); job.finishedAt = Date.now();
       if (job.action === "deliver_e2i_capture" && job.params && job.params.captureId) delete state.captures[job.params.captureId];
       if (job.action === "deliver_e2i_tunnel" && job.params && job.params.id) delete state.e2iTunnels[job.params.id];
+      if (job.action === "deliver_e2i_tunnel" && job.params && job.params.id) delete state.e2iProxies[job.params.id];
       saveState(); return json(response, 200, { ok: true });
     }
     return json(response, 404, { error: "Nie znaleziono." });
