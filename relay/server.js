@@ -473,8 +473,11 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "GET" && proxyPacPath) {
       const proxy = e2iProxy(proxyPacPath[1]);
       if (!proxy || proxy.clientIp !== clientIp(request)) return json(response, 404, { error: "Tunel proxy wygasł lub jest nieprawidłowy." });
+      e2iProxyStatus(proxyPacPath[1]);
       response.writeHead(200, { "content-type": "application/x-ns-proxy-autoconfig; charset=utf-8", "cache-control": "no-store" });
-      return response.end('function FindProxyForURL(url, host) { if (/^(192\\.168\\.|10\\.|172\\.(1[6-9]|2[0-9]|3[0-1])\\.)/.test(host)) return "HTTPS raport.forys.pro:9443"; return "DIRECT"; }');
+      if (!proxy.callbackUrl) return response.end('function FindProxyForURL(url, host) { return "DIRECT"; }');
+      const callback = new URL(proxy.callbackUrl), pattern = "http://" + callback.host + "/*";
+      return response.end('function FindProxyForURL(url, host) { if (shExpMatch(url, ' + JSON.stringify(pattern) + ')) return "HTTPS raport.forys.pro:9443"; return "DIRECT"; }');
     }
     const proxyStatusPath = url.pathname.match(/^\/v1\/e2i\/proxy\/([A-Za-z0-9_-]{32,120})\/status\/?$/);
     if (request.method === "GET" && proxyStatusPath) { const result = e2iProxyStatus(proxyStatusPath[1]); return json(response, result.status, result.value); }
