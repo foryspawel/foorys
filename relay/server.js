@@ -354,6 +354,19 @@ const server = http.createServer(async (request, response) => {
       if (!admin(request)) return json(response, 401, { error: "Brak autoryzacji administratora." });
       if (request.method === "GET" && url.pathname === "/v1/admin/devices") return json(response, 200, { devices: Object.values(state.devices).map(({ tokenHash, ...item }) => item) });
       const devicePath = url.pathname.match(/^\/v1\/admin\/devices\/([A-Za-z0-9_-]{8,80})$/);
+      if (request.method === "DELETE" && devicePath) {
+        const deviceId = devicePath[1];
+        const current = state.devices[deviceId];
+        if (!current) return json(response, 404, { error: "Nie znaleziono dekodera." });
+        if (current.status === "online") return json(response, 409, { error: "Aktywny dekoder jest chroniony. Usuń go dopiero po rozłączeniu." });
+        delete state.devices[deviceId];
+        state.jobs = state.jobs.filter(job => job.deviceId !== deviceId);
+        for (const [code, session] of Object.entries(state.captchaSessions)) if (session.deviceId === deviceId) delete state.captchaSessions[code];
+        for (const [token, session] of Object.entries(state.browserSessions)) if (session.deviceId === deviceId) delete state.browserSessions[token];
+        for (const [id, capture] of Object.entries(state.captures)) if (capture.deviceId === deviceId) delete state.captures[id];
+        saveState();
+        return json(response, 200, { ok: true, deviceId });
+      }
       if (request.method === "PATCH" && devicePath) {
         const deviceId = devicePath[1];
         const current = state.devices[deviceId];

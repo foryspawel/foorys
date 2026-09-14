@@ -74,7 +74,8 @@ function deviceCard(device, jobs) {
   const online = device.status === "online";
   const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
-  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}</div>${jobHistory(device.id, jobs)}</article>`;
+  const removeButton = online ? "" : `<button type="button" class="action-button danger delete-button" data-device="${esc(device.id)}" data-delete="1">Usuń nieaktywny</button>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -132,11 +133,26 @@ async function renameDevice(deviceId, currentName) {
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
+async function deleteDevice(deviceId, currentName) {
+  if (!window.confirm(`Usunąć nieaktywny dekoder „${currentName || "Dekoder"}” wraz z jego zadaniami?`)) return;
+  try {
+    await request(`/v1/admin/devices/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
+    $("#notice").textContent = `Usunięto dekoder „${currentName || "Dekoder"}”.`;
+    await load();
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
 $("#sign-in").onclick = login;
 $("#password").onkeydown = event => { if (event.key === "Enter") login(); };
 $("#refresh").onclick = load;
 $("#sign-out").onclick = () => { sessionStorage.removeItem("foorysRelayPassword"); location.reload(); };
 $("#devices").onclick = event => {
+  const deleteButton = event.target.closest("button[data-delete]");
+  if (deleteButton) {
+    const currentName = deleteButton.closest("article")?.querySelector("h2")?.textContent || "Dekoder";
+    deleteDevice(deleteButton.dataset.device, currentName);
+    return;
+  }
   const renameButton = event.target.closest("button[data-rename]");
   if (renameButton) {
     const currentName = renameButton.closest(".device-name")?.querySelector("h2")?.textContent || "Dekoder";
