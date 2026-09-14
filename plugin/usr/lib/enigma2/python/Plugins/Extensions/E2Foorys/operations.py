@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.9.3 Enigma2"
+USER_AGENT = "E2-Foorys/0.9.4 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -357,20 +357,9 @@ def _process_running(name):
 
 def _current_service_name():
     """Odczytuje nazwę aktualnie oglądanej usługi bez zmieniania stanu Enigma2."""
-    try:
-        from NavigationInstance import instance as navigation
-        from enigma import eServiceCenter
-        reference = navigation.getCurrentlyPlayingServiceReference()
-        if reference is not None:
-            info = eServiceCenter.getInstance().info(reference)
-            name = to_text(info.getName(reference) if info is not None else "").strip()
-            if name:
-                return name[:120]
-    except Exception:
-        pass
-    # Agent Relay działa w osobnym wątku; na części obrazów NavigationInstance
-    # nie udostępnia tam serwisu. OpenWebif jest lokalnym API Enigma2 i zwraca
-    # tę samą nazwę bez wychodzenia do sieci.
+    # OpenWebif pyta lokalny proces Enigma2 o bieżącą usługę. Jest to
+    # aktualniejsze od obiektu Navigation używanego w wątku agenta Relay,
+    # który na części obrazów przez chwilę zwraca poprzedni kanał.
     response = None
     try:
         response = urlopen(Request("http://127.0.0.1/web/getcurrent", headers={"User-Agent": USER_AGENT}), timeout=1.5)
@@ -388,6 +377,19 @@ def _current_service_name():
                 response.close()
             except Exception:
                 pass
+
+    # Fallback dla obrazów bez OpenWebif.
+    try:
+        from NavigationInstance import instance as navigation
+        from enigma import eServiceCenter
+        reference = navigation.getCurrentlyPlayingServiceReference()
+        if reference is not None:
+            info = eServiceCenter.getInstance().info(reference)
+            name = to_text(info.getName(reference) if info is not None else "").strip()
+            if name:
+                return name[:120]
+    except Exception:
+        pass
     return "brak odtwarzania"
 
 

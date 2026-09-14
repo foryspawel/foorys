@@ -957,8 +957,6 @@ class RelayAgent(object):
                 now = time.time()
                 if now >= next_heartbeat:
                     metrics = collect_system_status(settings)
-                    if self.current_service and self.current_service != "n/d":
-                        metrics["current_service"] = self.current_service
                     client.heartbeat(metrics)
                     next_heartbeat = now + HEARTBEAT_SECONDS
                 jobs = client.jobs()
