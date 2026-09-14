@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.8.9 Enigma2"
+USER_AGENT = "E2-Foorys/0.9.0 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -361,19 +361,49 @@ def _current_service_name():
         from NavigationInstance import instance as navigation
         from enigma import eServiceCenter
         reference = navigation.getCurrentlyPlayingServiceReference()
-        if reference is None:
-            return "brak odtwarzania"
-        info = eServiceCenter.getInstance().info(reference)
-        name = info.getName(reference) if info is not None else ""
-        return to_text(name or reference.toString()).strip()[:120] or "brak odtwarzania"
+        if reference is not None:
+            info = eServiceCenter.getInstance().info(reference)
+            name = to_text(info.getName(reference) if info is not None else "").strip()
+            if name:
+                return name[:120]
     except Exception:
-        return "n/d"
+        pass
+    # Agent Relay działa w osobnym wątku; na części obrazów NavigationInstance
+    # nie udostępnia tam serwisu. OpenWebif jest lokalnym API Enigma2 i zwraca
+    # tę samą nazwę bez wychodzenia do sieci.
+    response = None
+    try:
+        response = urlopen(Request("http://127.0.0.1/web/getcurrent", headers={"User-Agent": USER_AGENT}), timeout=1.5)
+        text = to_text(response.read(16384))
+        match = re.search(r"<e2servicename>(.*?)</e2servicename>", text, re.IGNORECASE | re.DOTALL)
+        if match:
+            name = re.sub(r"\s+", " ", match.group(1)).strip()
+            if name:
+                return name[:120]
+    except Exception:
+        pass
+    finally:
+        if response is not None:
+            try:
+                response.close()
+            except Exception:
+                pass
+    return "brak odtwarzania"
 
 
 def _oscam_status():
     for process_name in ("oscam", "oscam-emu", "oscam-icam"):
         if _process_running(process_name):
             return {"running": True, "process": process_name}
+    try:
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            name = _read_text_file("/proc/%s/comm" % entry).strip().lower()
+            if "oscam" in name:
+                return {"running": True, "process": name[:40]}
+    except OSError:
+        pass
     return {"running": False, "process": ""}
 
 
