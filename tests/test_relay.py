@@ -45,7 +45,7 @@ class RelayCaptchaTests(unittest.TestCase):
         self.assertEqual(result["callbackUrl"], "http://192.168.18.177:9001/")
         self.assertEqual(result["captchaId"], "session-123")
         self.assertTrue(response.closed)
-        self.assertEqual(open_mock.call_args[0][0].get_full_url(), "http://192.168.18.177:9001/")
+        self.assertEqual(open_mock.call_args[0][0].get_full_url(), "http://192.168.18.177:9001/e2it.html")
         self.assertTrue(any("Znaleziono sesję" in item for item in progress))
 
     def test_console_rejects_unknown_command_and_returns_system_status(self):

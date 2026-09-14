@@ -545,30 +545,35 @@ def prepare_e2i_capture(_params, _settings, progress=None):
     while True:
         for address, port in _e2i_probe_endpoints():
             base_url = "http://%s:%d/" % (address, port)
-            request = Request(base_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
-            response = None
-            try:
-                response = urlopen(request, timeout=1.0)
-                raw_html = response.read(REQUEST_LIMIT)
-                target_url, captcha_id = _e2i_target(raw_html)
-                if target_url and captcha_id:
-                    _progress(progress, "Znaleziono sesję MyE2i na %s." % base_url)
-                    return {
-                        "kind": "e2i-captcha-prepare",
-                        "ok": True,
-                        "callbackUrl": base_url,
-                        "captchaId": captcha_id,
-                        "targetUrl": target_url,
-                        "summary": "Sesja MyE2i jest gotowa do otwarcia w przeglądarce.",
-                    }
-            except Exception:
-                continue
-            finally:
-                if response is not None:
-                    try:
-                        response.close()
-                    except Exception:
-                        pass
+            # MyE2i pod / zwraca wyłącznie JavaScript przekierowujący do
+            # /e2it.html. urllib nie wykonuje JavaScriptu, dlatego pobieramy
+            # stronę zadania bezpośrednio; / pozostaje fallbackiem dla innych
+            # wersji MyE2i.
+            for page_url in (base_url + "e2it.html", base_url):
+                request = Request(page_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+                response = None
+                try:
+                    response = urlopen(request, timeout=1.0)
+                    raw_html = response.read(REQUEST_LIMIT)
+                    target_url, captcha_id = _e2i_target(raw_html)
+                    if target_url and captcha_id:
+                        _progress(progress, "Znaleziono sesję MyE2i na %s." % base_url)
+                        return {
+                            "kind": "e2i-captcha-prepare",
+                            "ok": True,
+                            "callbackUrl": base_url,
+                            "captchaId": captcha_id,
+                            "targetUrl": target_url,
+                            "summary": "Sesja MyE2i jest gotowa do otwarcia w przeglądarce.",
+                        }
+                except Exception:
+                    continue
+                finally:
+                    if response is not None:
+                        try:
+                            response.close()
+                        except Exception:
+                            pass
         if time.time() >= deadline:
             break
         _progress(progress, "Czekam na aktywną sesję MyE2i na porcie 9001…")
