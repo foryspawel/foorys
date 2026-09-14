@@ -508,7 +508,7 @@ const server = http.createServer(async (request, response) => {
         const token = random(32);
         state.e2iTunnels[hash(token)] = { deviceId, createdAt: Date.now(), expiresAt: Date.now() + 10 * 60000 };
         saveState();
-        return json(response, 201, { tunnelPath: "/e2i/tunnel/" + token + "/e2it.html", expiresInSeconds: 600 });
+        return json(response, 201, { tunnelPath: "/e2i/tunnel/" + token + "/e2it.html", tunnelBasePath: "/e2i/tunnel/" + token, expiresInSeconds: 600 });
       }
       if (request.method === "POST" && url.pathname === "/v1/admin/jobs") {
         const body = await readJson(request);

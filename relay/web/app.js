@@ -158,9 +158,10 @@ async function startMyE2iTunnel(deviceId) {
   try {
     const data = await request("/v1/admin/e2i/tunnels", { method: "POST", body: JSON.stringify({ deviceId }) });
     const url = data.tunnelPath ? new URL(data.tunnelPath, window.location.origin).toString() : "";
-    if (navigator.clipboard && url) navigator.clipboard.writeText(url).catch(() => {});
+    const address = data.tunnelBasePath ? new URL(data.tunnelBasePath, window.location.origin).toString() : "";
+    if (navigator.clipboard && address) navigator.clipboard.writeText(address).catch(() => {});
     const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">Otwórz MyE2iV3</a>` : "";
-    $("#notice").innerHTML = `Tunel MyE2iV3 jest gotowy przez 10 min. ${link} · adres został skopiowany. W oficjalnym rozszerzeniu MyE2iV3 ustaw ten adres jako adres dekodera.`;
+    $("#notice").innerHTML = `Tunel MyE2iV3 jest gotowy przez 10 min. ${link} · skopiowano adres dla MyE2iV3: <b>${esc(address)}</b>. Wklej go w polu „Adres dekodera” oficjalnego rozszerzenia.`;
   } catch (error) { $("#notice").textContent = error.message; }
 }
 
