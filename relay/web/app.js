@@ -79,6 +79,11 @@ function metricsText(device) {
   return `CPU ${metrics.cpu_percent == null ? "n/d" : metrics.cpu_percent + "%"} · RAM ${memory.percent == null ? "n/d" : memory.percent + "%"} · RootFS wolne ${formatSize(flash.free)}`;
 }
 
+function liveStatus(device) {
+  const metrics = device.metrics || {}, oscam = metrics.oscam || {};
+  return `<div class="live-status"><span>📺 ${esc(metrics.current_service || "n/d")}</span><span class="${oscam.running ? "ok" : "bad"}">OSCam: ${oscam.running ? "działa" : "nie działa"}</span></div>`;
+}
+
 function jobHistory(deviceId, jobs) {
   const own = jobs.filter(job => job.deviceId === deviceId).slice(0, 5);
   if (!own.length) return "<small>Brak zadań.</small>";
@@ -98,7 +103,7 @@ function deviceCard(device, jobs) {
   const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
   const removeButton = online ? "" : `<button type="button" class="action-button danger delete-button" data-device="${esc(device.id)}" data-delete="1">Usuń nieaktywny</button>`;
-  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button mye2i-button" data-device="${esc(device.id)}" data-mye2i-proxy="1">MyE2iV3 przez proxy</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p>${liveStatus(device)}<p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button mye2i-button" data-device="${esc(device.id)}" data-mye2i-proxy="1">MyE2iV3 przez proxy</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {

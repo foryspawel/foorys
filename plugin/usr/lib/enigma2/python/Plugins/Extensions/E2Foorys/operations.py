@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.8.8 Enigma2"
+USER_AGENT = "E2-Foorys/0.8.9 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -355,6 +355,28 @@ def _process_running(name):
         return None
 
 
+def _current_service_name():
+    """Odczytuje nazwę aktualnie oglądanej usługi bez zmieniania stanu Enigma2."""
+    try:
+        from NavigationInstance import instance as navigation
+        from enigma import eServiceCenter
+        reference = navigation.getCurrentlyPlayingServiceReference()
+        if reference is None:
+            return "brak odtwarzania"
+        info = eServiceCenter.getInstance().info(reference)
+        name = info.getName(reference) if info is not None else ""
+        return to_text(name or reference.toString()).strip()[:120] or "brak odtwarzania"
+    except Exception:
+        return "n/d"
+
+
+def _oscam_status():
+    for process_name in ("oscam", "oscam-emu", "oscam-icam"):
+        if _process_running(process_name):
+            return {"running": True, "process": process_name}
+    return {"running": False, "process": ""}
+
+
 def collect_system_status(settings=None):
     """Zbiera informacje diagnostyczne dekodera tylko w trybie odczytu."""
 
@@ -390,6 +412,8 @@ def collect_system_status(settings=None):
         "flash": flash,
         "storage": storage,
         "temperature": _temperature(),
+        "current_service": _current_service_name(),
+        "oscam": _oscam_status(),
         "enigma2_running": _process_running("enigma2"),
         "opkg_available": bool(which("opkg") or os.path.exists("/usr/bin/opkg")),
     }
