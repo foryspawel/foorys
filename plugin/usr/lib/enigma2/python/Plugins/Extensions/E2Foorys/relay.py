@@ -70,6 +70,9 @@ USER_AGENT = "E2-Foorys-Relay/%s" % VERSION
 REQUEST_LIMIT = 512 * 1024
 POLL_SECONDS = 20
 HEARTBEAT_SECONDS = 60
+E2I_PORTS = tuple(range(9001, 9011))
+E2I_DISCOVERY_SECONDS = 45
+E2I_RETRY_SECONDS = 2
 
 
 def _safe_error(error):
@@ -397,7 +400,98 @@ def _local_ipv4_addresses():
                 probe.close()
             except Exception:
                 pass
+    # Na części obrazów nazwa hosta i domyślna trasa wskazują inny interfejs
+    # niż LAN. Odczyt /proc/net/fib_trie daje rzeczywiste adresy lokalne bez
+    # uruchamiania poleceń powłoki i działa także na starszym BusyBoxie.
+    candidate = ""
+    try:
+        with open("/proc/net/fib_trie", "r") as handle:
+            for raw_line in handle:
+                line = to_text(raw_line).strip()
+                match = re.match(r"\|--\s+(\d+\.\d+\.\d+\.\d+)$", line)
+                if match:
+                    candidate = match.group(1)
+                elif candidate and "/32 host LOCAL" in line:
+                    if _private_host(candidate) and candidate not in addresses:
+                        addresses.append(candidate)
+                    candidate = ""
+    except Exception:
+        pass
     return addresses
+
+
+def _tcp_ipv4_address(value):
+    """Zamienia little-endian IPv4 z /proc/net/tcp na zapis kropkowy."""
+
+    raw = to_text(value or "").strip()
+    if not re.match(r"^[0-9a-fA-F]{8}$", raw):
+        return ""
+    try:
+        return ".".join(str(int(raw[index:index + 2], 16)) for index in (6, 4, 2, 0))
+    except (TypeError, ValueError):
+        return ""
+
+
+def _parse_e2i_tcp_listeners(lines):
+    """Odczytuje prywatne sockety MyE2i nasłuchujące na portach 9001–9010."""
+
+    endpoints = []
+    for raw_line in lines:
+        fields = to_text(raw_line).split()
+        if len(fields) < 4 or fields[3] != "0A":  # 0A = TCP_LISTEN
+            continue
+        try:
+            address_hex, port_hex = fields[1].split(":", 1)
+            port = int(port_hex, 16)
+        except (TypeError, ValueError):
+            continue
+        if port not in E2I_PORTS:
+            continue
+        address = _tcp_ipv4_address(address_hex)
+        if not address or (address != "0.0.0.0" and not _private_host(address)):
+            continue
+        endpoint = (address, port)
+        if endpoint not in endpoints:
+            endpoints.append(endpoint)
+    return endpoints
+
+
+def _e2i_probe_endpoints():
+    """Zwraca lokalne adresy MyE2i; najpierw faktycznie nasłuchujące sockety."""
+
+    listeners = []
+    try:
+        with open("/proc/net/tcp", "r") as handle:
+            listeners = _parse_e2i_tcp_listeners(handle)
+    except Exception:
+        pass
+
+    endpoints = []
+
+    def add(address, port):
+        endpoint = (address, port)
+        if endpoint not in endpoints:
+            endpoints.append(endpoint)
+
+    wildcard_ports = []
+    for address, port in listeners:
+        if address == "0.0.0.0":
+            if port not in wildcard_ports:
+                wildcard_ports.append(port)
+        else:
+            add(address, port)
+
+    addresses = _local_ipv4_addresses()
+    for port in wildcard_ports:
+        for address in addresses:
+            add(address, port)
+
+    # Gdy MyE2i uruchamia się dopiero za chwilę, pozostawiamy ograniczony
+    # fallback do lokalnych adresów i znanego zakresu portów.
+    for port in E2I_PORTS:
+        for address in addresses:
+            add(address, port)
+    return endpoints
 
 
 def _e2i_target(raw_html):
@@ -405,8 +499,12 @@ def _e2i_target(raw_html):
 
     text = to_text(raw_html)
     links = re.findall(r"href\s*=\s*[\"']([^\"']+)", text, re.IGNORECASE)
+    # W nowszych wydaniach MyE2i adres bywa przekazany przez JavaScript,
+    # a nie przez klasyczny link <a href>. Ograniczamy się do tego samego
+    # znacznika #e2itcf, więc nie pobieramy dowolnych adresów z HTML.
+    links.extend(re.findall(r"(https?://[^\s\"'<>]+#e2itcf[^\s\"'<>]*)", text, re.IGNORECASE))
     for link in links:
-        target = _html_unescape(link).strip()
+        target = _html_unescape(link).strip().rstrip("),;")
         if "#e2itcf" not in target.lower():
             continue
         try:
@@ -435,15 +533,14 @@ def prepare_e2i_capture(_params, _settings, progress=None):
     """
 
     _progress(progress, "Szukam aktywnej sesji MyE2i na dekoderze...")
-    errors = []
-    addresses = _local_ipv4_addresses()
-    for port in range(9001, 9011):
-        for address in addresses:
+    deadline = time.time() + E2I_DISCOVERY_SECONDS
+    while True:
+        for address, port in _e2i_probe_endpoints():
             base_url = "http://%s:%d/" % (address, port)
             request = Request(base_url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
             response = None
             try:
-                response = urlopen(request, timeout=1.5)
+                response = urlopen(request, timeout=1.0)
                 raw_html = response.read(REQUEST_LIMIT)
                 target_url, captcha_id = _e2i_target(raw_html)
                 if target_url and captcha_id:
@@ -456,7 +553,6 @@ def prepare_e2i_capture(_params, _settings, progress=None):
                         "targetUrl": target_url,
                         "summary": "Sesja MyE2i jest gotowa do otwarcia w przeglądarce.",
                     }
-                errors.append("%s: brak aktywnej sesji" % base_url)
             except Exception:
                 continue
             finally:
@@ -465,7 +561,11 @@ def prepare_e2i_capture(_params, _settings, progress=None):
                         response.close()
                     except Exception:
                         pass
-    raise RelayError("Nie znaleziono aktywnej sesji MyE2i na dekoderze. Uruchom E2iPlayer i wywołaj host wymagający CAPTCHA.")
+        if time.time() >= deadline:
+            break
+        _progress(progress, "Czekam na aktywną sesję MyE2i na porcie 9001…")
+        time.sleep(E2I_RETRY_SECONDS)
+    raise RelayError("Nie znaleziono aktywnej sesji MyE2i na dekoderze. Pozostaw ekran MyE2i otwarty i spróbuj ponownie.")
 
 
 def deliver_e2i_capture(params, settings, progress=None):

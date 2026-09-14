@@ -1,11 +1,11 @@
 Package: enigma2-plugin-extensions-e2foorys
-Version: 0.8.4
+Version: 0.8.5
 Architecture: all
 Maintainer: Foorys
 Section: extensions
 Priority: optional
 Description: E2-Foorys - zarządzanie listami kanałów, pluginami i softcamami
-Filename: enigma2-plugin-extensions-e2foorys_0.8.4_all.ipk
-Size: 1560698
-MD5Sum: b633401c07f2304ce3fe8e36081974b7
-SHA256sum: 3ce10bba2ba7feb08f2fbf68023edd3ab466b09f9401bcbead76d05404808c8c
+Filename: enigma2-plugin-extensions-e2foorys_0.8.5_all.ipk
+Size: 1561976
+MD5Sum: 2cc0e4c1f39dab1e79060feb65c90032
+SHA256sum: ddffc22cb80d076df439b7f7854245508ade63f8477a5cc981c97498680889c9

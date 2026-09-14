@@ -87,9 +87,9 @@
     "id": "e2foorys",
     "name": "E2-Foorys",
     "description": "Aktualizacja panelu E2-Foorys z repozytorium GitHub.",
-    "version": "0.8.4",
+    "version": "0.8.5",
     "package_type": "ipk",
-    "url": "releases/enigma2-plugin-extensions-e2foorys_0.8.4_all.ipk",
-    "sha256": "3ce10bba2ba7feb08f2fbf68023edd3ab466b09f9401bcbead76d05404808c8c"
+    "url": "releases/enigma2-plugin-extensions-e2foorys_0.8.5_all.ipk",
+    "sha256": "ddffc22cb80d076df439b7f7854245508ade63f8477a5cc981c97498680889c9"
   }
 }
