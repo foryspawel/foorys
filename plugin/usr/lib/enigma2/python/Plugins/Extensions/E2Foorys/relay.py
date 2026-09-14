@@ -42,6 +42,7 @@ from .config import ensure_config, save_config, settings_dict
 from .core import version_is_newer
 from .operations import (
     collect_system_status,
+    collect_installed_packages,
     diagnose_internet_speed,
     diagnose_network,
     fetch_manifest,
@@ -73,6 +74,13 @@ HEARTBEAT_SECONDS = 60
 E2I_PORTS = tuple(range(9001, 9011))
 E2I_DISCOVERY_SECONDS = 45
 E2I_RETRY_SECONDS = 2
+RELAY_CONSOLE_COMMANDS = {
+    "system": "Stan systemu",
+    "storage": "Pamięć i dysk",
+    "network": "Sieć",
+    "packages": "Pakiety E2iPlayer i softcam",
+    "processes": "Procesy dekodera",
+}
 
 
 def _safe_error(error):
@@ -604,6 +612,83 @@ def deliver_e2i_capture(params, settings, progress=None):
     }
 
 
+def _console_processes():
+    """Zwraca ograniczoną listę procesów bez uruchamiania powłoki."""
+
+    processes = []
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        entries = []
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        name = ""
+        try:
+            with open("/proc/%s/comm" % entry, "rb") as handle:
+                name = to_text(handle.read(120)).strip().replace("\n", " ")
+        except (OSError, IOError):
+            continue
+        if name:
+            processes.append((int(entry), name[:80]))
+    processes.sort()
+    if not processes:
+        return "Brak danych o procesach."
+    return "\n".join("%5d  %s" % item for item in processes[:80])
+
+
+def _console_system_summary(status):
+    memory = status.get("memory", {}) if isinstance(status, dict) else {}
+    flash = status.get("flash", {}) if isinstance(status, dict) else {}
+    storage = status.get("storage", {}) if isinstance(status, dict) else {}
+    return "\n".join((
+        "Model: %s" % status.get("model", "n/d"),
+        "System: %s %s" % (status.get("image", "n/d"), status.get("version", "")),
+        "CPU: %s%% · obciążenie: %s%%" % (status.get("cpu_percent", "n/d"), status.get("cpu_load_percent", "n/d")),
+        "RAM: %s%% użyte" % memory.get("percent", "n/d"),
+        "RootFS: %s wolne z %s" % (_human_size(flash.get("free")), _human_size(flash.get("total"))),
+        "Magazyn: %s wolne z %s" % (_human_size(storage.get("free")), _human_size(storage.get("total"))),
+        "Uptime: %s s · Enigma2: %s" % (status.get("uptime", "n/d"), "działa" if status.get("enigma2_running") else "n/d"),
+    ))
+
+
+def relay_console(command, settings, progress=None):
+    """Wykonuje tylko predefiniowane, nieinteraktywne polecenia konsoli."""
+
+    command = to_text(command or "")
+    label = RELAY_CONSOLE_COMMANDS.get(command)
+    if not label:
+        raise RelayError("Wybrane polecenie konsoli nie jest dozwolone.")
+    _progress(progress, "Konsola Relay: %s..." % label)
+    if command == "system":
+        summary = _console_system_summary(collect_system_status(settings))
+    elif command == "storage":
+        status = collect_system_status(settings)
+        flash = status.get("flash", {})
+        storage = status.get("storage", {})
+        summary = "\n".join((
+            "RootFS: %s wolne z %s (%s%% użyte)" % (_human_size(flash.get("free")), _human_size(flash.get("total")), flash.get("percent", "n/d")),
+            "Magazyn danych: %s wolne z %s (%s%% użyte)" % (_human_size(storage.get("free")), _human_size(storage.get("total")), storage.get("percent", "n/d")),
+        ))
+    elif command == "network":
+        summary = diagnose_network(None, settings, progress).get("summary", "Brak danych o sieci.")
+    elif command == "packages":
+        packages = collect_installed_packages(settings)
+        if not packages.get("available"):
+            summary = "opkg nie jest dostępny na tym obrazie."
+        else:
+            entries = packages.get("packages", [])
+            summary = "\n".join(entries[:100]) if entries else "Nie wykryto pakietów E2iPlayer ani softcam."
+    else:  # processes
+        summary = _console_processes()
+    return {
+        "kind": "relay-console",
+        "ok": True,
+        "name": "Konsola: %s" % label,
+        "summary": to_text(summary)[:1700],
+    }
+
+
 def _operation_result(result):
     if not isinstance(result, dict):
         return to_text(result)
@@ -638,6 +723,8 @@ def execute_remote_action(action, params, settings, progress=None):
         return diagnose_network(None, settings, progress)
     if action == "speed_test":
         return diagnose_internet_speed(None, settings, progress)
+    if action == "console":
+        return relay_console(params.get("command"), settings, progress)
     if action == "refresh_catalog":
         manifest = _manifest(settings, progress)
         return {"kind": "relay-catalog", "ok": True, "summary": "Katalog odświeżony: %d list, %d pluginów, %d pakietów piconów." % (len(manifest.get("channel_lists", [])), len(manifest.get("plugins", [])), len(manifest.get("picons", [])))}

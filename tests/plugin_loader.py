@@ -87,6 +87,7 @@ def load_relay():
     operations = types.ModuleType(package_name + ".operations")
     for name in (
         "collect_system_status",
+        "collect_installed_packages",
         "diagnose_internet_speed",
         "diagnose_network",
         "fetch_manifest",

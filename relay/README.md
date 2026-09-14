@@ -2,7 +2,7 @@
 
 Relay działa jako pośrednik dla sparowanych dekoderów. Dekoder inicjuje wyłącznie połączenia wychodzące; serwer nie łączy się bezpośrednio z siecią domową.
 
-Panel administratora używa oddzielnego hasła, a dekodery osobnych tokenów. Relay nie przechowuje haseł root i udostępnia wyłącznie białą listę akcji: stan, diagnostyka sieci i prędkości, katalog, listy Foorys/Bzyk83, IPTV, picony, E2iPlayer, publiczne pakiety softcam, oscam.dvbapi, aktualizacja E2-Foorys oraz kontrolowany restart GUI. Nie ma zdalnego, dowolnego terminala root.
+Panel administratora używa oddzielnego hasła, a dekodery osobnych tokenów. Relay nie przechowuje haseł root i udostępnia wyłącznie białą listę akcji: stan, diagnostyka sieci i prędkości, katalog, listy Foorys/Bzyk83, IPTV, picony, E2iPlayer, publiczne pakiety softcam, oscam.dvbapi, aktualizacja E2-Foorys oraz kontrolowany restart GUI. Panel **Konsola** pokazuje wyniki tylko predefiniowanych poleceń: stan, pamięć i dysk, sieć, pakiety oraz procesy. Nie ma zdalnego, dowolnego terminala root.
 
 W panelu można usunąć dekoder wyłącznie wtedy, gdy ma status offline. Operacja usuwa również jego oczekujące zadania i sesje CAPTCHA; aktywny dekoder jest chroniony przez API.
 

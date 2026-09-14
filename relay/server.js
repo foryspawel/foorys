@@ -14,6 +14,7 @@ const ACTIONS = {
   diagnostics: "Pełna diagnostyka",
   network_diagnostic: "Diagnostyka sieci",
   speed_test: "Test prędkości internetu",
+  console: "Konsola dekodera",
   refresh_catalog: "Odśwież katalog",
   install_foorys_channels: "Instaluj listę Foorys",
   install_bzyk83_hotbird: "Instaluj Bzyk83 Hotbird",
@@ -36,8 +37,15 @@ const ACTIONS = {
   prepare_e2i_capture: "Przygotuj zdalną CAPTCHA E2iPlayer",
   deliver_e2i_capture: "Przekaż CAPTCHA E2iPlayer",
 };
+const CONSOLE_COMMANDS = {
+  system: "Stan systemu",
+  storage: "Pamięć i dysk",
+  network: "Sieć",
+  packages: "Pakiety E2iPlayer i softcam",
+  processes: "Procesy dekodera",
+};
 const ALLOWED_ACTIONS = new Set(Object.keys(ACTIONS));
-const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin", "deliver_e2i_capture"]);
+const ACTION_PARAMS = new Set(["install_channel", "install_picons", "install_plugin", "deliver_e2i_capture", "console"]);
 
 if (ADMIN_SECRET.length < 8) throw new Error("Hasło administratora Relay musi mieć co najmniej 8 znaków.");
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
@@ -136,6 +144,10 @@ function jobParams(action, value) {
   if (action === "deliver_e2i_capture") {
     const captureId = String(value.captureId || "").trim();
     return /^[A-Za-z0-9_-]{16,80}$/.test(captureId) ? { captureId } : null;
+  }
+  if (action === "console") {
+    const command = String(value.command || "").trim();
+    return Object.prototype.hasOwnProperty.call(CONSOLE_COMMANDS, command) ? { command } : null;
   }
   const id = String(value.id || "").trim();
   if (!/^[A-Za-z0-9._+-]{1,160}$/.test(id)) return null;

@@ -48,6 +48,26 @@ class RelayCaptchaTests(unittest.TestCase):
         self.assertEqual(open_mock.call_args[0][0].get_full_url(), "http://192.168.18.177:9001/")
         self.assertTrue(any("Znaleziono sesję" in item for item in progress))
 
+    def test_console_rejects_unknown_command_and_returns_system_status(self):
+        status = {
+            "model": "H9 Twin",
+            "image": "OpenATV",
+            "version": "8.0",
+            "cpu_percent": 12,
+            "cpu_load_percent": 8,
+            "memory": {"percent": 45},
+            "flash": {"free": 1024, "total": 2048},
+            "storage": {"free": 4096, "total": 8192},
+            "uptime": 99,
+            "enigma2_running": True,
+        }
+        with mock.patch.object(relay, "collect_system_status", return_value=status):
+            result = relay.relay_console("system", {})
+        self.assertTrue(result["ok"])
+        self.assertIn("H9 Twin", result["summary"])
+        with self.assertRaises(relay.RelayError):
+            relay.relay_console("nieobsługiwane", {})
+
 
 if __name__ == "__main__":
     unittest.main()

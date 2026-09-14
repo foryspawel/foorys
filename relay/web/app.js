@@ -24,6 +24,14 @@ const BUTTONS = [
   ["restart_gui", "Restart GUI"],
 ];
 const CAPTCHA_BUTTON = "Otwórz CAPTCHA zdalnie";
+const CONSOLE_COMMANDS = [
+  ["system", "Stan systemu"],
+  ["storage", "Pamięć i dysk"],
+  ["network", "Sieć"],
+  ["packages", "Pakiety"],
+  ["processes", "Procesy"],
+];
+let openConsoleDeviceId = "";
 
 function headers() {
   return { Authorization: "Basic " + btoa("foorys:" + password), "Content-Type": "application/json" };
@@ -44,8 +52,16 @@ function esc(value) {
 }
 
 function actionLabel(action) {
+  if (action === "console") return "Konsola dekodera";
   const found = BUTTONS.find(item => item[0] === action);
   return found ? found[1] : action;
+}
+
+function jobLabel(job) {
+  if (job.action !== "console") return actionLabel(job.action);
+  const command = job.params && job.params.command;
+  const found = CONSOLE_COMMANDS.find(item => item[0] === command);
+  return `Konsola: ${found ? found[1] : "polecenie"}`;
 }
 
 function formatSize(value) {
@@ -67,7 +83,15 @@ function metricsText(device) {
 function jobHistory(deviceId, jobs) {
   const own = jobs.filter(job => job.deviceId === deviceId).slice(0, 5);
   if (!own.length) return "<small>Brak zadań.</small>";
-  return `<div class="history"><b>Ostatnie zadania</b>${own.map(job => `<div><span>${esc(actionLabel(job.action))}</span><span class="${job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : "wait"}">${esc(job.status)}</span>${job.result ? `<small>${esc(job.result)}</small>` : ""}</div>`).join("")}</div>`;
+  return `<div class="history"><b>Ostatnie zadania</b>${own.map(job => `<div><span>${esc(jobLabel(job))}</span><span class="${job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : "wait"}">${esc(job.status)}</span>${job.result ? `<small>${esc(job.result)}</small>` : ""}</div>`).join("")}</div>`;
+}
+
+function consolePanel(device, jobs) {
+  if (openConsoleDeviceId !== device.id) return "";
+  const consoleJobs = jobs.filter(job => job.deviceId === device.id && job.action === "console").slice(0, 3);
+  const output = consoleJobs.length ? consoleJobs.map(job => `<div class="console-result"><b>${esc(jobLabel(job))}</b><span class="${job.status === "completed" ? "ok" : job.status === "failed" ? "bad" : "wait"}">${esc(job.status)}</span>${job.result ? `<pre>${esc(job.result)}</pre>` : ""}</div>`).join("") : "<small>Wybierz polecenie; wynik pojawi się tutaj po odebraniu go przez dekoder.</small>";
+  const buttons = CONSOLE_COMMANDS.map(([command, label]) => `<button type="button" class="console-button" data-console-command="${esc(command)}" data-device="${esc(device.id)}">${esc(label)}</button>`).join("");
+  return `<div class="console"><div class="console-title"><b>Konsola sterowania</b><span>Tylko bezpieczne polecenia dla sparowanego dekodera</span></div><div class="console-buttons">${buttons}</div><div class="console-output">${output}</div></div>`;
 }
 
 function deviceCard(device, jobs) {
@@ -75,7 +99,7 @@ function deviceCard(device, jobs) {
   const name = device.name || "Dekoder";
   const buttons = BUTTONS.map(([action, label]) => `<button class="action-button ${action === "restart_gui" ? "danger" : ""}" data-device="${esc(device.id)}" data-action="${action}">${esc(label)}</button>`).join("");
   const removeButton = online ? "" : `<button type="button" class="action-button danger delete-button" data-device="${esc(device.id)}" data-delete="1">Usuń nieaktywny</button>`;
-  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${jobHistory(device.id, jobs)}</article>`;
+  return `<article><header><div class="device-name"><div class="device-name-row"><h2>${esc(name)}</h2><button type="button" class="rename-button" data-device="${esc(device.id)}" data-rename="1">Zmień nazwę</button></div><small>ID: ${esc(device.id)}</small></div><span class="${online ? "online" : "offline"}">${online ? "online" : "offline"}</span></header><p class="metrics">${esc(metricsText(device))}</p><p class="last-seen">Ostatni kontakt: ${device.lastSeenAt ? esc(new Date(device.lastSeenAt).toLocaleString()) : "brak"}</p><div class="device-actions"><button type="button" class="action-button console-toggle" data-device="${esc(device.id)}" data-console="1">Konsola</button><button class="action-button capture-button" data-device="${esc(device.id)}" data-captcha="1">${CAPTCHA_BUTTON}</button>${buttons}${removeButton}</div>${consolePanel(device, jobs)}${jobHistory(device.id, jobs)}</article>`;
 }
 
 async function load() {
@@ -105,6 +129,16 @@ async function queueAction(deviceId, action) {
   try {
     await request("/v1/admin/jobs", { method: "POST", body: JSON.stringify({ deviceId, action }) });
     $("#notice").textContent = `Zadanie „${actionLabel(action)}” dodane do kolejki.`;
+    await load();
+  } catch (error) { $("#notice").textContent = error.message; }
+}
+
+async function queueConsole(deviceId, command) {
+  const found = CONSOLE_COMMANDS.find(item => item[0] === command);
+  const label = found ? found[1] : "polecenie";
+  try {
+    await request("/v1/admin/jobs", { method: "POST", body: JSON.stringify({ deviceId, action: "console", params: { command } }) });
+    $("#notice").textContent = `Konsola: „${label}” dodana do kolejki.`;
     await load();
   } catch (error) { $("#notice").textContent = error.message; }
 }
@@ -147,6 +181,17 @@ $("#password").onkeydown = event => { if (event.key === "Enter") login(); };
 $("#refresh").onclick = load;
 $("#sign-out").onclick = () => { sessionStorage.removeItem("foorysRelayPassword"); location.reload(); };
 $("#devices").onclick = event => {
+  const consoleToggle = event.target.closest("button[data-console]");
+  if (consoleToggle) {
+    openConsoleDeviceId = openConsoleDeviceId === consoleToggle.dataset.device ? "" : consoleToggle.dataset.device;
+    load();
+    return;
+  }
+  const consoleCommand = event.target.closest("button[data-console-command]");
+  if (consoleCommand) {
+    queueConsole(consoleCommand.dataset.device, consoleCommand.dataset.consoleCommand);
+    return;
+  }
   const deleteButton = event.target.closest("button[data-delete]");
   if (deleteButton) {
     const currentName = deleteButton.closest("article")?.querySelector("h2")?.textContent || "Dekoder";
@@ -172,3 +217,4 @@ $("#pair").onclick = async () => {
 };
 
 if (password) { $("#password").value = password; login(); }
+window.setInterval(() => { if (password && !document.hidden) load(); }, 15000);
