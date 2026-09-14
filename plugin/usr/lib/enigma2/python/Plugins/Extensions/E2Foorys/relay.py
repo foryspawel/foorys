@@ -863,6 +863,7 @@ class RelayAgent(object):
         self.session = None
         self.dispatch_timer = None
         self.restart_requested = False
+        self.current_service = "n/d"
         self.last_error = ""
         self.last_success = 0
 
@@ -906,6 +907,18 @@ class RelayAgent(object):
                 pass
 
     def _dispatch(self):
+        # Ten callback działa w głównym wątku Enigma2. OpenWebif na części
+        # obrazów zwraca ostatnio zapamiętaną usługę, dlatego kanał odczytujemy
+        # bezpośrednio z bieżącej sesji GUI.
+        try:
+            navigation = getattr(self.session, "nav", None)
+            reference = navigation.getCurrentlyPlayingServiceReference() if navigation is not None else None
+            info = navigation.getCurrentService().info() if navigation is not None and navigation.getCurrentService() is not None else None
+            name = info.getName(reference) if info is not None and reference is not None else ""
+            if name:
+                self.current_service = to_text(name).strip()[:120]
+        except Exception:
+            pass
         if self.restart_requested and self.session is not None:
             self.restart_requested = False
             try:
@@ -935,6 +948,8 @@ class RelayAgent(object):
                 now = time.time()
                 if now >= next_heartbeat:
                     metrics = collect_system_status(settings)
+                    if self.current_service and self.current_service != "n/d":
+                        metrics["current_service"] = self.current_service
                     client.heartbeat(metrics)
                     next_heartbeat = now + HEARTBEAT_SECONDS
                 jobs = client.jobs()
