@@ -54,7 +54,7 @@ class OperationError(RuntimeError):
     """Operacja nie mogła zostać ukończona."""
 
 
-USER_AGENT = "E2-Foorys/0.9.5 Enigma2"
+USER_AGENT = "E2-Foorys/0.9.6 Enigma2"
 MANIFEST_LIMIT = 4 * 1024 * 1024
 DOWNLOAD_LIMIT = 512 * 1024 * 1024
 STORAGE_FALLBACK_DIR = "/etc/enigma2/e2foorys"
@@ -97,6 +97,15 @@ FOORYS_OSCAM_DVBAPI_LINES = (
     "P:1861",
 )
 
+DEFAULT_OSCAM_DVBAPI_PATH = "/etc/tuxbox/config/oscam-emu/oscam.dvbapi"
+OSCAM_DVBAPI_CANDIDATES = (
+    "/etc/tuxbox/config/oscam/oscam.dvbapi",
+    "/etc/tuxbox/config/oscam-emu/oscam.dvbapi",
+    "/etc/tuxbox/config/oscam-icam/oscam.dvbapi",
+    "/etc/tuxbox/config/oscam-latest/oscam.dvbapi",
+    "/etc/oscam/oscam.dvbapi",
+)
+
 IPTV_FORYS_DNS = "iptv.forys.pro"
 IPTV_FORYS_PORT = 8880
 IPTV_BOUQUET_NAME = "Foorys IPTV"
@@ -116,6 +125,20 @@ def _setting(settings, key, default=""):
         value = value.strip()
         return value or default
     return value
+
+
+def _oscam_dvbapi_target(settings, candidates=None):
+    """Wybiera rzeczywiście używany plik DVBAPI, bez ignorowania ustawień."""
+
+    configured = os.path.abspath(_setting(settings, "oscam_dvbapi_path", DEFAULT_OSCAM_DVBAPI_PATH))
+    # Własna ścieżka wpisana przez użytkownika zawsze jest nadrzędna.
+    if configured != os.path.abspath(DEFAULT_OSCAM_DVBAPI_PATH):
+        return configured
+    for candidate in candidates or OSCAM_DVBAPI_CANDIDATES:
+        candidate = os.path.abspath(candidate)
+        if os.path.isfile(candidate):
+            return candidate
+    return configured
 
 
 def _progress(callback, message):
@@ -1480,13 +1503,7 @@ def install_oscam_dvbapi(item, settings, progress=None):
 
     _progress(progress, "Przygotowuję aktualizację oscam.dvbapi...")
     storage = _storage_directory(settings)
-    target = os.path.abspath(
-        _setting(
-            settings,
-            "oscam_dvbapi_path",
-            "/etc/tuxbox/config/oscam-emu/oscam.dvbapi",
-        )
-    )
+    target = _oscam_dvbapi_target(settings)
     cache = _ensure_absolute_directory(os.path.join(storage, "cache"), "cache")
     downloaded = os.path.join(
         cache,
@@ -1519,13 +1536,7 @@ def install_current_oscam_dvbapi(_item, settings, progress=None):
 
     _progress(progress, "Tworzę aktualny oscam.dvbapi z trzema regułami Foorys...")
     storage = _storage_directory(settings)
-    target = os.path.abspath(
-        _setting(
-            settings,
-            "oscam_dvbapi_path",
-            "/etc/tuxbox/config/oscam-emu/oscam.dvbapi",
-        )
-    )
+    target = _oscam_dvbapi_target(settings)
     backup_metadata = []
     backup_root = os.path.join(storage, "backups", "oscam-%s" % _timestamp())
     if bool(_setting(settings, "create_backup", True)):

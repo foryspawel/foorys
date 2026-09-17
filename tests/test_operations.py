@@ -165,6 +165,16 @@ https://stream.example/live/extra
             self.assertEqual(result["lines"], ["P:1884", "P:0B01", "P:1861"])
             self.assertTrue(result["backup"])
 
+    def test_oscam_dvbapi_uses_existing_detected_path_when_default_is_set(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "oscam" / "oscam.dvbapi"
+            target.parent.mkdir()
+            target.write_text("P:9999\n", encoding="utf-8")
+            self.assertEqual(
+                operations._oscam_dvbapi_target({}, candidates=(str(target),)),
+                str(target),
+            )
+
     def test_install_picons_from_local_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
